@@ -16,7 +16,7 @@ openwisp-users
 
 ------------
 
-TODO
+Provides basic multi-tenancy features for OpenWISP 2 (using the Django web-framework).
 
 ------------
 
@@ -25,21 +25,6 @@ TODO
    :depth: 3
 
 ------------
-
-Current features
-----------------
-
-- TODO
-
-Project goals
--------------
-
-- TODO
-
-Dependencies
-------------
-
-* Python 2.7 or Python >= 3.4
 
 Install stable version from pypi
 --------------------------------
@@ -76,6 +61,8 @@ If you want to contribute, install your cloned fork:
 Setup (integrate in an existing django project)
 -----------------------------------------------
 
+``settings.py``:
+
 .. code-block:: python
 
     INSTALLED_APPS = [
@@ -92,6 +79,8 @@ Setup (integrate in an existing django project)
         'openwisp_users',
     ]
 
+``urls.py``:
+
 .. code-block:: python
 
     from django.conf.urls import include, url
@@ -104,16 +93,6 @@ Setup (integrate in an existing django project)
     ]
 
     urlpatterns += staticfiles_urlpatterns()
-
-Installing for development
---------------------------
-
-TODO
-
-Settings
---------
-
-TODO
 
 Contributing
 ------------
