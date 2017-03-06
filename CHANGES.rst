@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Version 0.1 [unreleased]
-------------------------
+Version 0.1.0 [2017-03-06]
+--------------------------
 
-WIP
+- added basic multi-tenancy features for OpenWISP 2
