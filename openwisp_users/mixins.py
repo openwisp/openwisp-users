@@ -13,7 +13,7 @@ class OrgMixin(models.Model):
       (the relation cannot be NULL)
     - implements ``_validate_org_relation`` method
     """
-    organization = models.ForeignKey('users.Organization',
+    organization = models.ForeignKey('openwisp_users.Organization',
                                      verbose_name=_('organization'))
 
     class Meta:

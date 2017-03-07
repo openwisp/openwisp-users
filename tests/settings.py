@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'openwisp_users',
+    'testapp'
 ]
 
 AUTH_USER_MODEL = 'openwisp_users.User'
