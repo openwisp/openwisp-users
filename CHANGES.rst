@@ -1,10 +1,10 @@
 Changelog
 =========
 
-Version 0.1.1 [unreleased]
+Version 0.1.1 [2017-03-07]
 --------------------------
 
-WIP
+- [mixins] Fixed relation name in `OrgMixin` and `ShareableOrgMixin`
 
 Version 0.1.0 [2017-03-06]
 --------------------------
