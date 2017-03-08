@@ -26,6 +26,11 @@ Provides basic multi-tenancy features for OpenWISP 2 (using the Django web-frame
 
 ------------
 
+Deploy it in production
+-----------------------
+
+An automated installer is available at `ansible-openwisp2 <https://github.com/openwisp/ansible-openwisp2>`_.
+
 Install stable version from pypi
 --------------------------------
 
