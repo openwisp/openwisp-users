@@ -66,7 +66,7 @@ If you want to contribute, install your cloned fork:
 Setup (integrate in an existing django project)
 -----------------------------------------------
 
-``settings.py``:
+``INSTALLED_APPS`` in ``settings.py`` should look like the following:
 
 .. code-block:: python
 
