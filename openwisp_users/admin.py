@@ -112,5 +112,8 @@ admin.site.register(Group, GroupAdmin)
 # unregister some admin components to keep the admin interface simple
 # we can re-enable these models later when they will be really needed
 for model in [('sites', 'Site'),
-              ('account', 'EmailAddress')]:
+              ('account', 'EmailAddress'),
+              ('socialaccount', 'SocialApp'),
+              ('socialaccount', 'SocialToken'),
+              ('socialaccount', 'SocialAccount')]:
     admin.site.unregister(apps.get_model(*model))
