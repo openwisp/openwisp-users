@@ -75,10 +75,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
             'openwisp_users_organizationuser-MAX_NUM_FORMS': 0
         })
-        self.client.post(reverse('admin:openwisp_users_user_change', args=[admin.pk]), params)
+        response = self.client.post(reverse('admin:openwisp_users_user_change', args=[admin.pk]), params)
         queryset = User.objects.filter(username='testchange')
-        self.assertEqual(queryset.count(), 1)
-        user = queryset.first()
-        self.assertEqual(user.email, '')
-        self.assertEqual(user.emailaddress_set.count(), 0)
+        self.assertEqual(queryset.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(response, 'errors field-email')

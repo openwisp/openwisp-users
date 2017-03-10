@@ -4,6 +4,7 @@ from django.apps import apps
 from django.contrib import admin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.utils.translation import ugettext_lazy as _
 from organizations.base_admin import (BaseOrganizationAdmin,
@@ -37,12 +38,21 @@ class OrganizationUserInline(admin.StackedInline):
     extra = 0
 
 
-class UserCreationForm(BaseUserCreationForm):
+class EmailRequiredMixin(forms.ModelForm):
     email = forms.EmailField(label=_('Email'), max_length=254, required=True)
+
+
+class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
+    pass
+
+
+class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
+    pass
 
 
 class UserAdmin(BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
+    form = UserChangeForm
     readonly_fields = ['last_login', 'date_joined']
     list_display = ('username', 'email', 'is_superuser', 'date_joined', 'last_login')
     inlines = [EmailAddressInline, OrganizationUserInline]
