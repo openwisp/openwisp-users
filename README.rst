@@ -81,6 +81,7 @@ Setup (integrate in an existing django project)
         'django_extensions',
         'allauth',
         'allauth.account',
+        'allauth.socialaccount',
         'openwisp_users',
     ]
 
