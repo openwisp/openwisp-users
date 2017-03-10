@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'allauth',
     'allauth.account',
+    'allauth.socialaccount',
     'openwisp_users',
     'testapp'
 ]

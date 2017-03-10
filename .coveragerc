@@ -1,5 +1,6 @@
 [run]
 omit =
+    openwisp_users/accounts/urls.py
     /*/test*
     /tests
     /*/__init__.py
