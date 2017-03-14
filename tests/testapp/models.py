@@ -9,3 +9,7 @@ class Template(ShareableOrgMixin):
 
 class Config(OrgMixin):
     name = models.CharField(max_length=16)
+    template = models.ForeignKey(Template, blank=True, null=True)
+
+    def clean(self):
+        self._validate_org_relation('template')

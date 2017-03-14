@@ -28,7 +28,7 @@ class OrgMixin(models.Model):
         if not hasattr(self, rel):
             return
         rel = getattr(self, rel)
-        if rel and rel.organization_id and self.organization_id != rel.organization_id:
+        if rel and rel.organization_id and str(self.organization_id) != str(rel.organization_id):
             message = _('Please ensure that the organization of this {object_label} '
                         'and the organization of the related {related_object_label} match.')
             message = message.format(object_label=self._meta.verbose_name,
