@@ -1,10 +1,17 @@
 Changelog
 =========
 
-Version 0.1.3 [unreleased]
+Version 0.1.3 [2017-03-15]
 --------------------------
 
-WIP
+- `f9056e9 <https://github.com/openwisp/openwisp-users/commit/f9056e9>`_:
+  [admin] Always require email
+- `c21c782 <https://github.com/openwisp/openwisp-users/commit/c21c782>`_:
+  [mixins] Fixed bugged org pk comparison in ``_validate_org_relation``
+- `763c261 <https://github.com/openwisp/openwisp-users/commit/763c261>`_:
+  [accounts] Added back frontend logout url
+- `b93de81 <https://github.com/openwisp/openwisp-users/commit/b93de81>`_:
+  [admin] Added back site model
 
 Version 0.1.2 [2017-03-10]
 --------------------------
