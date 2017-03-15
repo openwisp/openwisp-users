@@ -16,6 +16,7 @@ redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 urlpatterns = [
     url(r"^signup/$", redirect_view, name="account_signup"),
     url(r"^login/$", views.login, name="account_login"),
+    url(r"^logout/$", views.logout, name="account_logout"),
 
     # E-mail
     url(r"^confirm-email/$", views.email_verification_sent,
