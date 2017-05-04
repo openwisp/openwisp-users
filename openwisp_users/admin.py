@@ -100,7 +100,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
 
 
 class OrganizationUserAdmin(BaseOrganizationUserAdmin, BaseAdmin):
-    pass
+    view_on_site = False
 
 
 class OrganizationOwnerAdmin(BaseOrganizationOwnerAdmin, BaseAdmin):
