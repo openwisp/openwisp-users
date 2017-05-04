@@ -10,13 +10,13 @@ branches:
   only:
     - master
 
+before_install:
+  - pip install --no-cache-dir -U -r requirements-test.txt
+  - ./runflake8
+
 # command to install requirements
 install:
   - python setup.py -q develop
-  - pip install -r requirements-test.txt
-
-before_script:
-  - ./runflake8
 
 # command to run tests, e.g. python setup.py test
 script:
