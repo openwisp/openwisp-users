@@ -13,6 +13,7 @@ branches:
 before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
   - ./runflake8
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort; fi
 
 # command to install requirements
 install:
