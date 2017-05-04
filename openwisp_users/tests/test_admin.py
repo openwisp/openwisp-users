@@ -80,3 +80,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertEqual(queryset.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
         self.assertContains(response, 'errors field-email')
+
+    def test_organization_view_on_site(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        org = self._create_org()
+        response = self.client.get(reverse('admin:openwisp_users_organization_change', args=[org.pk]))
+        self.assertNotContains(response, 'viewsitelink')

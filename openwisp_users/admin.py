@@ -95,6 +95,7 @@ class OwnerInline(BaseOwnerInline):
 
 
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
+    view_on_site = False
     inlines = [OwnerInline]
 
 
