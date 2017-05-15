@@ -1,10 +1,15 @@
 Changelog
 =========
 
-Version 0.1.4 [unreleased]
+Version 0.1.4 [2017-05-15]
 --------------------------
 
-WIP
+- `f49f900 <https://github.com/openwisp/openwisp-users/commit/f49f900>`_:
+  [admin] Removed view on site link in organization admin
+- `2144b29 <https://github.com/openwisp/openwisp-users/commit/2144b29>`_:
+  [admin] Removed view on site link in organization user admin
+- `dcef200 <https://github.com/openwisp/openwisp-users/commit/dcef200>`_:
+  [requirements] Updated django-allauth to 0.32.0
 
 Version 0.1.3 [2017-03-15]
 --------------------------
