@@ -63,6 +63,21 @@ If you want to contribute, install your cloned fork:
     cd openwisp-users
     python setup.py develop
 
+If you want to run the development version locally:
+
+Set ``EMAIL_PORT`` in ``settings.py`` to a port number. For example:
+
+.. code-block:: python
+
+    EMAIL_PORT = '1025'
+
+.. code-block:: shell
+
+    # cd to root directory and run
+    python tests/manage.py runserver
+    # open another window and run
+    python -m smtpd -n -c DebuggingServer localhost:1025
+
 Setup (integrate in an existing django project)
 -----------------------------------------------
 
