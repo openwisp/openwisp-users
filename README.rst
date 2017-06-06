@@ -71,11 +71,13 @@ Set ``EMAIL_PORT`` in ``settings.py`` to a port number. For example:
 
     EMAIL_PORT = '1025'
 
+Launch the development server and the SMTP debugging server:
+
 .. code-block:: shell
 
     # cd to root directory and run
     python tests/manage.py runserver
-    # open another window and run
+    # open another terminal and run
     python -m smtpd -n -c DebuggingServer localhost:1025
 
 Setup (integrate in an existing django project)
