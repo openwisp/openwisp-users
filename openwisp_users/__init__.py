@@ -1,4 +1,4 @@
-VERSION = (0, 1, 4, 'final')
+VERSION = (0, 1, 5, 'alpha')
 __version__ = VERSION  # alias
 
 default_app_config = 'openwisp_users.apps.OpenwispUsersConfig'
