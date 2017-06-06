@@ -141,3 +141,8 @@ License
 -------
 
 See `LICENSE <https://github.com/openwisp/openwisp-users/blob/master/LICENSE>`_.
+
+Support
+-------
+
+See `OpenWISP Support Channels <http://openwisp.org/support.html>`_.
