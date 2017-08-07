@@ -46,8 +46,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
             'openwisp_users_organizationuser-MAX_NUM_FORMS': 0
         })
-        response = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]), params)
-        self.assertNotIn('error', str(response.content))
+        response = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]),
+                                    params, follow=True)
+        self.assertNotContains(response, 'error')
         user = User.objects.get(username='changemailtest')
         email_set = user.emailaddress_set
         self.assertEqual(email_set.count(), 2)
