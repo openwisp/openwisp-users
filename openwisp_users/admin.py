@@ -58,6 +58,28 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
 
+    def get_readonly_fields(self, request, obj=None):
+        # retrieve readonly fields
+        fields = super(UserAdmin, self).get_readonly_fields(request, obj)
+        # do not allow operators to set the is_superuser flag
+        if not request.user.is_superuser:
+            fields = fields[:] + ['is_superuser']  # copy to avoid modifying reference
+        return fields
+
+    def has_change_permission(self, request, obj=None):
+        # do not allow operators to edit details of superusers
+        # returns 403 if trying to access the change form of a superuser
+        if obj and obj.is_superuser and not request.user.is_superuser:
+            return False
+        return super(UserAdmin, self).has_change_permission(request, obj)
+
+    def get_queryset(self, request):
+        qs = super(UserAdmin, self).get_queryset(request)
+        # hide superusers from operators (they can't edit their details)
+        if not request.user.is_superuser:
+            qs = qs.filter(is_superuser=False)
+        return qs
+
     def get_inline_instances(self, request, obj=None):
         """
         Avoid displaying inline objects when adding a new user

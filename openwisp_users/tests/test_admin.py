@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
@@ -8,6 +9,13 @@ from .utils import TestOrganizationMixin
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
     """ test admin site """
+    def _create_operator(self, organizations=[]):
+        operator = User.objects.create_user(username='operator',
+                                            password='tester',
+                                            email='operator@test.com',
+                                            is_staff=True)
+        operator.user_permissions.add(*Permission.objects.filter(codename__endswith='user'))
+        return operator
 
     def test_admin_add_user_auto_email(self):
         admin = self._create_admin()
@@ -96,3 +104,34 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         ou = org.add_user(admin)
         response = self.client.get(reverse('admin:openwisp_users_organizationuser_change', args=[ou.pk]))
         self.assertNotContains(response, 'viewsitelink')
+
+    def test_admin_change_user_is_superuser_editable(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
+        html = '<input type="checkbox" name="is_superuser"'
+        self.assertContains(response, html)
+
+    def test_admin_change_user_is_superuser_readonly(self):
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
+        html = '<div class="readonly"><img src="/static/admin/img/icon-no.svg" alt="False" /></div>'
+        self.assertContains(response, html)
+
+    def test_admin_changelist_user_superusers_hidden(self):
+        self._create_admin()
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        self.assertNotContains(response, 'admin</a>')
+
+    def test_admin_operator_change_superuser_forbidden(self):
+        admin = self._create_admin()
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
+        self.assertEqual(response.status_code, 200)
+        # operator trying to acess change form of superuser gets redirected
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
+        self.assertEqual(response.status_code, 302)

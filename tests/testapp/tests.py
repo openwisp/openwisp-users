@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from openwisp_users.tests.utils import TestOrganizationMixin
+
 from .models import Config, Template
 
 
