@@ -119,6 +119,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         html = '<div class="readonly"><img src="/static/admin/img/icon-no.svg" alt="False" /></div>'
         self.assertContains(response, html)
 
+    def test_admin_change_user_permissions_editable(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
+        html = '<select name="user_permissions"'
+        self.assertContains(response, html)
+
+    def test_admin_change_user_permissions_readonly(self):
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
+        html = '<div class="readonly">openwisp_users'
+        self.assertContains(response, html)
+
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()
         operator = self._create_operator()

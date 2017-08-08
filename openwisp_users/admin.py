@@ -61,9 +61,10 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
         fields = super(UserAdmin, self).get_readonly_fields(request, obj)
-        # do not allow operators to set the is_superuser flag
+        # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
-            fields = fields[:] + ['is_superuser']  # copy to avoid modifying reference
+            # copy to avoid modifying reference
+            fields = fields[:] + ['is_superuser', 'user_permissions']
         return fields
 
     def has_change_permission(self, request, obj=None):
