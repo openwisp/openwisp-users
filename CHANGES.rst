@@ -1,10 +1,14 @@
 Changelog
 =========
 
-Version 0.1.5 [unreleased]
+Version 0.1.5 [2017-08-29]
 --------------------------
 
-WIP
+- `#3 <https://github.com/openwisp/openwisp-users/issues/3>`_:
+  [admin] Allow operators to manage users without being
+  able to change superuser related details
+- `31b13bb <https://github.com/openwisp/openwisp-users/commit/31b13bb>`_:
+  [requirements] Updated django-allauth to 0.33.0
 
 Version 0.1.4 [2017-05-15]
 --------------------------
