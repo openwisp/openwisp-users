@@ -1,5 +1,4 @@
 from django.db import models
-
 from openwisp_users.mixins import OrgMixin, ShareableOrgMixin
 
 
