@@ -7,19 +7,11 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 
-class OrgMixin(models.Model):
+class ValidateOrgMixin(object):
     """
-    - adds a ``ForeignKey`` field to the ``Organization`` model
-      (the relation cannot be NULL)
     - implements ``_validate_org_relation`` method
     """
-    organization = models.ForeignKey('openwisp_users.Organization',
-                                     verbose_name=_('organization'))
-
-    class Meta:
-        abstract = True
-
-    def _validate_org_relation(self, rel):
+    def _validate_org_relation(self, rel, field_error='organization'):
         """
         if the relation is owned by a specific organization
         this object must be related to the same organization
@@ -33,7 +25,20 @@ class OrgMixin(models.Model):
                         'and the organization of the related {related_object_label} match.')
             message = message.format(object_label=self._meta.verbose_name,
                                      related_object_label=rel._meta.verbose_name)
-            raise ValidationError({'organization': message})
+            raise ValidationError({field_error: message})
+
+
+class OrgMixin(ValidateOrgMixin, models.Model):
+    """
+    - adds a ``ForeignKey`` field to the ``Organization`` model
+      (the relation cannot be NULL)
+    - implements ``_validate_org_relation`` method
+    """
+    organization = models.ForeignKey('openwisp_users.Organization',
+                                     verbose_name=_('organization'))
+
+    class Meta:
+        abstract = True
 
 
 class ShareableOrgMixin(OrgMixin):
