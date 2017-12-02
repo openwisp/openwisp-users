@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 0.1.6 [2017-12-02]
+--------------------------
+
+- `c5b648e <https://github.com/openwisp/openwisp-users/commit/c5b648e>`_:
+  [mixins] Extracted logic of ``OrgMixin`` to ``ValidateOrgMixin``
+
 Version 0.1.5 [2017-08-29]
 --------------------------
 
