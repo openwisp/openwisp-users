@@ -113,8 +113,8 @@ Install your forked repo:
 
 .. code-block:: shell
 
-    git clone git://github.com/<your_fork>/django-netjsonconfig
-    cd django-netjsonconfig/
+    git clone git://github.com/<your_fork>/openwisp-users
+    cd openwisp-users/
     python setup.py develop
 
 Install test requirements:
