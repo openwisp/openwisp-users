@@ -8,7 +8,7 @@ python:
 
 env:
   - DJANGO="django>=1.11,<1.12"
-
+  - DJANGO2="django>=2.00,<2.1"
 branches:
   only:
     - master
