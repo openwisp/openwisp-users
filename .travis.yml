@@ -2,14 +2,13 @@ language: python
 sudo: false
 cache: pip
 
+python:
+  - "3.4"
+  
 env:
-  DJANGO: django>=1.11, <1.12
-  DJANGO2: django>=2.0, <2.1
-matrix:
-  include: 
-  - { python: 3.4, env: TOXENV=py34-DJANGO2 }
-  - { python: 2.7, env: TOXENV=py27-DJANGO }
- 
+  - DJANGO="django>=1.11,<1.12"
+  - DJANGO2="django>=2.00,<2.1"
+
 branches:
   only:
     - master
