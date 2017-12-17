@@ -8,8 +8,14 @@ python:
 
 env:
   - DJANGO="django>=1.11,<1.12"
-  - DJANGO="django>=2.00,<2.10"
-
+  - DJANGO2="django>=2.00,<2.10"
+  
+matrix:
+  include: 
+  - { python: 3.6, env: TOXENV=py36-DJANGO }
+  - { python: 3.6, env: TOXENV=py36-DJANGO2 }
+  - { python: 2.7, env: TOXENV=py27-DJANGO }
+ 
 branches:
   only:
     - master
@@ -21,7 +27,7 @@ before_install:
 
 # command to install requirements
 install:
-  - pip install $DJANGO
+  - pip install DJANGO==[env]
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
