@@ -21,6 +21,7 @@ before_install:
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install $DJANGO2;
     else pip install $DJANGO; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install django_organizations; fi
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
