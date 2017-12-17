@@ -20,7 +20,7 @@ before_install:
 
 # command to install requirements
 install:
-  - pip install $DJANGO
+  - pip install $DJANGO2
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
