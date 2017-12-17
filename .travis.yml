@@ -2,13 +2,12 @@ language: python
 sudo: false
 cache: pip
 
-python:
-  - "3.4"
-  - "2.7"
-
-env:
-  - DJANGO="django>=1.11,<1.12"
-
+matrix:
+  include:
+    - python: '2.7'
+      env: DJANGO="django>=1.11,<1.12"
+    - python: '3.4'
+      env: DJANGO2="django>=2.0,<2.1"
 branches:
   only:
     - master
@@ -20,12 +19,14 @@ before_install:
 
 # command to install requirements
 install:
-  - pip install $DJANGO
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install $DJANGO2;
+    else pip install $DJANGO; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install django_organizations; fi
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
 script:
   - coverage run --source=openwisp_users runtests.py
-
+#test
 after_success:
   coveralls
