@@ -19,7 +19,7 @@ before_install:
 
 # command to install requirements
 install:
-  - if [[ $TRAVIS_TOXENV == 'py34-DJANGO2' ]]; then pip install $DJANGO; else pip install $DJANGO2.0; fi
+  - if [[ $TRAVIS_TOXENV == 'py34-DJANGO2' ]]; then pip install $DJANGO; else pip install $DJANGO2; fi
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
