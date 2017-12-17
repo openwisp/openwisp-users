@@ -2,15 +2,12 @@ language: python
 sudo: false
 cache: pip
 
-python:
-  - "3.6"
-  - "2.7"
 matrix:
   include:
     - python: '2.7'
       env: DJANGO="django>=1.11,<1.12"
     - python: '3.6'
-      env: DJANGO="django>=2.0,<2.1"
+      env: DJANGO2="django>=2.0,<2.1"
 branches:
   only:
     - master
