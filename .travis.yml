@@ -14,7 +14,7 @@ matrix:
   include: 
   - { python: 3.6, env: TOXENV=py36-DJANGO }
   - { python: 3.6, env: TOXENV=py36-DJANGO2 }
-  - { python: 2.7, env: TOXENV=py27-DJANGO }
+  - { python: 2.7, env: TOXENV=DJANGO }
  
 branches:
   only:
