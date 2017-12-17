@@ -8,7 +8,14 @@ python:
 
 env:
   - DJANGO="django>=1.11,<1.12"
-
+  - DJANGO2="django>=2.00,<2.10"
+  
+matrix:
+  include: 
+  - { python: 3.4, env: TOXENV=py36-DJANGO }
+  - { python: 3.4, env: TOXENV=py36-DJANGO2 }
+  - { python: 2.7, env: TOXENV=DJANGO }
+ 
 branches:
   only:
     - master
@@ -16,11 +23,11 @@ branches:
 before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
   - ./runflake8
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort;
 
 # command to install requirements
 install:
-  - pip install $DJANGO
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install $DJANGO; else pip install $DJANGO == 2.0
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
