@@ -2,9 +2,6 @@ language: python
 sudo: false
 cache: pip
 
-python:
-  - "3.4"
-  - "2.7"  
 matrix:
   include: 
   - { python: 3.4, env: TOXENV=py34-DJANGO2 }
@@ -18,7 +15,7 @@ branches:
 before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
   - ./runflake8
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort;
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort; fi
 
 # command to install requirements
 install:
