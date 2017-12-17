@@ -9,8 +9,8 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from organizations.abstract import (AbstractOrganization,
-                                    AbstractOrganizationOwner,
-                                    AbstractOrganizationUser)
+                                    AbstractOrganizationOwner,		
+                                   AbstractOrganizationUser)
 
 
 class UserManager(BaseUserManager):

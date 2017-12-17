@@ -7,7 +7,7 @@ disabled (not implemented yet).
 
 from allauth.account import views
 from django.conf.urls import url
-from django.core.urlresolvers import reverse_lazy
+from django.core.urls import reverse_lazy
 from django.views.generic import RedirectView
 
 redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
