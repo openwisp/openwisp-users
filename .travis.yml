@@ -2,10 +2,12 @@ language: python
 sudo: false
 cache: pip
 
+env:
+  DJANGO: django>=1.11, <1.12
+  DJANGO2: django>=2.0, <2.1
 matrix:
   include: 
   - { python: 3.4, env: TOXENV=py34-DJANGO2 }
-  - { python: 3.4, env: TOXENV=py34-DJANGO }
   - { python: 2.7, env: TOXENV=py27-DJANGO }
  
 branches:
@@ -19,7 +21,7 @@ before_install:
 
 # command to install requirements
 install:
-  - if [[ $TRAVIS_TOXENV == 'py34-DJANGO2' ]]; then pip install $DJANGO; else pip install $DJANGO2; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install $DJANGO2; else pip install $DJANGO; fi
   - python setup.py -q develop
 
 # command to run tests, e.g. python setup.py test
