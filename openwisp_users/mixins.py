@@ -34,8 +34,7 @@ class OrgMixin(ValidateOrgMixin, models.Model):
       (the relation cannot be NULL)
     - implements ``_validate_org_relation`` method
     """
-    organization = models.ForeignKey('openwisp_users.Organization',
-                                     verbose_name=_('organization'))
+    organization = models.ForeignKey('openwisp_users.Organization', on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
