@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.1.7 [2017-12-22]
+--------------------------
+
+- upgraded django to 2.0 and django-allauth to 0.34.0
+
 Version 0.1.6 [2017-12-02]
 --------------------------
 
