@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import resolve
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 from .models import Config, Template
@@ -26,3 +27,13 @@ class TestModels(TestOrganizationMixin, TestCase):
         c.full_clean()
         c.save()
         self.assertEqual(Config.objects.count(), 1)
+
+    def test_resolve_account_URLs(self):
+        resolver = resolve('/accounts/login/')
+        self.assertEqual(resolver.view_name, 'account_login')
+        resolver = resolve('/accounts/signup/')
+        self.assertEqual(resolver.view_name, 'account_signup')
+        resolver = resolve('/accounts/logout/')
+        self.assertEqual(resolver.view_name, 'account_logout')
+        resolver = resolve('/accounts/password/reset/')
+        self.assertEqual(resolver.view_name, 'account_reset_password')
