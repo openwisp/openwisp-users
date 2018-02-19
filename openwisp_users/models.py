@@ -1,9 +1,9 @@
 import uuid
 
 from allauth.account.models import EmailAddress
+from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
-from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
