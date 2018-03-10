@@ -38,7 +38,7 @@ Install from pypi:
 
 .. code-block:: shell
 
-    pip install openwisp-users
+    pip3 install openwisp-users
 
 Install development version
 ---------------------------
