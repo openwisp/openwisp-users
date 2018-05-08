@@ -31,6 +31,7 @@ install:
 
 # command to run tests, e.g. python setup.py test
 script:
+  - if [[ $TRAVIS_PYTHON_VERSION == 3.4 ]]; then ./tests/manage.py makemigrations openwisp_users --dry-run | grep "No changes detected"; fi
   - coverage run --source=openwisp_users runtests.py
 
 after_success:
