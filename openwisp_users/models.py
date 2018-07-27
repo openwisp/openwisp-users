@@ -39,6 +39,7 @@ class User(AbstractUser):
     OpenWISP User model
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    last_name = models.CharField(_('last name'), max_length=30, blank=True)
     bio = models.TextField(_('bio'), blank=True)
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
