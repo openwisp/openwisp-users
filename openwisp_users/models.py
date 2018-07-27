@@ -1,5 +1,6 @@
 import uuid
 
+import django
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
@@ -39,7 +40,6 @@ class User(AbstractUser):
     OpenWISP User model
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    last_name = models.CharField(_('last name'), max_length=30, blank=True)
     bio = models.TextField(_('bio'), blank=True)
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
@@ -58,6 +58,12 @@ class User(AbstractUser):
                     .only('organization_id') \
                     .values_list('organization_id')
         return qs
+
+
+# fix migration issue #20 happening on older django versions
+# TODO: remove this once support for django 1.11 is removed
+if django.VERSION < (2, 0):
+    User._meta.get_field('last_name').max_length = 150
 
 
 class Group(BaseGroup):
