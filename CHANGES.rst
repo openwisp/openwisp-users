@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 0.1.9 [2018-07-27]
+--------------------------
+
+- `#25 <https://github.com/openwisp/openwisp-users/pull/25>`_:
+  [docs] Updated setup instructions in README
+  (thanks to `@AlmogCohen <https://github.com/AlmogCohen>`_)
+- `#20 <https://github.com/openwisp/openwisp-users/issues/20>`_:
+  [tests] Fixed pending migration check
+- [requirements] Updated dependencies
+
 Version 0.1.8 [2018-02-19]
 --------------------------
 
