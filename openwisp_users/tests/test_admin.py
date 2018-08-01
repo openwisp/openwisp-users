@@ -116,8 +116,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         operator = self._create_operator()
         self.client.force_login(operator)
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
-        html = '<div class="readonly"><img src="/static/admin/img/icon-no.svg" alt="False" /></div>'
-        self.assertContains(response, html)
+        html = '<input type="checkbox" name="is_superuser" checked id="id_is_superuser">'
+        self.assertNotContains(response, html)
 
     def test_admin_change_user_permissions_editable(self):
         admin = self._create_admin()
