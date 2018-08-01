@@ -1,12 +1,12 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from django.urls import resolve
+from django.urls import resolve, reverse
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 from .models import Config, Template
 
 
-class TestModels(TestOrganizationMixin, TestCase):
+class TestIntegration(TestOrganizationMixin, TestCase):
     def test_derived_model_config(self):
         self.assertEqual(Template.objects.count(), 0)
         t = Template(name='test')
@@ -37,3 +37,21 @@ class TestModels(TestOrganizationMixin, TestCase):
         self.assertEqual(resolver.view_name, 'account_logout')
         resolver = resolve('/accounts/password/reset/')
         self.assertEqual(resolver.view_name, 'account_reset_password')
+
+    def test_account_email_verification_sent(self):
+        r = self.client.get(reverse('account_email_verification_sent'))
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'Change E-mail</a></li>')
+        self.assertNotContains(r, 'Sign Up</a></li>')
+
+    def test_account_confirm_email(self):
+        r = self.client.get(reverse('account_confirm_email', args=['abc123']))
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'Change E-mail</a></li>')
+        self.assertNotContains(r, 'Sign Up</a></li>')
+
+    def test_account_reset_password(self):
+        r = self.client.get(reverse('account_reset_password'))
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'Change E-mail</a></li>')
+        self.assertNotContains(r, 'Sign Up</a></li>')

@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.sites',
     'django_extensions',
+    'openwisp_users.accounts',  # only needed in test env
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -72,7 +73,9 @@ TEMPLATES = [
     }
 ]
 
-EMAIL_PORT = '1025'  # for testing purposes
+# during development only
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+LOGIN_REDIRECT_URL = 'admin:index'
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
