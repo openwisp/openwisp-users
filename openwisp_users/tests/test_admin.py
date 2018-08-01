@@ -149,3 +149,39 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         # operator trying to acess change form of superuser gets redirected
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
         self.assertEqual(response.status_code, 302)
+
+    def test_new_user_email_exists(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(username='testadd',
+                      email='test@testadd.com',
+                      password1='tester',
+                      password2='tester')
+        self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        self.assertContains(res, '<li>User with this email already exists.</li>')
+
+    def test_edit_user_email_exists(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        self._create_user()
+        user = self._create_user(email='asd@asd.com', username='newTester')
+        params = user.__dict__
+        params['email'] = 'test@tester.com'
+        params.update({
+            'emailaddress_set-TOTAL_FORMS': 1,
+            'emailaddress_set-INITIAL_FORMS': 1,
+            'emailaddress_set-MIN_NUM_FORMS': 0,
+            'emailaddress_set-MAX_NUM_FORMS': 0,
+            'emailaddress_set-0-verified': True,
+            'emailaddress_set-0-primary': True,
+            'emailaddress_set-0-id': user.emailaddress_set.first().id,
+            'emailaddress_set-0-user': user.id,
+            'openwisp_users_organizationuser-TOTAL_FORMS': 0,
+            'openwisp_users_organizationuser-INITIAL_FORMS': 0,
+            'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
+            'openwisp_users_organizationuser-MAX_NUM_FORMS': 0
+        })
+        res = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]), params,
+                               follow=True)
+        self.assertContains(res, '<li>User with this email already exists.</li>')
