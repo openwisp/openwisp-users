@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 0.1.10 [2018-08-01]
+--------------------------
+
+- `#26 <https://github.com/openwisp/openwisp-users/pull/26>`_:
+  [admin] Fixed Integrity error if trying to change email that exists
+  (thanks to `@R9295 <https://github.com/R9295>`_)
+- `#27 <https://github.com/openwisp/openwisp-users/issues/27>`_:
+  [requirements] Added support for django 2.1 rc
+
 Version 0.1.9 [2018-07-27]
 --------------------------
 
