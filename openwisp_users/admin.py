@@ -105,7 +105,7 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         """
         if obj:
             return super(UserAdmin, self).get_inline_instances(request, obj)
-        return []
+        return [OrganizationUserInline(self.model, self.admin_site)]
 
     def save_model(self, request, obj, form, change):
         """

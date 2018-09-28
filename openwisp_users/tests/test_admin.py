@@ -9,6 +9,17 @@ from .utils import TestOrganizationMixin
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
     """ test admin site """
+    add_user_inline_params = {
+        'emailaddress_set-TOTAL_FORMS': 0,
+        'emailaddress_set-INITIAL_FORMS': 0,
+        'emailaddress_set-MIN_NUM_FORMS': 0,
+        'emailaddress_set-MAX_NUM_FORMS': 0,
+        'openwisp_users_organizationuser-TOTAL_FORMS': 0,
+        'openwisp_users_organizationuser-INITIAL_FORMS': 0,
+        'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
+        'openwisp_users_organizationuser-MAX_NUM_FORMS': 0
+    }
+
     def _create_operator(self, organizations=[]):
         operator = User.objects.create_user(username='operator',
                                             password='tester',
@@ -24,6 +35,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                       email='test@testadd.com',
                       password1='tester',
                       password2='tester')
+        params.update(self.add_user_inline_params)
         self.client.post(reverse('admin:openwisp_users_user_add'), params)
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 1)
@@ -157,6 +169,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                       email='test@testadd.com',
                       password1='tester',
                       password2='tester')
+        params.update(self.add_user_inline_params)
         self.client.post(reverse('admin:openwisp_users_user_add'), params)
         res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
         self.assertContains(res, '<li>User with this email already exists.</li>')
