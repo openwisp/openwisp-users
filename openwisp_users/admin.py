@@ -139,10 +139,25 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         return super(UserAdmin, self).has_change_permission(request, obj)
 
     def get_queryset(self, request):
-        qs = super(UserAdmin, self).get_queryset(request)
-        # hide superusers from operators (they can't edit their details)
+        # if not superuser, show only members of the same org
         if not request.user.is_superuser:
-            qs = qs.filter(is_superuser=False)
+            user = request.user
+            org_users = OrganizationUser.objects.filter(user=user) \
+                                                .select_related('organization')
+            qs = None
+            for org_user in org_users:
+                add_qs = org_user.organization.users.all()
+                if qs:
+                    # if merging an existing queryset
+                    # avoid including the current user twice
+                    qs = qs | add_qs.exclude(pk=user.id)
+                else:
+                    qs = add_qs
+                # hide superusers from organization operators
+                # so they can't edit nor delete them
+                qs = qs.filter(is_superuser=False)
+        else:
+            qs = super(UserAdmin, self).get_queryset(request)
         return qs
 
     def get_inline_instances(self, request, obj=None):
