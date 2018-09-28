@@ -66,7 +66,13 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
     readonly_fields = ['last_login', 'date_joined']
-    list_display = ('username', 'email', 'is_superuser', 'date_joined', 'last_login')
+    list_display = ['username',
+                    'email',
+                    'is_active',
+                    'is_staff',
+                    'is_superuser',
+                    'date_joined',
+                    'last_login']
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
 
