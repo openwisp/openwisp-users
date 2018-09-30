@@ -1,8 +1,14 @@
 Changelog
 =========
 
+Version 0.1.11 [unreleased]
+---------------------------
+
+WIP
+
+
 Version 0.1.10 [2018-08-01]
---------------------------
+---------------------------
 
 - `#26 <https://github.com/openwisp/openwisp-users/pull/26>`_:
   [admin] Fixed Integrity error if trying to change email that exists
