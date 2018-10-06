@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
@@ -39,6 +41,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
     """
     Generates an inline formset that is required
     """
+
     def _construct_form(self, i, **kwargs):
         """
         Override the method to change the form attribute empty_permitted
@@ -53,6 +56,21 @@ class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
 
+    def get_formset(self, request, obj=None, **kwargs):
+        """
+        In form dropdowns, display only organizations
+        in which operator `is_admin` and for superusers
+        display all organizations
+        """
+        formset = super(OrganizationUserInline, self).get_formset(request, obj=obj, **kwargs)
+        if not request.user.is_superuser:
+            operator_orgs = OrganizationUser.objects.values_list('organization') \
+                                                    .filter(user=request.user,
+                                                            is_admin=True)
+            formset.form.base_fields['organization'].queryset = \
+                Organization.objects.filter(pk__in=operator_orgs)
+        return formset
+
     def get_extra(self, request, obj=None, **kwargs):
         if not obj:
             return 1
@@ -64,7 +82,7 @@ class EmailRequiredMixin(forms.ModelForm):
 
     def _clean_email(self, email):
         if User.objects.filter(email=email).count() > 0 or \
-         EmailAddress.objects.filter(email=email).exclude(user=self.instance.pk).count() > 0:
+                EmailAddress.objects.filter(email=email).exclude(user=self.instance.pk).count() > 0:
             raise ValidationError({'email': ['User with this email already exists.']})
 
     def clean(self):
@@ -113,6 +131,19 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
 
+    def get_list_display(self, request):
+        """
+        Hide `is_superuser` from column from operators
+        """
+        default_list_display = super(UserAdmin, self).get_list_display(request)
+        if (not request.user.is_superuser and
+                'is_superuser' in default_list_display):
+            # avoid editing the default_list_display
+            operators_list_display = default_list_display[:]
+            operators_list_display.remove('is_superuser')
+            return operators_list_display
+        return default_list_display
+
     def get_fieldsets(self, request, obj=None):
         # add form fields for staff users
         if not obj and not request.user.is_superuser:
@@ -120,7 +151,15 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         # add form fields for superusers
         if not obj and request.user.is_superuser:
             return self.add_form.Meta.fieldsets_superuser
-        return super(UserAdmin, self).get_fieldsets(request, obj)
+        # return fieldsets according to user
+        fieldsets = super(UserAdmin, self).get_fieldsets(request, obj)
+        if not request.user.is_superuser:
+            # copy to avoid modifying reference
+            non_superuser_fieldsets = deepcopy(fieldsets)
+            non_superuser_fieldsets[2][1]['fields'] = tuple(
+                ('is_active', 'is_staff', 'groups', 'user_permissions'))
+            return non_superuser_fieldsets
+        return fieldsets
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
@@ -128,7 +167,7 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
             # copy to avoid modifying reference
-            fields = fields[:] + ['is_superuser', 'user_permissions']
+            fields = fields[:] + ['user_permissions']
         return fields
 
     def has_change_permission(self, request, obj=None):
@@ -139,23 +178,20 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         return super(UserAdmin, self).has_change_permission(request, obj)
 
     def get_queryset(self, request):
-        # if not superuser, show only members of the same org
+        """
+        if operator is logged in - show only users
+        from same organization and hide superusers
+        if superuser is logged in - show all users
+        """
         if not request.user.is_superuser:
-            user = request.user
-            org_users = OrganizationUser.objects.filter(user=user) \
-                                                .select_related('organization')
-            qs = None
-            for org_user in org_users:
-                add_qs = org_user.organization.users.all()
-                if qs:
-                    # if merging an existing queryset
-                    # avoid including the current user twice
-                    qs = qs | add_qs.exclude(pk=user.id)
-                else:
-                    qs = add_qs
-                # hide superusers from organization operators
-                # so they can't edit nor delete them
-                qs = qs.filter(is_superuser=False)
+            org_ids = OrganizationUser.objects.only("organization_id") \
+                                              .values_list("organization_id") \
+                                              .filter(user=request.user,
+                                                      is_admin=True)
+            user_ids = OrganizationUser.objects.only("user_id") \
+                                               .values_list("user_id") \
+                                               .filter(organization__in=org_ids)
+            qs = User.objects.filter(pk__in=user_ids, is_superuser=False)
         else:
             qs = super(UserAdmin, self).get_queryset(request)
         return qs
@@ -185,7 +221,8 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
 additional_fields = ['bio', 'url', 'company', 'location']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
-UserAdmin.add_fieldsets[0][1]['fields'] = ('username', 'email', 'password1', 'password2')
+UserAdmin.add_fieldsets[0][1]['fields'] = ('username', 'email',
+                                           'password1', 'password2')
 
 
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
