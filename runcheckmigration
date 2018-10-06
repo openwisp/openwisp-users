@@ -2,7 +2,7 @@
 set -e
 
 checkmigrations --migrations-to-ignore 3 \
-        --migration-path ./openwisp_users/migrations/ || exit 1
+                --migration-path ./openwisp_users/migrations/ || exit 1
 
 checkmigrations --migrations-to-ignore 2 \
-        --migration-path ./tests/testapp/migrations/ || exit 1
+                --migration-path ./tests/testapp/migrations/ || exit 1
