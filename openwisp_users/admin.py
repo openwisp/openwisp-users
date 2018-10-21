@@ -152,8 +152,13 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         if obj:
             return super(UserAdmin, self).get_inline_instances(request, obj)
         inline = OrganizationUserInline(self.model, self.admin_site)
-        if request and inline._has_add_permission(request, obj):
-            return [inline]
+        if request:
+            if hasattr(inline, '_has_add_permission'):
+                has_add_perm = inline._has_add_permission(request, obj)
+            else:
+                has_add_perm = inline.has_add_permission(request)
+            if has_add_perm:
+                return [inline]
         return []
 
     def save_model(self, request, obj, form, change):
