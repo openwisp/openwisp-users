@@ -198,3 +198,14 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         res = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]), params,
                                follow=True)
         self.assertContains(res, '<li>User with this email already exists.</li>')
+        
+    def test_operator_change_user_permissions(self):
+        operator = self._create_operator()
+        operator.is_staff = True
+        # print(operator._meta.get_fields())
+        operator.user_permissions.set(Permission.objects.all())
+        self.client.force_login(operator)
+        admin = self._create_admin()
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
+        html = '<input type="checkbox" name="is_superuser"'
+        self.assertNotContains(response, html)
