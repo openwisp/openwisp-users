@@ -5,8 +5,12 @@ in order to keep sign up related features
 disabled (not implemented yet).
 """
 
+from importlib import import_module
+
+from allauth import app_settings
 from allauth.account import views
-from django.conf.urls import url
+from allauth.socialaccount import providers
+from django.conf.urls import include, url
 from django.urls import reverse_lazy
 from django.views.generic import RedirectView
 
@@ -35,3 +39,15 @@ urlpatterns = [
     url(r"^password/reset/key/done/$", views.password_reset_from_key_done,
         name="account_reset_password_from_key_done"),
 ]
+
+if app_settings.SOCIALACCOUNT_ENABLED:
+    urlpatterns += [url(r'^social/', include('allauth.socialaccount.urls'))]
+
+for provider in providers.registry.get_list():
+    try:
+        prov_mod = import_module(provider.get_package() + '.urls')
+    except ImportError:
+        continue
+    prov_urlpatterns = getattr(prov_mod, 'urlpatterns', None)
+    if prov_urlpatterns:
+        urlpatterns += prov_urlpatterns

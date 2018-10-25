@@ -7,6 +7,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
 from organizations.base_admin import (BaseOrganizationAdmin,
                                       BaseOrganizationOwnerAdmin,
@@ -34,9 +35,28 @@ class EmailAddressInline(admin.StackedInline):
         return False
 
 
+class RequiredInlineFormSet(BaseInlineFormSet):
+    """
+    Generates an inline formset that is required
+    """
+    def _construct_form(self, i, **kwargs):
+        """
+        Override the method to change the form attribute empty_permitted
+        """
+        form = super(RequiredInlineFormSet, self)._construct_form(i, **kwargs)
+        # only super users can be created without organization
+        form.empty_permitted = self.instance.is_superuser
+        return form
+
+
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
-    extra = 0
+    formset = RequiredInlineFormSet
+
+    def get_extra(self, request, obj=None, **kwargs):
+        if not obj:
+            return 1
+        return 0
 
 
 class EmailRequiredMixin(forms.ModelForm):
@@ -55,7 +75,24 @@ class EmailRequiredMixin(forms.ModelForm):
 
 
 class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
-    pass
+    class Meta(BaseUserCreationForm.Meta):
+        fields = ['username', 'email', 'password1', 'password2', 'is_staff']
+        fields_superuser = fields[:] + ['is_superuser']
+        fieldsets = (
+            (None, {
+                'classes': ('wide',),
+                'fields': fields,
+            }),
+        )
+        fieldsets_superuser = (
+            (None, {
+                'classes': ('wide',),
+                'fields': fields_superuser,
+            }),
+        )
+
+    class Media:
+        js = ('openwisp-users/js/addform.js',)
 
 
 class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
@@ -75,6 +112,15 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
                     'last_login']
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
+
+    def get_fieldsets(self, request, obj=None):
+        # add form fields for staff users
+        if not obj and not request.user.is_superuser:
+            return self.add_form.Meta.fieldsets
+        # add form fields for superusers
+        if not obj and request.user.is_superuser:
+            return self.add_form.Meta.fieldsets_superuser
+        return super(UserAdmin, self).get_fieldsets(request, obj)
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
@@ -105,7 +151,15 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
         """
         if obj:
             return super(UserAdmin, self).get_inline_instances(request, obj)
-        return [OrganizationUserInline(self.model, self.admin_site)]
+        inline = OrganizationUserInline(self.model, self.admin_site)
+        if request:
+            if hasattr(inline, '_has_add_permission'):
+                has_add_perm = inline._has_add_permission(request, obj)
+            else:
+                has_add_perm = inline.has_add_permission(request)
+            if has_add_perm:
+                return [inline]
+        return []
 
     def save_model(self, request, obj, form, change):
         """

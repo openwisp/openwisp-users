@@ -209,3 +209,61 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
         html = '<input type="checkbox" name="is_superuser"'
         self.assertNotContains(response, html)
+
+    def test_admin_add_user_by_superuser(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        res = self.client.get(reverse('admin:openwisp_users_user_add'))
+        self.assertContains(res, 'is_superuser')
+
+    def test_admin_add_user_by_operator(self):
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        res = self.client.get(reverse('admin:openwisp_users_user_add'))
+        self.assertNotContains(res, 'is_superuser')
+
+    def test_admin_add_user_org_required(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(username='testadd',
+                      email='test@testadd.com',
+                      password1='tester',
+                      password2='tester',
+                      is_staff=True,
+                      is_superuser=False)
+        params.update(self.add_user_inline_params)
+        params.update({
+            'openwisp_users_organizationuser-TOTAL_FORMS': 1,
+            'openwisp_users_organizationuser-INITIAL_FORMS': 0,
+            'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
+            'openwisp_users_organizationuser-MAX_NUM_FORMS': 1,
+        })
+        res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        queryset = User.objects.filter(username='testadd')
+        self.assertEqual(queryset.count(), 0)
+        self.assertContains(res, 'errors field-organization')
+
+    def test_admin_add_superuser_org_not_required(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(username='testadd',
+                      email='test@testadd.com',
+                      password1='tester',
+                      password2='tester',
+                      is_staff=True,
+                      is_superuser=True)
+        params.update(self.add_user_inline_params)
+        params.update({
+            'openwisp_users_organizationuser-TOTAL_FORMS': 1,
+            'openwisp_users_organizationuser-INITIAL_FORMS': 0,
+            'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
+            'openwisp_users_organizationuser-MAX_NUM_FORMS': 1,
+        })
+        res = self.client.post(reverse('admin:openwisp_users_user_add'), params,
+                               follow=True)
+        self.assertNotContains(res, 'errors field-organization')
+        queryset = User.objects.filter(username='testadd')
+        self.assertEqual(queryset.count(), 1)
+        user = queryset.first()
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)

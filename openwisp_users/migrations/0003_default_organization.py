@@ -3,6 +3,7 @@
 from django.db import migrations
 from openwisp_users.migrations import set_default_organization_uuid
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
