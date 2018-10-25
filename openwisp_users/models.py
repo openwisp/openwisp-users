@@ -62,7 +62,7 @@ class User(AbstractUser):
 
 # fix migration issue #20 happening on older django versions
 # TODO: remove this once support for django 1.11 is removed
-if django.VERSION < (2, 0):
+if django.VERSION < (2, 0):  # pragma: no cover
     User._meta.get_field('last_name').max_length = 150
 
 

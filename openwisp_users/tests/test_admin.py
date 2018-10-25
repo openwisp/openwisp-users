@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
@@ -298,3 +299,26 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         user = queryset.first()
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_operator_change_user_permissions(self):
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        admin = self._create_admin()
+        response = self.client.get(reverse('admin:openwisp_users_user_change', args=[admin.pk]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_user_add_user(self):
+        operator = self._create_operator()
+        self.client.force_login(operator)
+        # removing the "add_organizationuser" permission allows achieving more test coverage
+        add_organizationuser = Permission.objects.get(codename__endswith='add_organizationuser')
+        operator.user_permissions.remove(add_organizationuser)
+        response = self.client.get(reverse('admin:openwisp_users_user_add'))
+        self.assertContains(response, '<input type="text" name="username"')
+
+    def test_organization_owner(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        self._create_org_owner()
+        response = self.client.get(reverse('admin:openwisp_users_organizationowner_changelist'))
+        self.assertContains(response, 'tester')
