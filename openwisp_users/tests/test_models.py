@@ -1,7 +1,7 @@
 from django.test import TestCase
 from openwisp_users.models import OrganizationUser, User
 
-from . import TestOrganizationMixin
+from .utils import TestOrganizationMixin
 
 
 class TestUsers(TestOrganizationMixin, TestCase):

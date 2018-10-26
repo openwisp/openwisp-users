@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from openwisp_users.models import User
 
-from . import TestOrganizationMixin
+from .utils import TestOrganizationMixin
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
