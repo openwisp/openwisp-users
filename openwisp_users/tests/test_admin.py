@@ -1,10 +1,9 @@
-from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from openwisp_users.models import User
 
-from ..models import User
-from .utils import TestOrganizationMixin
+from . import TestOrganizationMixin
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
@@ -19,14 +18,6 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
         'openwisp_users_organizationuser-MAX_NUM_FORMS': 0
     }
-
-    def _create_operator(self, organizations=[]):
-        operator = User.objects.create_user(username='operator',
-                                            password='tester',
-                                            email='operator@test.com',
-                                            is_staff=True)
-        operator.user_permissions.add(*Permission.objects.filter(codename__endswith='user'))
-        return operator
 
     def test_admin_add_user_auto_email(self):
         admin = self._create_admin()
@@ -124,8 +115,14 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         html = '<input type="checkbox" name="is_superuser"'
         self.assertContains(response, html)
 
-    def test_admin_change_user_is_superuser_readonly(self):
+    def test_admin_change_user_is_superuser_absent(self):
         operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': self._get_operator()
+        }
+        self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
         html = '<input type="checkbox" name="is_superuser" checked id="id_is_superuser">'
@@ -140,6 +137,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
 
     def test_admin_change_user_permissions_readonly(self):
         operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': self._get_operator()
+        }
+        self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
         html = '<div class="readonly">openwisp_users'
@@ -152,9 +155,48 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
         self.assertNotContains(response, 'admin</a>')
 
+    def test_admin_changelist_operator_org_users_visible(self):
+        # Check with operator in same organization and is_admin
+        self._create_org_user()
+        operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': operator
+        }
+        self._create_org_user(**options)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        self.assertContains(response, 'tester</a>')
+        self.assertContains(response, 'operator</a>')
+
+    def test_operator_changelist_superuser_column_hidden(self):
+        operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': operator
+        }
+        self._create_org_user(**options)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        self.assertNotContains(response, 'Superuser status</a>')
+
+    def test_admin_changelist_superuser_column_visible(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        self.assertContains(response, 'Superuser status</a>')
+
     def test_admin_operator_change_superuser_forbidden(self):
         admin = self._create_admin()
         operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': self._get_operator()
+        }
+        self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(reverse('admin:openwisp_users_user_change', args=[operator.pk]))
         self.assertEqual(response.status_code, 200)
