@@ -161,6 +161,24 @@ Run tests with:
 
     ./runtests.py
 
+Settings
+--------
+
+``OPENWISP_ORGANIZATON_OWNER_ADMIN``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+------------------+
+| **type**:    | ``boolean``      |
++--------------+------------------+
+| **default**: | ``False``        |
++--------------+------------------+
+
+Indicates whether the admin section for managing ``OrganizationOwner`` items
+is enabled or not.
+
+It is disabled by default because [OpenWISP](http://openwisp.org) does not use
+this feature of [django-organizations](https://github.com/bennylope/django-organizations) yet.
+
 Contributing
 ------------
 
