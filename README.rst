@@ -164,6 +164,21 @@ Run tests with:
 Settings
 --------
 
+``OPENWISP_ORGANIZATON_USER_ADMIN``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+------------------+
+| **type**:    | ``boolean``      |
++--------------+------------------+
+| **default**: | ``False``        |
++--------------+------------------+
+
+Indicates whether the admin section for managing ``OrganizationUser`` items
+is enabled or not.
+
+It is disabled by default because these items can be managed via inline items
+in the user administration section.
+
 ``OPENWISP_ORGANIZATON_OWNER_ADMIN``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -275,10 +275,14 @@ class OrganizationOwnerAdmin(BaseOrganizationOwnerAdmin, BaseAdmin):
 
 admin.site.register(User, UserAdmin)
 admin.site.register(Organization, OrganizationAdmin)
-admin.site.register(OrganizationUser, OrganizationUserAdmin)
+
+# OrganizationUser items can be managed on the user page
+if app_settings.ORGANIZATON_USER_ADMIN:
+    admin.site.register(OrganizationUser, OrganizationUserAdmin)
 # this item is not being used right now
 if app_settings.ORGANIZATON_OWNER_ADMIN:
     admin.site.register(OrganizationOwner, OrganizationOwnerAdmin)
+
 # unregister auth.Group
 base_group_model = apps.get_model('auth', 'Group')
 admin.site.unregister(base_group_model)
