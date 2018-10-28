@@ -54,6 +54,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
+    view_on_site = False
 
     def get_formset(self, request, obj=None, **kwargs):
         """
