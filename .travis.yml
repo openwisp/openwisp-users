@@ -21,6 +21,7 @@ matrix:
 branches:
   only:
     - master
+    - pull
 
 before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
