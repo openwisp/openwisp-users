@@ -82,7 +82,9 @@ class EmailRequiredMixin(forms.ModelForm):
 
     def _clean_email(self, email):
         if User.objects.filter(email=email).count() > 0 or \
-                EmailAddress.objects.filter(email=email).exclude(user=self.instance.pk).count() > 0:
+                EmailAddress.objects.filter(email=email) \
+                                    .exclude(user=self.instance.pk) \
+                                    .count() > 0:
             raise ValidationError({'email': ['User with this email already exists.']})
 
     def clean(self):
