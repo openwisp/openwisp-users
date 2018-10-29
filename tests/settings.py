@@ -77,6 +77,9 @@ TEMPLATES = [
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_REDIRECT_URL = 'admin:index'
 
+OPENWISP_ORGANIZATON_USER_ADMIN = True
+OPENWISP_ORGANIZATON_OWNER_ADMIN = True
+
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
     from local_settings import *
