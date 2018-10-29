@@ -28,6 +28,18 @@ class TestIntegration(TestOrganizationMixin, TestCase):
         c.save()
         self.assertEqual(Config.objects.count(), 1)
 
+    def test_validate_org_relation(self):
+        c = Config(name='test')
+        # simulates validating a relation instance attribute that has not been set yet
+        self.assertEqual(c._validate_org_relation('not_set_yet'), None)
+
+    def test_validate_org_relation_error(self):
+        org = self._create_org()
+        t = Template.objects.create(name='test', organization=org)
+        c = Config(name='test', template=t)
+        with self.assertRaises(ValidationError):
+            c.full_clean()
+
     def test_resolve_account_URLs(self):
         resolver = resolve('/accounts/login/')
         self.assertEqual(resolver.view_name, 'account_login')

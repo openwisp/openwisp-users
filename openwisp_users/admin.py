@@ -188,7 +188,7 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
     def has_change_permission(self, request, obj=None):
         # do not allow operators to edit details of superusers
         # returns 403 if trying to access the change form of a superuser
-        if obj and obj.is_superuser and not request.user.is_superuser:
+        if obj and obj.is_superuser and not request.user.is_superuser:  # pragma: no cover
             return False
         return super(UserAdmin, self).has_change_permission(request, obj)
 

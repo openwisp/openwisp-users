@@ -1,6 +1,6 @@
 from django.contrib.auth.models import Permission
 
-from ..models import Organization, OrganizationUser, User
+from ..models import Organization, OrganizationOwner, OrganizationUser, User
 
 
 class TestOrganizationMixin(object):
@@ -74,3 +74,18 @@ class TestOrganizationMixin(object):
         options.update(kwargs)
         org = OrganizationUser.objects.create(**options)
         return org
+
+    def _get_org_user(self):
+        try:
+            return OrganizationUser.objects.get(organization=self._get_org())
+        except OrganizationUser.DoesNotExist:
+            return self._create_org_user()
+
+    def _create_org_owner(self, **kwargs):
+        options = {
+            'organization_user': self._get_org_user(),
+            'organization': self._get_org()
+        }
+        options.update(kwargs)
+        org_owner = OrganizationOwner.objects.create(**options)
+        return org_owner
