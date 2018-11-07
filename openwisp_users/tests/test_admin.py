@@ -322,3 +322,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_owner()
         response = self.client.get(reverse('admin:openwisp_users_organizationowner_changelist'))
         self.assertContains(response, 'tester')
+
+    def test_organization_uuid_field(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse('admin:openwisp_users_organization_add'))
+        html = '<input type="text" name="name" value="default"'
+        self.assertNotContains(response, html)

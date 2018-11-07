@@ -261,6 +261,25 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
     inlines = [OwnerInline]
 
+    def uuid(self, obj):
+        return obj.pk
+
+    uuid.short_description = 'UUID'
+
+    readonly_fields = ['uuid']
+
+    def get_fields(self, request, obj=None):
+        fields = super(OrganizationAdmin, self).get_fields(request, obj)
+        fields = fields[:]
+        fields.remove('uuid')
+        if obj:
+            fields.insert(0, 'uuid')
+        return fields
+
+    class Media:
+        css = {'all': ('openwisp-users/css/admin.css',)}
+        js = ('openwisp-users/js/uuid.js',)
+
 
 class OrganizationUserAdmin(BaseOrganizationUserAdmin, BaseAdmin):
     view_on_site = False
