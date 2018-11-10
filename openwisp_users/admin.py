@@ -260,13 +260,12 @@ class OwnerInline(BaseOwnerInline):
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
     inlines = [OwnerInline]
+    readonly_fields = ['uuid']
 
     def uuid(self, obj):
         return obj.pk
 
     uuid.short_description = 'UUID'
-
-    readonly_fields = ['uuid']
 
     def get_fields(self, request, obj=None):
         fields = super(OrganizationAdmin, self).get_fields(request, obj)
