@@ -38,6 +38,17 @@ class EmailAddressInline(admin.StackedInline):
         return False
 
 
+class OrganizationsAll(BaseAdmin):
+    model = Organization
+
+    def get_orgs(self, request):
+        orgs = super(OrganizationsAll, self). get_orgs(request)
+        if request.user.is_superuser:
+            return orgs
+        organizations = Organization.objects.filter(user=request.user, is_admin=True)
+        return orgs.objects.filter(pk__in=organizations)
+
+
 class RequiredInlineFormSet(BaseInlineFormSet):
     """
     Generates an inline formset that is required
