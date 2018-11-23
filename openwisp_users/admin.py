@@ -69,8 +69,8 @@ class OrganizationUserInline(admin.StackedInline):
                                                     .filter(user=request.user,
                                                             is_admin=True)
             formset.form.base_fields['organization'].queryset = \
-                Organization.objects.filter(pk__in=operator_orgs)
-        return formset
+            formset.form.base_fields['organization'].queryset.filter(pk__in=operator_orgs)
+            return formset
 
     def get_extra(self, request, obj=None, **kwargs):
         if not obj:
