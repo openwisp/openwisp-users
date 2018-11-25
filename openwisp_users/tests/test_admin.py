@@ -294,6 +294,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         res = self.client.post(reverse('admin:openwisp_users_user_add'), params,
                                follow=True)
         self.assertNotContains(res, 'errors field-organization')
+        self.assertNotContains(res, 'errors')
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 1)
         user = queryset.first()
