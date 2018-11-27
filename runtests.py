@@ -13,4 +13,5 @@ if __name__ == "__main__":
     args.insert(1, "test")
     args.insert(2, "openwisp_users")
     args.insert(3, "testapp.tests")
+    args.insert(4, "testapp.test_multitenancy")
     execute_from_command_line(args)
