@@ -37,8 +37,8 @@ class TestOrganizationMixin(object):
                                             password='tester',
                                             email='operator@test.com',
                                             is_staff=True)
-        operator.user_permissions.add(
-            *Permission.objects.filter(codename__endswith='user'))
+        user_permissions = Permission.objects.filter(codename__endswith='user')
+        operator.user_permissions.add(*user_permissions)
         return operator
 
     def _get_org(self, org_name='test org'):
