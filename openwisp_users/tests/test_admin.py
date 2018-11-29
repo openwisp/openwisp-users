@@ -2,7 +2,7 @@ from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_users.models import User
+from openwisp_users.models import Organization, OrganizationUser, User
 
 from .utils import TestOrganizationMixin
 
@@ -330,3 +330,48 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         response = self.client.get(reverse('admin:openwisp_users_organization_add'))
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
+
+
+class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
+    """
+    tests basic integration with openwisp_users
+    (designed to be inherited in other openwisp modules)
+    """
+    def _get_edit_form_inline_params(self, user, organization):
+        organization_user = OrganizationUser.objects.get(user=user,
+                                                         organization=organization)
+        return {
+            # email address inline
+            'emailaddress_set-TOTAL_FORMS': 1,
+            'emailaddress_set-INITIAL_FORMS': 1,
+            'emailaddress_set-MIN_NUM_FORMS': 0,
+            'emailaddress_set-MAX_NUM_FORMS': 0,
+            'emailaddress_set-0-verified': True,
+            'emailaddress_set-0-primary': True,
+            'emailaddress_set-0-id': user.emailaddress_set.first().id,
+            'emailaddress_set-0-user': user.id,
+            # organization user inline
+            'openwisp_users_organizationuser-TOTAL_FORMS': 1,
+            'openwisp_users_organizationuser-INITIAL_FORMS': 1,
+            'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
+            'openwisp_users_organizationuser-MAX_NUM_FORMS': 1000,
+            'openwisp_users_organizationuser-0-is_admin': False,
+            'openwisp_users_organizationuser-0-organization': str(organization.pk),
+            'openwisp_users_organizationuser-0-id': str(organization_user.pk),
+            'openwisp_users_organizationuser-0-user': str(user.pk),
+        }
+
+    def test_change_user(self):
+        admin = self._create_admin()
+        user = self._create_user()
+        org = Organization.objects.first()
+        org.add_user(user)
+        self.client.force_login(admin)
+        params = user.__dict__
+        params['bio'] = 'Test change'
+        params.update(self._get_edit_form_inline_params(user, org))
+        response = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]),
+                                    params, follow=True)
+        self.assertNotContains(response, 'error')
+        user.refresh_from_db()
+        self.assertEqual(user.bio, params['bio'])
