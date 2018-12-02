@@ -194,6 +194,18 @@ is enabled or not.
 It is disabled by default because `OpenWISP <http://openwisp.org>`_ does not use
 this feature of `django-organizations <https://github.com/bennylope/django-organizations>`_ yet.
 
+Multitenancy mixins
+-------------------
+
+* **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class will make it multitenant.
+  Set ``multitenant_shared_relations`` to the list of parameters you wish to have only organization
+  specific options.
+
+* **MultitenantOrgFilter**: admin filter that shows only organizations the current user is associated with in its available choices.
+
+* **MultitenantRelatedOrgFilter**: similar ``MultitenantOrgFilter`` but shows only objects which have a relation with
+  one of the organizations the current user is associated with.
+
 Contributing
 ------------
 
