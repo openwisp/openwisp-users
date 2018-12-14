@@ -123,6 +123,7 @@ class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
 class UserAdmin(BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
+    ordering = ['-date_joined']
     readonly_fields = ['last_login', 'date_joined']
     list_display = ['username',
                     'email',
@@ -261,6 +262,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
     inlines = [OwnerInline]
     readonly_fields = ['uuid']
+    ordering = ['name']
 
     def uuid(self, obj):
         return obj.pk
