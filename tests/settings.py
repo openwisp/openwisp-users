@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'openwisp_utils.admin_theme',
     'django.contrib.admin',
     'django.contrib.sites',
     'django_extensions',
@@ -57,7 +58,9 @@ CORS_ORIGIN_ALLOW_ALL = True
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(os.path.dirname(BASE_DIR), 'openwisp_users', 'templates')
+        ],
         'OPTIONS': {
             'loaders': [
                 'django.template.loaders.filesystem.Loader',
