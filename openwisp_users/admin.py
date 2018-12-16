@@ -20,6 +20,7 @@ from . import settings as app_settings
 from .base import BaseAdmin
 from .models import (Group, Organization, OrganizationOwner, OrganizationUser,
                      User)
+from .multitenancy import MultitenantAdminMixin
 
 
 class EmailAddressInline(admin.StackedInline):
@@ -282,11 +283,11 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
         js = ('openwisp-users/js/uuid.js',)
 
 
-class OrganizationUserAdmin(BaseOrganizationUserAdmin, BaseAdmin):
+class OrganizationUserAdmin(BaseOrganizationUserAdmin, BaseAdmin, MultitenantAdminMixin):
     view_on_site = False
 
 
-class OrganizationOwnerAdmin(BaseOrganizationOwnerAdmin, BaseAdmin):
+class OrganizationOwnerAdmin(BaseOrganizationOwnerAdmin, BaseAdmin, MultitenantAdminMixin):
     list_display = ('get_user', 'organization')
 
     def get_user(self, obj):
