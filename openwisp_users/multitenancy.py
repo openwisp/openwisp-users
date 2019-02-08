@@ -5,28 +5,6 @@ from django.utils.translation import ugettext_lazy as _
 from .models import OrganizationUser, User
 
 
-def multitenant_behaviour_for_user_admin(self, request):
-    """
-    if operator is logged in - show only users
-    from same organization and hide superusers
-    if superuser is logged in - show all users
-    """
-    if not request.user.is_superuser:
-        user = request.user
-        org_users = OrganizationUser.objects.filter(user=user) \
-                                            .select_related('organization')
-        qs = User.objects.none()
-        for org_user in org_users:
-            if org_user.is_admin:
-                qs = qs | org_user.organization.users.all().distinct()
-        # hide superusers from organization operators
-        # so they can't edit nor delete them
-        qs = qs.filter(is_superuser=False)
-    else:
-        qs = super(MultitenantAdminMixin, self).get_queryset(request)
-    return qs
-
-
 class MultitenantAdminMixin(object):
     """
     Mixin that makes a ModelAdmin class multitenant:
