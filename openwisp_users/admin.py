@@ -121,7 +121,7 @@ class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
     pass
 
 
-class UserAdmin(BaseUserAdmin, BaseAdmin):
+class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
     ordering = ['-date_joined']
@@ -194,26 +194,6 @@ class UserAdmin(BaseUserAdmin, BaseAdmin):
             return False
         return super(UserAdmin, self).has_change_permission(request, obj)
 
-    def get_queryset(self, request):
-        """
-        if operator is logged in - show only users
-        from same organization and hide superusers
-        if superuser is logged in - show all users
-        """
-        if not request.user.is_superuser:
-            user = request.user
-            org_users = OrganizationUser.objects.filter(user=user) \
-                                                .select_related('organization')
-            qs = User.objects.none()
-            for org_user in org_users:
-                qs = qs | org_user.organization.users.all().distinct()
-            # hide superusers from organization operators
-            # so they can't edit nor delete them
-            qs = qs.filter(is_superuser=False)
-        else:
-            qs = super(UserAdmin, self).get_queryset(request)
-        return qs
-
     def get_inline_instances(self, request, obj=None):
         """
         Avoid displaying inline objects when adding a new user
@@ -283,11 +263,11 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
         js = ('openwisp-users/js/uuid.js',)
 
 
-class OrganizationUserAdmin(BaseOrganizationUserAdmin, BaseAdmin, MultitenantAdminMixin):
+class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin,):
     view_on_site = False
 
 
-class OrganizationOwnerAdmin(BaseOrganizationOwnerAdmin, BaseAdmin, MultitenantAdminMixin):
+class OrganizationOwnerAdmin(MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin,):
     list_display = ('get_user', 'organization')
 
     def get_user(self, obj):

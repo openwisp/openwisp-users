@@ -377,27 +377,35 @@ class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
         self.assertEqual(user.bio, params['bio'])
 
 
-class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin):
+class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, TestCase):
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name='organization1')
         org2 = self._create_org(name='organization2')
-        user1 = self._create_user(username='user1', organization=org1)
-        user12 = self._create_user(username='user12', organization=org1)
-        user2 = self._create_user(username='user2', organization=org2)
-        user22 = self._create_user(username='user22', organization=org2)
+        org3 = self._create_org(name='organization3')
+        user1 = self._create_user(username='user1', email='user1j@something.com')
+        user12 = self._create_user(username='user12', email='user12j@something.com')
+        user2 = self._create_user(username='user2', email='user2j@something.com')
+        user22 = self._create_user(username='user22', email='user22j@something.com')
+        user23 = self._create_user(username='user23', email='user23j@something.com', is_superuser=True)
+        user3 = self._create_user(username='user3', email='user3@something.com', )
         organization_user1 = self._create_org_user(organization=org1, user=user1)
         organization_user12 = self._create_org_user(organization=org1, user=user12)
         organization_user2 = self._create_org_user(organization=org2, user=user2)
         organization_user22 = self._create_org_user(organization=org2, user=user22)
         organization_owner1 = self._create_org_owner(organization_user=organization_user1, organization=org1)
         organization_owner2 = self._create_org_owner(organization_user=organization_user2, organization=org2)
-        operator = self._create_operator(organization=[org1])
+        operator = self._create_operator()
+        organization_user3 = self._create_org_user(organization=org3, user=operator, is_admin=True)
+        organization_user31 = self._create_org_user(organization=org3, user=user3, )
+        organization_user1o = self._create_org_user(organization=org1, user=operator,)
         data = dict(
-            org1=org1, org2=org2,
-            user1=user1, user2=user2, user12=user12, user22=user22,
-            organization_user1=organization_owner1, organization_user2=organization_owner2,
+            org1=org1, org2=org2, org3=org3,
+            user1=user1, user2=user2, user12=user12, user22=user22, user23=user23, user3=user3,
+            organization_user1=organization_user1, organization_user2=organization_user2,
             organization_user12=organization_user12, organization_user22=organization_user22,
+            organization_user3=organization_user3, organization_user1o=organization_user1o,
+            organization_user31=organization_user31,
             organization_owner1=organization_owner1, organization_owner2=organization_owner2,
             operator=operator
         )
@@ -407,14 +415,27 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
             url=reverse('admin:openwisp_users_organizationuser_changelist'),
-            hidden=[data['organization_user2'].user, data['organization_user22'].user],
-            visible=[data['organization_user1'].user, data['organization_user12'].user]
+            hidden=[data['organization_user2'].user.username, data['organization_user22'].user.username],
+            visible=[
+                data['organization_user1'].user.username,
+                data['organization_user12'].user.username,
+                data['organization_user1o'].user.username,
+                data['organization_user3'].user.username,
+            ]
         )
 
     def test_multitenancy_organization_owner_queryset(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
             url=reverse('admin:openwisp_users_organizationowner_changelist'),
-            hidden=[data['organization_owner2'], ],
-            visible=[data['organization_owner1'], ]
+            hidden=[data['organization_owner2'].organization_user.user.username, ],
+            visible=[data['organization_owner1'].organization_user.user.username, ]
+        )
+
+    def test_useradmin_specific_multitenancy_costraints(self):
+        data = self._create_multitenancy_test_env()
+        self._test_multitenant_admin(
+            url=reverse('admin:openwisp_users_user_changelist'),
+            visible=[data['user3'], data['operator'], ],
+            hidden=[data['user2'], data['user22'], data['user1'], data['user12'], ]
         )

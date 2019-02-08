@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 
+from .models import OrganizationUser, User
+
 
 class MultitenantAdminMixin(object):
     """
@@ -31,6 +33,8 @@ class MultitenantAdminMixin(object):
         """
         qs = super(MultitenantAdminMixin, self).get_queryset(request)
         user = request.user
+        if self.model == User:
+            return self.multitenant_behaviour_for_user_admin(request)
         if user.is_superuser:
             return qs
         if hasattr(self.model, 'organization'):
@@ -77,6 +81,27 @@ class MultitenantAdminMixin(object):
         formset = super(MultitenantAdminMixin, self).get_formset(request, obj=None, **kwargs)
         self._edit_form(request, formset.form)
         return formset
+
+    def multitenant_behaviour_for_user_admin(self, request):
+        """
+        if operator is logged in - show only users
+        from same organization and hide superusers
+        if superuser is logged in - show all users
+        """
+        if not request.user.is_superuser:
+            user = request.user
+            org_users = OrganizationUser.objects.filter(user=user) \
+                                                .select_related('organization')
+            qs = User.objects.none()
+            for org_user in org_users:
+                if org_user.is_admin:
+                    qs = qs | org_user.organization.users.all().distinct()
+            # hide superusers from organization operators
+            # so they can't edit nor delete them
+            qs = qs.filter(is_superuser=False)
+        else:
+            qs = super(MultitenantAdminMixin, self).get_queryset(request)
+        return qs
 
 
 class MultitenantOrgFilter(admin.RelatedFieldListFilter):
