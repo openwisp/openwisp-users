@@ -258,6 +258,7 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
 class OwnerInline(BaseOwnerInline):
     model = OrganizationOwner
 
+
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
     inlines = [OwnerInline]
