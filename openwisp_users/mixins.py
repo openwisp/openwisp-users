@@ -27,6 +27,18 @@ class ValidateOrgMixin(object):
                                      related_object_label=rel._meta.verbose_name)
             raise ValidationError({field_error: message})
 
+    def _validate_org_reverse_relation(self, rel, field_error='organization'):
+        try:
+            old_org = self.__class__.objects.get(pk=self.pk).organization
+            if old_org != self.organization:
+                count = eval('self.__class__.objects.get(pk=self.pk).{0}_set.count()'.format(rel))
+                if count > 0:
+                    message = _('organization cannot be changed because {0}'
+                                ' objects as still related to it'.format(count))
+                    raise ValidationError({field_error: message})
+        except self.__class__.DoesNotExist:
+            return
+
 
 class OrgMixin(ValidateOrgMixin, models.Model):
     """

@@ -8,6 +8,9 @@ from openwisp_utils.base import TimeStampedEditableModel
 class Template(ShareableOrgMixin):
     name = models.CharField(max_length=16)
 
+    def clean(self):
+        self._validate_org_reverse_relation('config')
+
 
 class Config(OrgMixin):
     name = models.CharField(max_length=16)
