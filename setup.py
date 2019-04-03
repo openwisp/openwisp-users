@@ -45,7 +45,7 @@ setup(
     download_url='https://github.com/openwisp/openwisp-users/releases',
     platforms=['Platform Indipendent'],
     keywords=['openwisp', 'django', 'organizations', 'users'],
-    packages=find_packages(exclude=['tests', 'docs']),
+    packages=find_packages(exclude=['tests', 'tests.*', 'docs']),
     include_package_data=True,
     zip_safe=False,
     install_requires=get_install_requires(),
