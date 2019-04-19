@@ -12,6 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from organizations.abstract import (AbstractOrganization,
                                     AbstractOrganizationOwner,
                                     AbstractOrganizationUser)
+from phonenumber_field.modelfields import PhoneNumberField
 
 
 class UserManager(BaseUserManager):
@@ -44,6 +45,7 @@ class User(AbstractUser):
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
     location = models.CharField(_('location'), max_length=128, blank=True)
+    phone_number = PhoneNumberField(unique=True, blank=True, null=True)
 
     objects = UserManager()
 

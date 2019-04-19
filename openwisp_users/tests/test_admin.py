@@ -43,6 +43,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         user = self._create_user(username='changemailtest')
         params = user.__dict__
         params['email'] = 'new@mail.com'
+        params['phone_number'] = ''
         # inline emails
         params.update({
             'emailaddress_set-TOTAL_FORMS': 1,
@@ -224,6 +225,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         user = self._create_user(email='asd@asd.com', username='newTester')
         params = user.__dict__
         params['email'] = 'test@tester.com'
+        params['phone_number'] = ''
         params.update({
             'emailaddress_set-TOTAL_FORMS': 1,
             'emailaddress_set-INITIAL_FORMS': 1,
@@ -369,6 +371,7 @@ class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
         self.client.force_login(admin)
         params = user.__dict__
         params['bio'] = 'Test change'
+        params['phone_number'] = ''
         params.update(self._get_edit_form_inline_params(user, org))
         response = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]),
                                     params, follow=True)

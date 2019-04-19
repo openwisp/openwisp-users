@@ -225,10 +225,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
 
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
-additional_fields = ['bio', 'url', 'company', 'location']
+additional_fields = ['bio', 'url', 'company', 'location', 'phone_number']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
 UserAdmin.add_fieldsets[0][1]['fields'] = ('username', 'email',
                                            'password1', 'password2')
+UserAdmin.search_fields += ('phone_number',)
 
 
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
