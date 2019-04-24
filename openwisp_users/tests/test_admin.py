@@ -37,6 +37,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertEqual(emailaddress.email, 'test@testadd.com')
         self.assertEqual(len(mail.outbox), 1)
 
+    def test_admin_add_user_empty_email(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(username='testadd',
+                      email='',
+                      password1='tester',
+                      password2='tester')
+        params.update(self.add_user_inline_params)
+        response = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        queryset = User.objects.filter(username='testadd')
+        self.assertEqual(queryset.count(), 0)
+        self.assertContains(response, 'errors field-email')
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_admin_change_user_auto_email(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -216,7 +230,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         params.update(self.add_user_inline_params)
         self.client.post(reverse('admin:openwisp_users_user_add'), params)
         res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
-        self.assertContains(res, '<li>User with this email already exists.</li>')
+        self.assertContains(res, '<li>A user with this email already exist</li>')
 
     def test_edit_user_email_exists(self):
         admin = self._create_admin()
@@ -242,7 +256,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         })
         res = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]), params,
                                follow=True)
-        self.assertContains(res, '<li>User with this email already exists.</li>')
+        self.assertContains(res, '<li>A user with this email already exist</li>')
 
     def test_admin_add_user_by_superuser(self):
         admin = self._create_admin()

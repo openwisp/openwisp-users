@@ -8,7 +8,6 @@ from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
-from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
 from organizations.base_admin import (BaseOrganizationAdmin,
@@ -81,19 +80,6 @@ class OrganizationUserInline(admin.StackedInline):
 
 class EmailRequiredMixin(forms.ModelForm):
     email = forms.EmailField(label=_('Email'), max_length=254, required=True)
-
-    def _clean_email(self, email):
-        if User.objects.filter(email=email).count() > 0 or \
-                EmailAddress.objects.filter(email=email) \
-                                    .exclude(user=self.instance.pk) \
-                                    .count() > 0:
-            raise ValidationError({'email': ['User with this email already exists.']})
-
-    def clean(self):
-        cleaned_data = super(EmailRequiredMixin, self).clean()
-        if 'email' in self.changed_data:
-            self._clean_email(email=cleaned_data.get('email'))
-        return cleaned_data
 
 
 class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
