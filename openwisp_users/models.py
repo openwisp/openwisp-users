@@ -75,7 +75,7 @@ class User(AbstractUser):
         """
         if self.email:
             if User.objects.exclude(pk=self.pk).filter(email=self.email).exists():
-                raise ValidationError({'email': 'A user with this email already exist'})
+                raise ValidationError({'email': 'A user with this email already exists.'})
         super(User, self).clean()
 
 
