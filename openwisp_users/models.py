@@ -5,6 +5,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
@@ -49,6 +50,11 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    class Meta(AbstractUser.Meta):
+        index_together = (
+            ('id', 'email')
+        )
+
     @cached_property
     def organizations_pk(self):
         """
@@ -60,6 +66,17 @@ class User(AbstractUser):
                     .only('organization_id') \
                     .values_list('organization_id')
         return qs
+
+    def clean(self):
+        """
+        If a user has an email set, validate the unique constraint
+        else don't validate this constraint.
+        If no email is set, raise a validation error
+        """
+        if self.email:
+            if User.objects.exclude(pk=self.pk).filter(email=self.email).exists():
+                raise ValidationError({'email': 'A user with this email already exists.'})
+        super(User, self).clean()
 
 
 # fix migration issue #20 happening on older django versions

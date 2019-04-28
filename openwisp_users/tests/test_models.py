@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from openwisp_users.models import OrganizationUser, User
 
@@ -5,6 +6,8 @@ from .utils import TestOrganizationMixin
 
 
 class TestUsers(TestOrganizationMixin, TestCase):
+    user_model = User
+
     def test_create_superuser_email(self):
         user = User.objects.create_superuser(username='tester',
                                              password='tester',
@@ -17,6 +20,27 @@ class TestUsers(TestOrganizationMixin, TestCase):
                                              password='tester',
                                              email='')
         self.assertEqual(user.emailaddress_set.count(), 0)
+
+    def test_unique_email_validation(self):
+        self._create_user(username='user1', email='same@gmail.com')
+        options = {
+            'username': 'user2',
+            'email': 'same@gmail.com',
+            'password': 'pass1'
+        }
+        u = self.user_model(**options)
+        with self.assertRaises(ValidationError):
+            u.full_clean()
+            u.save()
+
+    def test_create_user_without_email(self):
+        options = {
+            'username': 'testuser',
+            'password': 'test1',
+        }
+        u = self.user_model(**options)
+        u.full_clean()
+        u.save()
 
     def test_organizations_pk(self):
         user = self._create_user(username='organizations_pk')
