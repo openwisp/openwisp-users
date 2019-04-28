@@ -230,7 +230,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         params.update(self.add_user_inline_params)
         self.client.post(reverse('admin:openwisp_users_user_add'), params)
         res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
-        self.assertContains(res, '<li>A user with this email already exist</li>')
+        self.assertContains(res, '<li>A user with this email already exists.</li>')
 
     def test_edit_user_email_exists(self):
         admin = self._create_admin()
@@ -256,7 +256,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         })
         res = self.client.post(reverse('admin:openwisp_users_user_change', args=[user.pk]), params,
                                follow=True)
-        self.assertContains(res, '<li>A user with this email already exist</li>')
+        self.assertContains(res, '<li>A user with this email already exists.</li>')
 
     def test_admin_add_user_by_superuser(self):
         admin = self._create_admin()
