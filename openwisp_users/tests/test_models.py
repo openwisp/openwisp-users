@@ -41,6 +41,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         u = self.user_model(**options)
         u.full_clean()
         u.save()
+        self.assertIsNone(u.email)
 
     def test_organizations_pk(self):
         user = self._create_user(username='organizations_pk')
@@ -59,3 +60,19 @@ class TestUsers(TestOrganizationMixin, TestCase):
     def test_organization_repr(self):
         org = self._create_org(name='org1', is_active=False)
         self.assertIn('disabled', str(org))
+
+    def test_create_users_without_email(self):
+        options = {
+            'username': 'testuser',
+            'password': 'test1',
+        }
+        u = self.user_model(**options)
+        u.full_clean()
+        u.save()
+        self.assertIsNone(u.email)
+        options['username'] = 'testuser2'
+        u = self.user_model(**options)
+        u.full_clean()
+        u.save()
+        self.assertIsNone(u.email)
+        self.assertEqual(User.objects.filter(email=None).count(), 2)
