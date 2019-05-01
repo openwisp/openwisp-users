@@ -5,7 +5,6 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
@@ -42,6 +41,7 @@ class User(AbstractUser):
     OpenWISP User model
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(_('email address'), unique=True, blank=True, null=True)
     bio = models.TextField(_('bio'), blank=True)
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
@@ -68,15 +68,8 @@ class User(AbstractUser):
         return qs
 
     def clean(self):
-        """
-        If a user has an email set, validate the unique constraint
-        else don't validate this constraint.
-        If no email is set, raise a validation error
-        """
-        if self.email:
-            if User.objects.exclude(pk=self.pk).filter(email=self.email).exists():
-                raise ValidationError({'email': 'A user with this email already exists.'})
-        super(User, self).clean()
+        if self.email == '':
+            self.email = None
 
 
 # fix migration issue #20 happening on older django versions
