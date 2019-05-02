@@ -1,3 +1,6 @@
+import smtplib
+
+import mock
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
@@ -332,6 +335,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         response = self.client.get(reverse('admin:openwisp_users_organization_add'))
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
+
+    def test_admin_add_user_with_invalid_email(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(username='testmail',
+                      email='test@invalid.com',
+                      password1='tester',
+                      password2='tester')
+        params.update(self.add_user_inline_params)
+        with mock.patch('allauth.account.models.EmailAddress.objects.add_email') as mocked:
+            mocked.side_effect = smtplib.SMTPSenderRefused(501, '5.1.7 Bad sender address syntax',
+                                                           'test_name@test_domain')
+            self.client.post(reverse('admin:openwisp_users_user_add'), params)
+            mocked.assert_called_once()
 
 
 class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
