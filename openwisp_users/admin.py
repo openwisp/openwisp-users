@@ -1,3 +1,4 @@
+import logging
 from copy import deepcopy
 
 from allauth.account.models import EmailAddress
@@ -20,6 +21,8 @@ from .base import BaseAdmin
 from .models import (Group, Organization, OrganizationOwner, OrganizationUser,
                      User)
 from .multitenancy import MultitenantAdminMixin
+
+logger = logging.getLogger(__name__)
 
 
 class EmailAddressInline(admin.StackedInline):
@@ -203,11 +206,19 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         """
         super(UserAdmin, self).save_model(request, obj, form, change)
         if obj.email:
-            EmailAddress.objects.add_email(request,
-                                           user=obj,
-                                           email=obj.email,
-                                           confirm=True,
-                                           signup=True)
+            try:
+                EmailAddress.objects.add_email(request,
+                                               user=obj,
+                                               email=obj.email,
+                                               confirm=True,
+                                               signup=True)
+            except Exception as e:
+                logger.exception(
+                    'Got exception {} while sending '
+                    'verification email to user {}, email {}'.format(
+                        type(e), obj.username, obj.email
+                    )
+                )
 
 
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
