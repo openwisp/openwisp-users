@@ -67,18 +67,35 @@ class OrganizationUserInline(admin.StackedInline):
         display all organizations
         """
         formset = super(OrganizationUserInline, self).get_formset(request, obj=obj, **kwargs)
-        if not request.user.is_superuser:
+        if request.user.is_superuser:
+            return formset
+        if not request.user.is_superuser and not obj:
             operator_orgs = OrganizationUser.objects.values_list('organization') \
                                                     .filter(user=request.user,
                                                             is_admin=True)
             formset.form.base_fields['organization'].queryset = \
                 Organization.objects.filter(pk__in=operator_orgs)
+        if not request.user.is_superuser and obj:
+            formset.form.base_fields['organization'].queryset = \
+                Organization.objects.filter(pk__in=request.user.organizations_pk)
         return formset
 
     def get_extra(self, request, obj=None, **kwargs):
         if not obj:
             return 1
         return 0
+
+
+class OrganizationUserInlineReadOnly(OrganizationUserInline):
+    can_delete = False
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and not request.user.is_superuser:
+            self.readonly_fields = ['is_admin']
+        return self.readonly_fields
+
+    def has_add_permission(self, request):
+        return False
 
 
 class EmailRequiredMixin(forms.ModelForm):
@@ -199,6 +216,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 return [inline]
         return []
 
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if not request.user.is_superuser:
+            self.inlines[1] = OrganizationUserInlineReadOnly
+        return super(UserAdmin, self).change_view(request, object_id, form_url, extra_context)
+
     def save_model(self, request, obj, form, change):
         """
         Automatically creates email addresses for users
@@ -256,6 +278,20 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
             fields.insert(0, 'uuid')
         return fields
 
+    def has_change_permission(self, request, obj=None):
+        """
+        Allow operator to change an organization only if
+        they is an admin of that organization
+        """
+        if obj and not request.user.is_superuser:
+            try:
+                org = OrganizationUser.objects.get(organization=obj, user=request.user)
+                if not org.is_admin:
+                    return False
+            except OrganizationUser.DoesNotExist:
+                pass
+        return super(OrganizationAdmin, self).has_change_permission(request, obj)
+
     class Media:
         css = {'all': ('openwisp-users/css/admin.css',)}
         js = ('openwisp-users/js/uuid.js',)
@@ -263,6 +299,28 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
 
 class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin,):
     view_on_site = False
+
+    def get_readonly_fields(self, request, obj=None):
+        # retrieve readonly fields
+        fields = super(OrganizationUserAdmin, self).get_readonly_fields(request, obj)
+        # do not allow operators to escalate their privileges
+        if not request.user.is_superuser:
+            # copy to avoid modifying reference
+            fields = ['is_admin']
+        return fields
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        operators should not delete organization users of organizations
+        where they are not admins
+        """
+        if obj and not request.user.is_superuser:
+            operator_org = OrganizationUser.objects.get(organization=obj.organization,
+                                                        user=request.user)
+            if operator_org.is_admin:
+                return True
+            else:
+                return False
 
 
 class OrganizationOwnerAdmin(MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin,):

@@ -1,11 +1,13 @@
 import smtplib
 
 import mock
+from django import __version__ as django_version
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from openwisp_users.models import Organization, OrganizationUser, User
+from packaging import version
 
 from .utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
@@ -200,6 +202,148 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.client.force_login(operator)
         response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
         self.assertNotContains(response, 'Superuser status</a>')
+
+    def test_operator_organization_member(self):
+        org1 = self._create_org(name='operator-org1')
+        org2 = self._create_org(name='operator-org2')
+        operator = self._create_operator()
+        options1 = {
+            'organization': org1,
+            'is_admin': True,
+            'user': operator
+        }
+        options2 = {
+            'organization': org2,
+            'is_admin': False,
+            'user': operator
+        }
+        self._create_org_user(**options1)
+        self._create_org_user(**options2)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_change',
+                                           args=[operator.pk]))
+        self.assertContains(response, 'selected>operator-org1</option>')
+        self.assertContains(response, 'selected>operator-org2</option>')
+
+    def test_operator_can_see_organization_add_user(self):
+        org1 = self._create_org(name='operator-org1')
+        org2 = self._create_org(name='operator-org2')
+        operator = self._create_operator()
+        org_permissions = Permission.objects.filter(codename__endswith='organization_user')
+        operator.user_permissions.add(*org_permissions)
+        options1 = {
+            'organization': org1,
+            'is_admin': True,
+            'user': operator
+        }
+        options2 = {
+            'organization': org2,
+            'is_admin': False,
+            'user': operator
+        }
+        self._create_org_user(**options1)
+        self._create_org_user(**options2)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_user_add'))
+        self.assertContains(response, 'operator-org1</option>')
+        self.assertNotContains(response, 'operator-org2</option>')
+
+    def test_operator_change_organization(self):
+        org1 = self._create_org(name='test-org1')
+        org2 = self._create_org(name='test-org2')
+        default_org = Organization.objects.get(name='default')
+        operator = self._create_operator()
+        org_permissions = Permission.objects.filter(codename__endswith='change_organization')
+        operator.user_permissions.add(*org_permissions)
+        options1 = {
+            'organization': org1,
+            'is_admin': True,
+            'user': operator
+        }
+        options2 = {
+            'organization': org2,
+            'is_admin': False,
+            'user': operator
+        }
+        self._create_org_user(**options1)
+        self._create_org_user(**options2)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_organization_change',
+                                           args=[org1.pk]))
+        self.assertContains(response,
+                            '<input type="text" name="name" value="{0}"'.format(org1.name))
+        response = self.client.get(reverse('admin:openwisp_users_organization_change',
+                                           args=[default_org.pk]))
+        self.assertContains(response,
+                            '<input type="text" name="name" value="{0}"'.format(default_org.name))
+        response = self.client.get(reverse('admin:openwisp_users_organization_change',
+                                           args=[org2.pk]))
+        # With django versions >= 2.1, response have a status code of 200
+        # Where as in versions < 2.1, response have a status code of 403
+        # Thus, we have to ensure the required test is carried out in each case
+        if version.parse(django_version) >= version.parse('2.1'):
+            self.assertNotContains(response,
+                                   '<input type="text" name="name" value="{0}"'.format(org2.name))
+        else:
+            self.assertEqual(response.status_code, 403)
+
+    def test_operator_change_org_is_admin(self):
+        org1 = self._create_org(name='test-org1')
+        org2 = self._create_org(name='test-org2')
+        operator = self._create_operator()
+        org_permissions = Permission.objects.filter(codename__endswith='change_organization')
+        operator.user_permissions.add(*org_permissions)
+        options1 = {
+            'organization': org1,
+            'is_admin': True,
+            'user': operator
+        }
+        options2 = {
+            'organization': org2,
+            'is_admin': False,
+            'user': operator
+        }
+        org_user1 = self._create_org_user(**options1)
+        org_user2 = self._create_org_user(**options2)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_organizationuser_change',
+                                           args=[org_user1.pk]))
+        self.assertNotContains(response, '<input type="checkbox" name="is_admin" id="id_is_admin">'
+                                         '<label class="vCheckboxLabel" for="id_is_admin">Is admin'
+                                         '</label>')
+        response = self.client.get(reverse('admin:openwisp_users_organizationuser_change',
+                                           args=[org_user2.pk]))
+        self.assertNotContains(response, '<input type="checkbox" name="is_admin" id="id_is_admin">'
+                                         '<label class="vCheckboxLabel" for="id_is_admin">Is admin'
+                                         '</label>')
+
+    def test_admin_operator_delete_org_user(self):
+        org1 = self._create_org(name='test-org1')
+        org2 = self._create_org(name='test-org2')
+        operator = self._create_operator()
+        org_permissions = Permission.objects.filter(codename__endswith='organization_user')
+        operator.user_permissions.add(*org_permissions)
+        options1 = {
+            'organization': org1,
+            'is_admin': True,
+            'user': operator
+        }
+        options2 = {
+            'organization': org2,
+            'is_admin': False,
+            'user': operator
+        }
+        org_user1 = self._create_org_user(**options1)
+        org_user2 = self._create_org_user(**options2)
+        self.client.force_login(operator)
+        response = self.client.get(reverse('admin:openwisp_users_organizationuser_change',
+                                           args=[org_user1.pk]))
+        self.assertContains(response, 'class="deletelink-box">'
+                                      '<a href="/admin/openwisp_users/organizationuser/{0}/delete/" '
+                                      'class="deletelink">Delete'.format(org_user1.pk))
+        response = self.client.get(reverse('admin:openwisp_users_organizationuser_change',
+                                           args=[org_user2.pk]))
+        self.assertNotContains(response, 'delete')
 
     def test_admin_changelist_superuser_column_visible(self):
         admin = self._create_admin()
