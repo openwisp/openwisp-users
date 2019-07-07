@@ -43,15 +43,19 @@ def create_default_groups(apps, schema_editor):
     admin = group.objects.filter(name='Administrator')
     if admin.count() == 0:
         admin = group.objects.create(name='Administrator')
-        permissions = [Permission.objects.get(codename='add_user').pk,
-                       Permission.objects.get(codename='change_user').pk,
-                       Permission.objects.get(codename='change_organizationuser').pk,
-                       Permission.objects.get(codename='delete_organizationuser').pk,
-                       Permission.objects.get(codename='add_organizationuser').pk]
+        permissions = [Permission.objects.get(content_type__app_label="openwisp_users", codename='add_user').pk,
+                       Permission.objects.get(content_type__app_label="openwisp_users",
+                                              codename='change_user').pk,
+                       Permission.objects.get(content_type__app_label="openwisp_users",
+                                              codename='change_organizationuser').pk,
+                       Permission.objects.get(content_type__app_label="openwisp_users",
+                                              codename='delete_organizationuser').pk,
+                       Permission.objects.get(content_type__app_label="openwisp_users", codename='add_organizationuser').pk]
         try:
-            permissions += [Permission.objects.get(codename='view_user').pk,
-                            Permission.objects.get(codename='view_group').pk,
-                            Permission.objects.get(codename='view_organizationuser').pk]
+            permissions += [Permission.objects.get(content_type__app_label="openwisp_users", codename='view_user').pk,
+                            Permission.objects.get(
+                                content_type__app_label="openwisp_users", codename='view_group').pk,
+                            Permission.objects.get(content_type__app_label="openwisp_users", codename='view_organizationuser').pk]
         except Permission.DoesNotExist:
             pass
         admin.permissions.set(permissions)
