@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.sites',
     'django_extensions',
+    'rest_framework',
     'openwisp_users.accounts',  # only needed in test env
     'allauth',
     'allauth.account',

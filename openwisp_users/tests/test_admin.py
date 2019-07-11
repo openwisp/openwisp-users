@@ -1,3 +1,4 @@
+import json
 import smtplib
 
 import mock
@@ -508,12 +509,64 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.client.post(reverse('admin:openwisp_users_user_add'), params)
             mocked.assert_called_once()
 
+    def test_api_list_org(self):
+        user = self._create_admin()
+        org1 = self._create_org(name='org1', slug='org1')
+        org1.add_user(user)
+        path = reverse('list_orgs')
+        self.client.force_login(user)
+        response = self.client.get(path)
+        self.assertContains(response, 'org1')
+
+    def test_api_detail_org(self):
+        user = self._create_admin()
+        org1 = self._create_org(name='org1', slug='org1')
+        org1.add_user(user)
+        path = reverse('org_detail', args=[org1.pk])
+        self.client.force_login(user)
+        response = self.client.get(path)
+        self.assertContains(response, 'org1')
+
+    def test_api_create_org(self):
+        user = self._create_admin()
+        data = {
+            'des': 'some description',
+            'name': 'org1',
+            'email': 'org1@gmail.com',
+            'url': 'http://org1.com',
+            'slug': 'org1'
+        }
+        path = reverse('list_orgs')
+        self.client.force_login(user)
+        response = self.client.post(path, data=data)
+        queryset = Organization.objects.filter(name='org1')
+        self.assertEqual(queryset.count(), 1)
+        self.assertEqual(response.status_code, 200)
+        # test create an org which already exist
+        response = self.client.post(path, data=data)
+        self.assertContains(response, 'org_errors', status_code=400)
+
+    def test_api_edit_org(self):
+        user = self._create_admin()
+        org = self._create_org(name='org1', slug='org1')
+        org.add_user(user)
+        path = reverse('org_detail', args=[org.pk])
+        self.client.force_login(user)
+        self.client.put(path, data=json.dumps({'slug': 'org11', 'name': 'org11'}),
+                        content_type='application/json')
+        queryset = Organization.objects.filter(slug='org11')
+        self.assertEqual(queryset.count(), 1)
+        self.client.delete(path)
+        queryset = Organization.objects.filter(name='org2')
+        self.assertEqual(queryset.count(), 0)
+
 
 class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
     """
     tests basic integration with openwisp_users
     (designed to be inherited in other openwisp modules)
     """
+
     def _get_edit_form_inline_params(self, user, organization):
         organization_user = OrganizationUser.objects.get(user=user,
                                                          organization=organization)
