@@ -3,3 +3,4 @@ django-extensions>=1.7.5,<2.2
 django-allauth>=0.35.0,<0.39.0
 django-phonenumber-field>=2.3.1,<2.4.0
 phonenumbers>=8.10.8,<8.11.0
+packaging
