@@ -31,7 +31,6 @@ class TestUsers(TestOrganizationMixin, TestCase):
         u = self.user_model(**options)
         with self.assertRaises(ValidationError):
             u.full_clean()
-            u.save()
 
     def test_create_user_without_email(self):
         options = {
