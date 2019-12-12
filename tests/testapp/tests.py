@@ -44,11 +44,18 @@ class TestIntegration(TestOrganizationMixin, TestCase):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
         t = Template.objects.create(name='test-t', organization=org1)
-        Config.objects.create(name='test-c1', template=t, organization_id=str(org1.pk))
+        Config.objects.create(name='test-c1', template=t, organization=org1)
         with self.assertRaises(ValidationError):
             t.organization = org2
             t.full_clean()
-            t.save()
+
+    def test_validate_reverse_org_relation_return(self):
+        t = Template(name='test-t')
+        t.full_clean()
+        org1 = self._create_org(name='org1')
+        t = Template.objects.create(name='test-t', organization=org1)
+        t.name = 'test-template'
+        t.full_clean()
 
     def test_resolve_account_URLs(self):
         resolver = resolve('/accounts/login/')

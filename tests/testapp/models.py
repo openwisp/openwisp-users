@@ -9,7 +9,7 @@ class Template(ShareableOrgMixin):
     name = models.CharField(max_length=16)
 
     def clean(self):
-        self._validate_org_reverse_relation('config')
+        self._validate_org_reverse_relation('config_set')
 
 
 class Config(OrgMixin):
