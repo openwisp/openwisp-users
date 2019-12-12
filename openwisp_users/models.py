@@ -5,6 +5,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
@@ -118,3 +119,8 @@ class OrganizationOwner(AbstractOrganizationOwner):
     OpenWISP OrganizationOwner model
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    def clean(self):
+        if self.organization_user.organization.pk != self.organization.pk:
+            raise ValidationError({
+                'organization_user': _('The selected user is not member of this organization.')})
