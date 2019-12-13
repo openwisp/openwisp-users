@@ -27,6 +27,38 @@ class ValidateOrgMixin(object):
                                      related_object_label=rel._meta.verbose_name)
             raise ValidationError({field_error: message})
 
+    def _validate_org_reverse_relation(self, rel_name, field_error='organization'):
+        """
+        prevents changing organization for existing objects
+        which have relations specified by ``rel_name`` pointing to them,
+        in order to prevent inconsistencies
+        (relations belonging to different organizations)
+        """
+        # do nothing on new objects, because they
+        # cannot have relations pointing to them
+        if self._state.adding:
+            return
+        old_self = self.__class__.objects.get(pk=self.pk)
+        old_org = old_self.organization
+        # org hasn't been changed, everything ok
+        if old_org == self.organization:
+            return
+        rel = getattr(self, rel_name)
+        count = rel.count()
+        if count:
+            rel_meta = rel.model._meta
+            related_label = rel_meta.verbose_name if count == 1 else rel_meta.verbose_name_plural
+            verb = _('is') if count == 1 else _('are')
+            message = _('The organization of this {object_label} cannot be changed '
+                        'because {0} {related_object_label} {verb} still '
+                        'related to it'.format(
+                            count,
+                            object_label=self._meta.verbose_name,
+                            related_object_label=related_label,
+                            verb=verb
+                        ))
+            raise ValidationError({field_error: message})
+
 
 class OrgMixin(ValidateOrgMixin, models.Model):
     """
