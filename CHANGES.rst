@@ -1,11 +1,26 @@
 Changelog
 =========
 
-Version 0.1.11 [unreleased]
+Version 0.1.11 [2019-12-13]
 ---------------------------
 
-WIP
-
+- [admin] Show ``is_staff`` and ``is_superuser`` in user list
+- [admin] Allow adding organization in user creation form
+- [admin] ``UserCreationForm`` encourages to select the organization
+- [admin] Non-superusers now can manage the users of their organization
+- [admin] Made ``OrganizationOwner`` and ``OrganizationUser`` admins multi-tenant
+- [admin] Disabled ``OrganizationOwnerAdmin`` by default
+- [admin] Disabled ``OrganizationUserAdmin`` by default
+- [admin] Disabled ``view_on_site`` for ``OrganizationUserInline``
+- [admin] Added menu items
+- [admin] Avoid 500 error in case of SMTP error when adding a new user
+- [urls] Added social login views URLs
+- [mixins] Moved ``MultitenantAdminMixin`` from openwisp-utils to openwisp-users
+- [models] Add possibility to validate inverse relations
+- [model] Added phone_number field to User
+- [models] Add unique constraint on user.email
+- [models] Email: allow ``NULL`` but set ``UNIQUE`` constraint
+- [models] Added ``_validate_org_reverse_relation``
 
 Version 0.1.10 [2018-08-01]
 ---------------------------
