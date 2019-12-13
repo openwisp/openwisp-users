@@ -41,7 +41,7 @@ class BookAdmin(BaseAdmin):
                 }
             ]
         })
-        return super(BookAdmin, self).change_view(request, object_id, form_url, extra_context)
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 admin.site.register(Shelf, ShelfAdmin)

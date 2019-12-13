@@ -48,7 +48,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
         """
         Override the method to change the form attribute empty_permitted
         """
-        form = super(RequiredInlineFormSet, self)._construct_form(i, **kwargs)
+        form = super()._construct_form(i, **kwargs)
         # only super users can be created without organization
         form.empty_permitted = self.instance.is_superuser
         return form
@@ -65,7 +65,7 @@ class OrganizationUserInline(admin.StackedInline):
         in which operator `is_admin` and for superusers
         display all organizations
         """
-        formset = super(OrganizationUserInline, self).get_formset(request, obj=obj, **kwargs)
+        formset = super().get_formset(request, obj=obj, **kwargs)
         if request.user.is_superuser:
             return formset
         if not request.user.is_superuser and not obj:
@@ -93,7 +93,7 @@ class OrganizationUserInlineReadOnly(OrganizationUserInline):
             self.readonly_fields = ['is_admin']
         return self.readonly_fields
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):
         return False
 
 
@@ -146,7 +146,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         """
         Hide `is_superuser` from column from operators
         """
-        default_list_display = super(UserAdmin, self).get_list_display(request)
+        default_list_display = super().get_list_display(request)
         if (not request.user.is_superuser and
                 'is_superuser' in default_list_display):
             # avoid editing the default_list_display
@@ -156,7 +156,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         return default_list_display
 
     def get_list_filter(self, request):
-        filters = super(UserAdmin, self).get_list_filter(request)
+        filters = super().get_list_filter(request)
         if (not request.user.is_superuser and
                 'is_superuser' in filters):
             # hide is_superuser filter for non-superusers
@@ -173,7 +173,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if not obj and request.user.is_superuser:
             return self.add_form.Meta.fieldsets_superuser
         # return fieldsets according to user
-        fieldsets = super(UserAdmin, self).get_fieldsets(request, obj)
+        fieldsets = super().get_fieldsets(request, obj)
         if not request.user.is_superuser:
             # edit this tuple to add / remove permission items
             # visible to non-superusers
@@ -186,7 +186,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
-        fields = super(UserAdmin, self).get_readonly_fields(request, obj)
+        fields = super().get_readonly_fields(request, obj)
         # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
             # copy to avoid modifying reference
@@ -198,20 +198,20 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         # returns 403 if trying to access the change form of a superuser
         if obj and obj.is_superuser and not request.user.is_superuser:  # pragma: no cover
             return False
-        return super(UserAdmin, self).has_change_permission(request, obj)
+        return super().has_change_permission(request, obj)
 
     def get_inline_instances(self, request, obj=None):
         """
         Avoid displaying inline objects when adding a new user
         """
         if obj:
-            return super(UserAdmin, self).get_inline_instances(request, obj)
+            return super().get_inline_instances(request, obj)
         inline = OrganizationUserInline(self.model, self.admin_site)
         if request:
             if hasattr(inline, '_has_add_permission'):
                 has_add_perm = inline._has_add_permission(request, obj)
             else:
-                has_add_perm = inline.has_add_permission(request)
+                has_add_perm = inline.has_add_permission(request, obj)
             if has_add_perm:
                 return [inline]
         return []
@@ -219,14 +219,14 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         if not request.user.is_superuser:
             self.inlines[1] = OrganizationUserInlineReadOnly
-        return super(UserAdmin, self).change_view(request, object_id, form_url, extra_context)
+        return super().change_view(request, object_id, form_url, extra_context)
 
     def save_model(self, request, obj, form, change):
         """
         Automatically creates email addresses for users
         added/changed via the django-admin interface
         """
-        super(UserAdmin, self).save_model(request, obj, form, change)
+        super().save_model(request, obj, form, change)
         if obj.email:
             try:
                 EmailAddress.objects.add_email(request,
@@ -267,7 +267,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     uuid.short_description = 'UUID'
 
     def get_fields(self, request, obj=None):
-        fields = super(OrganizationAdmin, self).get_fields(request, obj)
+        fields = super().get_fields(request, obj)
         fields = fields[:]
         fields.remove('uuid')
         if obj:
@@ -286,7 +286,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
                     return False
             except OrganizationUser.DoesNotExist:
                 pass
-        return super(OrganizationAdmin, self).has_change_permission(request, obj)
+        return super().has_change_permission(request, obj)
 
     class Media:
         css = {'all': ('openwisp-users/css/admin.css',)}
@@ -299,7 +299,7 @@ class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, Ba
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
-        fields = super(OrganizationUserAdmin, self).get_readonly_fields(request, obj)
+        fields = super().get_readonly_fields(request, obj)
         # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
             # copy to avoid modifying reference

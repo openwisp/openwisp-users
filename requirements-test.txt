@@ -1,5 +1,4 @@
 coveralls
 isort
 flake8
-openwisp-utils[qa]>=0.2.1
-mock>=2.0.0
+openwisp-utils[qa]>=0.3.0

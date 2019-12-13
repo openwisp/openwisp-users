@@ -7,7 +7,6 @@ from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from organizations.abstract import (AbstractOrganization,
@@ -22,7 +21,7 @@ class UserManager(BaseUserManager):
         adds automatic email address object creation to django
         management commands "create_user" and "create_superuser"
         """
-        user = super(UserManager, self)._create_user(*args, **kwargs)
+        user = super()._create_user(*args, **kwargs)
         self._create_email(user)
         return user
 
@@ -90,7 +89,6 @@ class Group(BaseGroup):
         verbose_name_plural = _('groups')
 
 
-@python_2_unicode_compatible
 class Organization(AbstractOrganization):
     """
     OpenWISP Organization model

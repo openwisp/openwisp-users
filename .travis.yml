@@ -2,23 +2,14 @@ language: python
 cache: pip
 
 python:
-  - "3.5"
-  - "2.7"
+  - "3.6"
+  - "3.7"
 
 env:
-  - DJANGO="django>=1.11,<1.12"
   - DJANGO="django>=2.0,<2.1"
   - DJANGO="django>=2.1,<2.2"
   - DJANGO="django>=2.2,<2.3"
-
-matrix:
-  exclude:
-   - python: "2.7"
-     env: DJANGO="django>=2.0,<2.1"
-   - python: "2.7"
-     env: DJANGO="django>=2.1,<2.2"
-   - python: "2.7"
-     env: DJANGO="django>=2.2,<2.3"
+  - DJANGO="django>=3.0,<3.1"
 
 branches:
   only:
@@ -28,7 +19,7 @@ before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
   - flake8
   - ./runcheckmigration
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort; fi
+  - ./runisort
   - npm install -g jshint
   - jshint ./openwisp_users/static/openwisp-users/js/*.js
 
@@ -39,7 +30,7 @@ install:
 
 # command to run tests, e.g. python setup.py test
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./tests/manage.py makemigrations openwisp_users --dry-run | grep "No changes detected"; fi
+  - ./tests/manage.py makemigrations openwisp_users --dry-run | grep "No changes detected"
   - coverage run --source=openwisp_users runtests.py
   - |
     if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
