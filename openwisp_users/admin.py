@@ -13,8 +13,7 @@ from django.forms.models import BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
 from organizations.base_admin import (BaseOrganizationAdmin,
                                       BaseOrganizationOwnerAdmin,
-                                      BaseOrganizationUserAdmin,
-                                      BaseOwnerInline)
+                                      BaseOrganizationUserAdmin)
 
 from . import settings as app_settings
 from .base import BaseAdmin
@@ -255,13 +254,9 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
     pass
 
 
-class OwnerInline(BaseOwnerInline):
-    model = OrganizationOwner
-
-
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
-    inlines = [OwnerInline]
+    inlines = []
     readonly_fields = ['uuid']
     ordering = ['name']
 
