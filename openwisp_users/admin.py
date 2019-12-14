@@ -11,6 +11,7 @@ from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.forms.models import BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
+from openwisp_utils.admin_theme.site import admin_site
 from organizations.base_admin import (BaseOrganizationAdmin,
                                       BaseOrganizationOwnerAdmin,
                                       BaseOrganizationUserAdmin)
@@ -126,6 +127,7 @@ class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
     pass
 
 
+@admin.register(User, site=admin_site)
 class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
@@ -250,10 +252,12 @@ UserAdmin.add_fieldsets[0][1]['fields'] = ('username', 'email',
 UserAdmin.search_fields += ('phone_number',)
 
 
+@admin.register(Group, site=admin_site)
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
     pass
 
 
+@admin.register(Organization, site=admin_site)
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
     view_on_site = False
     inlines = []
