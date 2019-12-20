@@ -119,7 +119,8 @@ class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
         )
 
     class Media:
-        js = ('openwisp-users/js/addform.js',)
+        js = ('admin/js/jquery.init.js',
+              'openwisp-users/js/addform.js',)
 
 
 class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
@@ -289,7 +290,8 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
 
     class Media:
         css = {'all': ('openwisp-users/css/admin.css',)}
-        js = ('openwisp-users/js/uuid.js',)
+        js = ('admin/js/jquery.init.js',
+              'openwisp-users/js/uuid.js',)
 
 
 class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin,):
