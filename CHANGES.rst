@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 0.1.12 [2019-12-20]
+---------------------------
+
+- [dependencies] Added support for django 2.2
+
 Version 0.1.11 [2019-12-13]
 ---------------------------
 
