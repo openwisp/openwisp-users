@@ -26,9 +26,6 @@ branches:
 
 before_install:
   - pip install --no-cache-dir -U -r requirements-test.txt
-  - flake8
-  - ./runcheckmigration
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./runisort; fi
   - npm install -g jshint
   - jshint ./openwisp_users/static/openwisp-users/js/*.js
 
@@ -39,16 +36,16 @@ install:
 
 # command to run tests, e.g. python setup.py test
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then ./tests/manage.py makemigrations openwisp_users --dry-run | grep "No changes detected"; fi
-  - coverage run --source=openwisp_users runtests.py
   - |
-    if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
-      # gets commit message of last commit before pull request merge
-      COMMIT_MESSAGE=$(git log $TRAVIS_PULL_REQUEST_SHA --format=%B -n 1)
-      printf "Checking commit message:\n\n"
-      printf "$COMMIT_MESSAGE\n\n"
-      checkcommit --message "$COMMIT_MESSAGE"
-    fi
+      if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then
+        openwisp-utils-qa-checks \
+          --migrations-to-ignore 2 \
+          --migration-path \
+            "./openwisp_users/migrations \
+            ./tests/testapp/migrations" \
+          --migration-module openwisp_users
+      fi
+  - coverage run --source=openwisp_users runtests.py
 
 after_success:
   coveralls
