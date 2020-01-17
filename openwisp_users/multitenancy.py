@@ -15,7 +15,7 @@ class MultitenantAdminMixin(object):
     multitenant_parent = None
 
     def __init__(self, *args, **kwargs):
-        super(MultitenantAdminMixin, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         parent = self.multitenant_parent
         shared_relations = self.multitenant_shared_relations
         if parent and parent not in shared_relations:
@@ -31,7 +31,7 @@ class MultitenantAdminMixin(object):
         If current user is not superuser, show only the
         objects associated to organizations he/she is associated with
         """
-        qs = super(MultitenantAdminMixin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         user = request.user
         if self.model == User:
             return self.multitenant_behaviour_for_user_admin(request)
@@ -73,12 +73,12 @@ class MultitenantAdminMixin(object):
                 field.queryset = field.queryset.filter(q)
 
     def get_form(self, request, obj=None, **kwargs):
-        form = super(MultitenantAdminMixin, self).get_form(request, obj, **kwargs)
+        form = super().get_form(request, obj, **kwargs)
         self._edit_form(request, form)
         return form
 
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super(MultitenantAdminMixin, self).get_formset(request, obj=None, **kwargs)
+        formset = super().get_formset(request, obj=None, **kwargs)
         self._edit_form(request, formset.form)
         return formset
 
@@ -100,7 +100,7 @@ class MultitenantAdminMixin(object):
             # so they can't edit nor delete them
             qs = qs.filter(is_superuser=False)
         else:
-            qs = super(MultitenantAdminMixin, self).get_queryset(request)
+            qs = super().get_queryset(request)
         return qs
 
 
@@ -113,7 +113,7 @@ class MultitenantOrgFilter(admin.RelatedFieldListFilter):
 
     def field_choices(self, field, request, model_admin):
         if request.user.is_superuser:
-            return super(MultitenantOrgFilter, self).field_choices(field, request, model_admin)
+            return super().field_choices(field, request, model_admin)
         organizations = request.user.organizations_pk
         return field.get_choices(include_blank=False,
                                  limit_choices_to={self.multitenant_lookup: organizations})

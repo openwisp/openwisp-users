@@ -9,7 +9,7 @@ class OpenwispUsersConfig(AppConfig):
     verbose_name = _('Users and Organizations')
 
     def ready(self, *args, **kwargs):
-        super(OpenwispUsersConfig, self).ready(*args, **kwargs)
+        super().ready(*args, **kwargs)
         self.add_default_menu_items()
 
     def add_default_menu_items(self):

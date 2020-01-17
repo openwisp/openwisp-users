@@ -1,6 +1,6 @@
 import smtplib
+from unittest.mock import patch
 
-import mock
 from django import __version__ as django_version
 from django.contrib.auth.models import Permission
 from django.core import mail
@@ -506,7 +506,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                       password1='tester',
                       password2='tester')
         params.update(self.add_user_inline_params)
-        with mock.patch('allauth.account.models.EmailAddress.objects.add_email') as mocked:
+        with patch('allauth.account.models.EmailAddress.objects.add_email') as mocked:
             mocked.side_effect = smtplib.SMTPSenderRefused(501, '5.1.7 Bad sender address syntax',
                                                            'test_name@test_domain')
             self.client.post(reverse('admin:openwisp_users_user_add'), params)
