@@ -294,7 +294,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
               'openwisp-users/js/uuid.js',)
 
 
-class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin,):
+class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin):
     view_on_site = False
 
     def get_readonly_fields(self, request, obj=None):
