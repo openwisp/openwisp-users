@@ -19,22 +19,18 @@ before_install:
   - npm install -g jshint
   - jshint ./openwisp_users/static/openwisp-users/js/*.js
 
-# command to install requirements
 install:
   - pip install $DJANGO
   - python setup.py -q develop
 
-# command to run tests, e.g. python setup.py test
 script:
   - |
-      if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then
-        openwisp-utils-qa-checks \
-          --migrations-to-ignore 2 \
-          --migration-path \
-            "./openwisp_users/migrations \
-            ./tests/testapp/migrations" \
-          --migration-module openwisp_users
-      fi
+    openwisp-utils-qa-checks \
+      --migrations-to-ignore 2 \
+      --migration-path \
+        "./openwisp_users/migrations \
+        ./tests/testapp/migrations" \
+      --migration-module openwisp_users
   - coverage run --source=openwisp_users runtests.py
 
 after_success:

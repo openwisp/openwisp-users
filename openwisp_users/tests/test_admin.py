@@ -1,13 +1,11 @@
 import smtplib
 from unittest.mock import patch
 
-from django import __version__ as django_version
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from openwisp_users.models import Organization, OrganizationUser, User
-from packaging import version
 
 from .utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
@@ -280,14 +278,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                             '<input type="text" name="name" value="{0}"'.format(default_org.name))
         response = self.client.get(reverse('admin:openwisp_users_organization_change',
                                            args=[org2.pk]))
-        # With django versions >= 2.1, response have a status code of 200
-        # Where as in versions < 2.1, response have a status code of 403
-        # Thus, we have to ensure the required test is carried out in each case
-        if version.parse(django_version) >= version.parse('2.1'):
-            self.assertNotContains(response,
-                                   '<input type="text" name="name" value="{0}"'.format(org2.name))
-        else:
-            self.assertEqual(response.status_code, 403)
+        self.assertNotContains(response,
+                               '<input type="text" name="name" value="{0}"'.format(org2.name))
 
     def test_operator_change_org_is_admin(self):
         org1 = self._create_org(name='test-org1')
