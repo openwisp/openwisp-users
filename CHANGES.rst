@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 0.2.0 [2020-01-17]
+---------------------------
+
+- [dependencies] Added support for django 3.0, dropped support for django < 2.1
+- [python] Dropped support for python 2.7
+
 Version 0.1.12 [2019-12-20]
 ---------------------------
 
