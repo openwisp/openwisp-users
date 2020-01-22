@@ -11,6 +11,7 @@ from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.forms.models import BaseInlineFormSet
 from django.utils.translation import ugettext_lazy as _
+from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (BaseOrganizationAdmin,
                                       BaseOrganizationOwnerAdmin,
                                       BaseOrganizationUserAdmin)
@@ -255,24 +256,11 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
     pass
 
 
-class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
+class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
     view_on_site = False
     inlines = []
     readonly_fields = ['uuid']
     ordering = ['name']
-
-    def uuid(self, obj):
-        return obj.pk
-
-    uuid.short_description = 'UUID'
-
-    def get_fields(self, request, obj=None):
-        fields = super().get_fields(request, obj)
-        fields = fields[:]
-        fields.remove('uuid')
-        if obj:
-            fields.insert(0, 'uuid')
-        return fields
 
     def has_change_permission(self, request, obj=None):
         """
@@ -288,10 +276,8 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin):
                 pass
         return super().has_change_permission(request, obj)
 
-    class Media:
+    class Media(UUIDAdmin.Media):
         css = {'all': ('openwisp-users/css/admin.css',)}
-        js = ('admin/js/jquery.init.js',
-              'openwisp-users/js/uuid.js',)
 
 
 class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin,):
