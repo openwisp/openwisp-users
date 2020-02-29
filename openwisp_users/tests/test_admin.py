@@ -1,3 +1,4 @@
+import os
 import smtplib
 from unittest.mock import patch
 
@@ -8,6 +9,8 @@ from django.urls import reverse
 from openwisp_users.models import Organization, OrganizationUser, User
 
 from .utils import TestMultitenantAdminMixin, TestOrganizationMixin
+
+devnull = open(os.devnull, 'w')
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
@@ -490,6 +493,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
 
+    @patch('sys.stdout', devnull)
+    @patch('sys.stderr', devnull)
     def test_admin_add_user_with_invalid_email(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -503,6 +508,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                                                            'test_name@test_domain')
             self.client.post(reverse('admin:openwisp_users_user_add'), params)
             mocked.assert_called_once()
+
+    @classmethod
+    def tearDownClass(cls):
+        devnull.close()
 
 
 class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
