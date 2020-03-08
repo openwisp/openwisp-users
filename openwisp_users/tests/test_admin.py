@@ -493,6 +493,57 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
 
+    def test_action_active(self):
+        user = User.objects.create(username='openwisp',
+                                   password='test',
+                                   email='openwisp@test.com',
+                                   is_active=False)
+        path = reverse('admin:openwisp_users_user_changelist')
+        self.client.force_login(self._get_admin())
+        post_data = {
+            '_selected_action': [user.pk],
+            'action': 'make_active',
+            'csrfmiddlewaretoken': 'test',
+            'confirmation': 'Confirm',
+            }
+        response = self.client.post(path, post_data, follow=True)
+        self.assertEqual(response.status_code, 200)
+
+    def test_action_inactive(self):
+        user = User.objects.create(username='openwisp',
+                                   password='test',
+                                   email='openwisp@test.com',
+                                   is_active=True)
+        path = reverse('admin:openwisp_users_user_changelist')
+        self.client.force_login(self._get_admin())
+        post_data = {
+            '_selected_action': [user.pk],
+            'action': 'make_inactive',
+            'csrfmiddlewaretoken': 'test',
+            'confirmation': 'Confirm',
+            }
+        response = self.client.post(path, post_data, follow=True)
+        user.refresh_from_db()
+        self.assertFalse(user.is_active)
+        self.assertEqual(response.status_code, 200)
+
+    def test_action_confirmation_page(self):
+        user = User.objects.create(username='openwisp',
+                                   password='test',
+                                   email='openwisp@test.com',
+                                   is_active=True)
+        path = reverse('admin:openwisp_users_user_changelist')
+        self.client.force_login(self._get_admin())
+        post_data = {
+            '_selected_action': [user.pk],
+            'action': 'make_active',
+            'csrfmiddlewaretoken': 'test',
+            }
+        response = self.client.post(path, post_data, follow=True)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertEqual(response.status_code, 200)
+
     @patch('sys.stdout', devnull)
     @patch('sys.stderr', devnull)
     def test_admin_add_user_with_invalid_email(self):
