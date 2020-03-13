@@ -4,12 +4,14 @@ from copy import deepcopy
 from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.contrib.admin.utils import model_ngettext
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.forms.models import BaseInlineFormSet
+from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (BaseOrganizationAdmin,
@@ -142,6 +144,46 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                     'last_login']
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
+    actions = ['make_inactive', 'make_active']
+
+    def require_confirmation(func):
+        """
+        Decorator to lead to a confirmation page.
+        This has been used rather than simply adding the same lines in action functions
+        inorder to avoid repetition of the same lines in the two added actions and more actions
+        incase they are added in future.
+        """
+        def wrapper(modeladmin, request, queryset):
+            opts = modeladmin.model._meta
+            if request.POST.get('confirmation') is None:
+                request.current_app = modeladmin.admin_site.name
+                context = {'action': request.POST['action'],
+                           'queryset': queryset,
+                           'opts': opts}
+                return TemplateResponse(request, 'admin/action_confirmation.html', context)
+            return func(modeladmin, request, queryset)
+        wrapper.__name__ = func.__name__
+        return wrapper
+
+    @require_confirmation
+    def make_inactive(self, request, queryset):
+        queryset.update(is_active=False)
+        count = queryset.count()
+        if count:
+            self.message_user(request,
+                              _(f'Successfully made {count} {model_ngettext(self.opts, count)} inactive.'),
+                              messages.SUCCESS)
+    make_inactive.short_description = _('Flag selected users as inactive')
+
+    @require_confirmation
+    def make_active(self, request, queryset):
+        queryset.update(is_active=True)
+        count = queryset.count()
+        if count:
+            self.message_user(request,
+                              _(f'Successfully made {count} {model_ngettext(self.opts, count)} active.'),
+                              messages.SUCCESS)
+    make_active.short_description = _('Flag selected users as active')
 
     def get_list_display(self, request):
         """
