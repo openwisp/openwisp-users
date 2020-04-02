@@ -35,8 +35,9 @@
     {{ form.password.label_tag }} {{ form.password }}
     <input type="hidden" name="next" value="{{ next }}" />
   </div>
-  <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
-
+  <div class="form-row">
+    <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+  </div>
   <div class="submit-row">
     <input type="submit" value="Log in" />
   </div>
