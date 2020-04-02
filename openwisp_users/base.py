@@ -7,4 +7,4 @@ else:
 
 
 class BaseAdmin(BaseModelAdmin):
-    pass
+    history_latest_first = True
