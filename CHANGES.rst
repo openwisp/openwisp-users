@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.2.1 [2020-04-07]
+--------------------------
+
+- [admin] Add possibility to deactivate users in batch operation
+- [admin] Wrapped password forgot in row div
+- [admin] Show latest items first in "recovery deleted <object>" pages
+
 Version 0.2.0 [2020-01-17]
 ---------------------------
 
