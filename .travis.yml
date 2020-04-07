@@ -24,13 +24,7 @@ install:
   - python setup.py -q develop
 
 script:
-  - |
-    openwisp-utils-qa-checks \
-      --migrations-to-ignore 2 \
-      --migration-path \
-        "./openwisp_users/migrations \
-        ./tests/testapp/migrations" \
-      --migration-module openwisp_users
+  - ./run-qa-checks
   - coverage run --source=openwisp_users runtests.py
 
 after_success:
