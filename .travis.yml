@@ -6,7 +6,6 @@ python:
   - "3.7"
 
 env:
-  - DJANGO="django>=2.1,<2.2"
   - DJANGO="django>=2.2,<2.3"
   - DJANGO="django>=3.0,<3.1"
 
@@ -15,7 +14,7 @@ branches:
     - master
 
 before_install:
-  - pip install --no-cache-dir -U -r requirements-test.txt
+  - pip install -U -r requirements-test.txt
   - npm install -g jshint
 
 install:
