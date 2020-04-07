@@ -3,3 +3,4 @@ openwisp-utils-qa-checks \
   --migrations-to-ignore 2 \
   --migration-path "./openwisp_users/migrations ./tests/testapp/migrations" \
   --migration-module openwisp_users
+jshint ./openwisp_users/static/openwisp-users/js/*.js
