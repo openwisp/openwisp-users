@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'openwisp_users',
+    'rest_framework',
+    'rest_framework.authtoken',
     'testapp',
 ]
 
@@ -84,8 +86,21 @@ TEMPLATES = [
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_REDIRECT_URL = 'admin:index'
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://localhost/0',
+        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient',},
+    }
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
 OPENWISP_ORGANIZATON_USER_ADMIN = True
 OPENWISP_ORGANIZATON_OWNER_ADMIN = True
+OPENWISP_USERS_AUTH_API = True
+OPENWISP_USERS_AUTH_THROTTLE_RATE = '10/hour'
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
