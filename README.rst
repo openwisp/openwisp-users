@@ -76,6 +76,7 @@ Setup (integrate in an existing django project)
         'django.contrib.sessions',
         'django.contrib.messages',
         'django.contrib.staticfiles',
+        'openwisp_utils.admin_theme',
         'django.contrib.admin',
         'django.contrib.sites',
         'django_extensions',
@@ -83,6 +84,8 @@ Setup (integrate in an existing django project)
         'allauth.account',
         'allauth.socialaccount',
         'openwisp_users',
+        'rest_framework',
+        'rest_framework.authtoken',
     ]
 
 also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::
@@ -101,6 +104,7 @@ also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::
     urlpatterns = [
         url(r'^admin/', include(admin.site.urls)),
         url(r'^accounts/', include('allauth.urls')),
+        url(r'^api/', include('openwisp_users.api.urls')),
     ]
 
     urlpatterns += staticfiles_urlpatterns()
@@ -130,6 +134,12 @@ Install test requirements:
 .. code-block:: shell
 
     pip install -r requirements-test.txt
+
+Start Redis
+
+.. code-block:: shell
+
+    docker-compose up -d
 
 Create database:
 
@@ -193,6 +203,34 @@ is enabled or not.
 
 It is disabled by default because `OpenWISP <http://openwisp.org>`_ does not use
 this feature of `django-organizations <https://github.com/bennylope/django-organizations>`_ yet.
+
+``OPENWISP_USERS_AUTH_API``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+--------------+
+| **type**:    | ``boolean``  |
++--------------+--------------+
+| **default**: | ``False``    |
++--------------+--------------+
+
+Indicates whether the API is enabled or not.
+
+``OPENWISP_USERS_AUTH_THROTTLE_RATE``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+--------------+
+| **type**:    | ``str``      |
++--------------+--------------+
+| **default**: | ``100/day``  |
++--------------+--------------+
+
+Indicates the rate throttling for the API authentication endpoint.
+
+Please note that the current rate throttler is very basic and will
+also count valid requests for rate limiting. For more information,
+check Django-rest-framework
+`throttling guide <https://www.django-rest-framework.org/api-guide/throttling/>`_.
+
 
 Multitenancy mixins
 -------------------
