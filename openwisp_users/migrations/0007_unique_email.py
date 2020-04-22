@@ -22,15 +22,24 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='user',
             name='email',
-            field=models.EmailField(blank=True, max_length=254, null=True, verbose_name='email address'),
+            field=models.EmailField(
+                blank=True, max_length=254, null=True, verbose_name='email address'
+            ),
         ),
         # data migration to change empty strings to NULL
-        migrations.RunPython(set_blank_emails_to_none,
-                             reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            set_blank_emails_to_none, reverse_code=migrations.RunPython.noop
+        ),
         # add unique constraint
         migrations.AlterField(
             model_name='user',
             name='email',
-            field=models.EmailField(blank=True, max_length=254, null=True, unique=True, verbose_name='email address'),
+            field=models.EmailField(
+                blank=True,
+                max_length=254,
+                null=True,
+                unique=True,
+                verbose_name='email address',
+            ),
         ),
     ]

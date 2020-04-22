@@ -6,10 +6,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'openwisp-users.db',
-    }
+    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'openwisp-users.db',}
 }
 
 SECRET_KEY = 'fn)t*+$)ugeyip6-#txyy$5wf2ervc0d2n#h)qb)y5@ly$t*@w'
@@ -29,7 +26,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'openwisp_users',
-    'testapp'
+    'testapp',
 ]
 
 AUTH_USER_MODEL = 'openwisp_users.User'
@@ -77,7 +74,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'openwisp_utils.admin_theme.context_processor.menu_items'
+                'openwisp_utils.admin_theme.context_processor.menu_items',
             ],
         },
     }

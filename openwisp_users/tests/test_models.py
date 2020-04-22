@@ -9,25 +9,21 @@ class TestUsers(TestOrganizationMixin, TestCase):
     user_model = User
 
     def test_create_superuser_email(self):
-        user = User.objects.create_superuser(username='tester',
-                                             password='tester',
-                                             email='test@superuser.com')
+        user = User.objects.create_superuser(
+            username='tester', password='tester', email='test@superuser.com'
+        )
         self.assertEqual(user.emailaddress_set.count(), 1)
         self.assertEqual(user.emailaddress_set.first().email, 'test@superuser.com')
 
     def test_create_superuser_email_empty(self):
-        user = User.objects.create_superuser(username='tester',
-                                             password='tester',
-                                             email='')
+        user = User.objects.create_superuser(
+            username='tester', password='tester', email=''
+        )
         self.assertEqual(user.emailaddress_set.count(), 0)
 
     def test_unique_email_validation(self):
         self._create_user(username='user1', email='same@gmail.com')
-        options = {
-            'username': 'user2',
-            'email': 'same@gmail.com',
-            'password': 'pass1'
-        }
+        options = {'username': 'user2', 'email': 'same@gmail.com', 'password': 'pass1'}
         u = self.user_model(**options)
         with self.assertRaises(ValidationError):
             u.full_clean()

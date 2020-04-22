@@ -14,6 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='phone_number',
-            field=phonenumber_field.modelfields.PhoneNumberField(blank=True, unique=True, max_length=128, null=True, region=None),
+            field=phonenumber_field.modelfields.PhoneNumberField(
+                blank=True, unique=True, max_length=128, null=True, region=None
+            ),
         ),
     ]

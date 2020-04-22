@@ -10,9 +10,9 @@ user_model = get_user_model()
 
 class TestMultitenantAdminMixin(object):
     def setUp(self):
-        user_model.objects.create_superuser(username='admin',
-                                            password='tester',
-                                            email='admin@admin.com')
+        user_model.objects.create_superuser(
+            username='admin', password='tester', email='admin@admin.com'
+        )
 
     def _login(self, username='admin', password='tester'):
         self.client.login(username=username, password=password)
@@ -29,10 +29,12 @@ class TestMultitenantAdminMixin(object):
         return Permission.objects.filter(filters)
 
     def _create_operator(self, organizations=[]):
-        operator = user_model.objects.create_user(username='operator',
-                                                  password='tester',
-                                                  email='operator@test.com',
-                                                  is_staff=True)
+        operator = user_model.objects.create_user(
+            username='operator',
+            password='tester',
+            email='operator@test.com',
+            is_staff=True,
+        )
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
             OrganizationUser.objects.create(user=operator, organization=organization)
@@ -57,12 +59,14 @@ class TestMultitenantAdminMixin(object):
 
         # ensure elements in visible list are visible to operator
         for el in visible:
-            self.assertContains(response, _f(el, select_widget),
-                                msg_prefix='[operator contains]')
+            self.assertContains(
+                response, _f(el, select_widget), msg_prefix='[operator contains]'
+            )
         # ensure elements in hidden list are not visible to operator
         for el in hidden:
-            self.assertNotContains(response, _f(el, select_widget),
-                                   msg_prefix='[operator not-contains]')
+            self.assertNotContains(
+                response, _f(el, select_widget), msg_prefix='[operator not-contains]'
+            )
 
         # now become superuser
         self._logout()
@@ -71,56 +75,58 @@ class TestMultitenantAdminMixin(object):
         # ensure all elements are visible to superuser
         all_elements = visible + hidden
         for el in all_elements:
-            self.assertContains(response, _f(el, select_widget),
-                                msg_prefix='[superuser contains]')
+            self.assertContains(
+                response, _f(el, select_widget), msg_prefix='[superuser contains]'
+            )
 
     def _test_changelist_recover_deleted(self, app_label, model_label):
         self._test_multitenant_admin(
             url=reverse('admin:{0}_{1}_changelist'.format(app_label, model_label)),
             visible=[],
-            hidden=['Recover deleted']
+            hidden=['Recover deleted'],
         )
 
     def _test_recoverlist_operator_403(self, app_label, model_label):
         self._login(username='operator', password='tester')
-        response = self.client.get(reverse('admin:{0}_{1}_recoverlist'.format(app_label, model_label)))
+        response = self.client.get(
+            reverse('admin:{0}_{1}_recoverlist'.format(app_label, model_label))
+        )
         self.assertEqual(response.status_code, 403)
 
 
 class TestOrganizationMixin(object):
     def _create_user(self, **kwargs):
-        opts = dict(username='tester',
-                    password='tester',
-                    first_name='Tester',
-                    last_name='Tester',
-                    email='test@tester.com')
+        opts = dict(
+            username='tester',
+            password='tester',
+            first_name='Tester',
+            last_name='Tester',
+            email='test@tester.com',
+        )
         opts.update(kwargs)
         user = User.objects.create_user(**opts)
         return user
 
     def _create_admin(self, **kwargs):
-        opts = dict(username='admin',
-                    email='admin@admin.com',
-                    is_superuser=True,
-                    is_staff=True)
+        opts = dict(
+            username='admin', email='admin@admin.com', is_superuser=True, is_staff=True
+        )
         opts.update(kwargs)
         return self._create_user(**opts)
 
     def _create_org(self, **kwargs):
-        options = {
-            'name': 'test org',
-            'is_active': True,
-            'slug': 'test-org'
-        }
+        options = {'name': 'test org', 'is_active': True, 'slug': 'test-org'}
         options.update(kwargs)
         org = Organization.objects.create(**options)
         return org
 
     def _create_operator(self):
-        operator = User.objects.create_user(username='operator',
-                                            password='tester',
-                                            email='operator@test.com',
-                                            is_staff=True)
+        operator = User.objects.create_user(
+            username='operator',
+            password='tester',
+            email='operator@test.com',
+            is_staff=True,
+        )
         user_permissions = Permission.objects.filter(codename__endswith='user')
         operator.user_permissions.add(*user_permissions)
         return operator
@@ -153,7 +159,7 @@ class TestOrganizationMixin(object):
         options = {
             'organization': self._get_org(),
             'is_admin': False,
-            'user': self._get_user()
+            'user': self._get_user(),
         }
         options.update(kwargs)
         org = OrganizationUser.objects.create(**options)
@@ -168,7 +174,7 @@ class TestOrganizationMixin(object):
     def _create_org_owner(self, **kwargs):
         options = {
             'organization_user': self._get_org_user(),
-            'organization': self._get_org()
+            'organization': self._get_org(),
         }
         options.update(kwargs)
         org_owner = OrganizationOwner.objects.create(**options)

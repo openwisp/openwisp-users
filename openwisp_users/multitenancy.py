@@ -11,6 +11,7 @@ class MultitenantAdminMixin(object):
     users will see only the objects related to the organizations
     they are associated with.
     """
+
     multitenant_shared_relations = []
     multitenant_parent = None
 
@@ -90,8 +91,9 @@ class MultitenantAdminMixin(object):
         """
         if not request.user.is_superuser:
             user = request.user
-            org_users = OrganizationUser.objects.filter(user=user) \
-                                                .select_related('organization')
+            org_users = OrganizationUser.objects.filter(user=user).select_related(
+                'organization'
+            )
             qs = User.objects.none()
             for org_user in org_users:
                 if org_user.is_admin:
@@ -109,14 +111,17 @@ class MultitenantOrgFilter(admin.RelatedFieldListFilter):
     Admin filter that shows only organizations the current
     user is associated with in its available choices
     """
+
     multitenant_lookup = 'pk__in'
 
     def field_choices(self, field, request, model_admin):
         if request.user.is_superuser:
             return super().field_choices(field, request, model_admin)
         organizations = request.user.organizations_pk
-        return field.get_choices(include_blank=False,
-                                 limit_choices_to={self.multitenant_lookup: organizations})
+        return field.get_choices(
+            include_blank=False,
+            limit_choices_to={self.multitenant_lookup: organizations},
+        )
 
 
 class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
@@ -124,4 +129,5 @@ class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
     Admin filter that shows only objects which have a relation with
     one of the organizations the current user is associated with
     """
+
     multitenant_lookup = 'organization__in'

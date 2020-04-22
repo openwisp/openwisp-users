@@ -1,7 +1,6 @@
 class CreateMixin(object):
     def _create_book(self, **kwargs):
-        options = dict(name='test-book',
-                       author='test-author')
+        options = dict(name='test-book', author='test-author')
         options.update(kwargs)
         b = self.book_model(**options)
         b.full_clean()

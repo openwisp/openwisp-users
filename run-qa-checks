@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-openwisp-utils-qa-checks \
+openwisp-qa-check \
   --migrations-to-ignore 2 \
   --migration-path "./openwisp_users/migrations ./tests/testapp/migrations" \
   --migration-module openwisp_users

@@ -1,14 +1,14 @@
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_users.tests.utils import (TestMultitenantAdminMixin,
-                                        TestOrganizationMixin)
+from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
 from . import CreateMixin
 from .models import Book, Shelf
 
 
-class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
-                       TestOrganizationMixin, TestCase):
+class TestMultitenancy(
+    CreateMixin, TestMultitenantAdminMixin, TestOrganizationMixin, TestCase
+):
     book_model = Book
     shelf_model = Shelf
     operator_permission_filter = [
@@ -27,11 +27,18 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
         b1 = self._create_book(name='book1', organization=org1, shelf=s1)
         b2 = self._create_book(name='book2', organization=org2, shelf=s2)
         b3 = self._create_book(name='book3', organization=inactive, shelf=s3)
-        data = dict(s1=s1, s2=s2, s3_inactive=s3,
-                    b1=b1, b2=b2, b3_inactive=b3,
-                    org1=org1, org2=org2,
-                    inactive=inactive,
-                    operator=operator)
+        data = dict(
+            s1=s1,
+            s2=s2,
+            s3_inactive=s3,
+            b1=b1,
+            b2=b2,
+            b3_inactive=b3,
+            org1=org1,
+            org2=org2,
+            inactive=inactive,
+            operator=operator,
+        )
         return data
 
     def test_shelf_queryset(self):
@@ -39,8 +46,7 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
         self._test_multitenant_admin(
             url=reverse('admin:testapp_shelf_changelist'),
             visible=[data['s1'].name, data['org1'].name],
-            hidden=[data['s2'].name, data['org2'].name,
-                    data['s3_inactive'].name]
+            hidden=[data['s2'].name, data['org2'].name, data['s3_inactive'].name],
         )
 
     def test_shelf_organization_fk_queryset(self):
@@ -49,7 +55,7 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
             url=reverse('admin:testapp_shelf_add'),
             visible=[data['org1'].name],
             hidden=[data['org2'].name, data['inactive']],
-            select_widget=True
+            select_widget=True,
         )
 
     def test_book_queryset(self):
@@ -57,8 +63,7 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
         self._test_multitenant_admin(
             url=reverse('admin:testapp_book_changelist'),
             visible=[data['b1'].name, data['org1'].name],
-            hidden=[data['b2'].name, data['org2'].name,
-                    data['b3_inactive'].name]
+            hidden=[data['b2'].name, data['org2'].name, data['b3_inactive'].name],
         )
 
     def test_book_organization_fk_queryset(self):
@@ -67,7 +72,7 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
             url=reverse('admin:testapp_book_add'),
             visible=[data['org1'].name],
             hidden=[data['org2'].name, data['inactive']],
-            select_widget=True
+            select_widget=True,
         )
 
     def test_book_shelf_filter(self):
@@ -76,7 +81,7 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
         self._test_multitenant_admin(
             url=reverse('admin:testapp_book_changelist'),
             visible=[data['s1'].name, s_special.name],
-            hidden=[data['s2'].name, data['s3_inactive'].name]
+            hidden=[data['s2'].name, data['s3_inactive'].name],
         )
 
     def test_book_shelf_fk_queryset(self):
@@ -85,5 +90,5 @@ class TestMultitenancy(CreateMixin, TestMultitenantAdminMixin,
             url=reverse('admin:testapp_book_add'),
             visible=[data['s1'].name],
             hidden=[data['s2'].name, data['s3_inactive'].name],
-            select_widget=True
+            select_widget=True,
         )

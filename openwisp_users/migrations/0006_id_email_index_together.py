@@ -10,8 +10,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterIndexTogether(
-            name='user',
-            index_together={('id', 'email')},
-        ),
+        migrations.AlterIndexTogether(name='user', index_together={('id', 'email')},),
     ]

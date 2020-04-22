@@ -15,14 +15,15 @@ from django.forms.models import BaseInlineFormSet
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.admin import UUIDAdmin
-from organizations.base_admin import (BaseOrganizationAdmin,
-                                      BaseOrganizationOwnerAdmin,
-                                      BaseOrganizationUserAdmin)
+from organizations.base_admin import (
+    BaseOrganizationAdmin,
+    BaseOrganizationOwnerAdmin,
+    BaseOrganizationUserAdmin,
+)
 
 from . import settings as app_settings
 from .base import BaseAdmin
-from .models import (Group, Organization, OrganizationOwner, OrganizationUser,
-                     User)
+from .models import Group, Organization, OrganizationOwner, OrganizationUser, User
 from .multitenancy import MultitenantAdminMixin
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
     """
     Generates an inline formset that is required
     """
+
     def _construct_form(self, i, **kwargs):
         """
         Override the method to change the form attribute empty_permitted
@@ -73,14 +75,18 @@ class OrganizationUserInline(admin.StackedInline):
         if request.user.is_superuser:
             return formset
         if not request.user.is_superuser and not obj:
-            operator_orgs = OrganizationUser.objects.values_list('organization') \
-                                                    .filter(user=request.user,
-                                                            is_admin=True)
-            formset.form.base_fields['organization'].queryset = \
-                Organization.objects.filter(pk__in=operator_orgs)
+            operator_orgs = OrganizationUser.objects.values_list('organization').filter(
+                user=request.user, is_admin=True
+            )
+            formset.form.base_fields[
+                'organization'
+            ].queryset = Organization.objects.filter(pk__in=operator_orgs)
         if not request.user.is_superuser and obj:
-            formset.form.base_fields['organization'].queryset = \
-                Organization.objects.filter(pk__in=request.user.organizations_pk)
+            formset.form.base_fields[
+                'organization'
+            ].queryset = Organization.objects.filter(
+                pk__in=request.user.organizations_pk
+            )
         return formset
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -109,22 +115,16 @@ class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
     class Meta(BaseUserCreationForm.Meta):
         fields = ['username', 'email', 'password1', 'password2', 'is_staff']
         fields_superuser = fields[:] + ['is_superuser']
-        fieldsets = (
-            (None, {
-                'classes': ('wide',),
-                'fields': fields,
-            }),
-        )
+        fieldsets = ((None, {'classes': ('wide',), 'fields': fields}),)
         fieldsets_superuser = (
-            (None, {
-                'classes': ('wide',),
-                'fields': fields_superuser,
-            }),
+            (None, {'classes': ('wide',), 'fields': fields_superuser}),
         )
 
     class Media:
-        js = ('admin/js/jquery.init.js',
-              'openwisp-users/js/addform.js',)
+        js = (
+            'admin/js/jquery.init.js',
+            'openwisp-users/js/addform.js',
+        )
 
 
 class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
@@ -136,13 +136,15 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     form = UserChangeForm
     ordering = ['-date_joined']
     readonly_fields = ['last_login', 'date_joined']
-    list_display = ['username',
-                    'email',
-                    'is_active',
-                    'is_staff',
-                    'is_superuser',
-                    'date_joined',
-                    'last_login']
+    list_display = [
+        'username',
+        'email',
+        'is_active',
+        'is_staff',
+        'is_superuser',
+        'date_joined',
+        'last_login',
+    ]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
     actions = ['make_inactive', 'make_active']
@@ -154,15 +156,21 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         inorder to avoid repetition of the same lines in the two added actions and more actions
         incase they are added in future.
         """
+
         def wrapper(modeladmin, request, queryset):
             opts = modeladmin.model._meta
             if request.POST.get('confirmation') is None:
                 request.current_app = modeladmin.admin_site.name
-                context = {'action': request.POST['action'],
-                           'queryset': queryset,
-                           'opts': opts}
-                return TemplateResponse(request, 'admin/action_confirmation.html', context)
+                context = {
+                    'action': request.POST['action'],
+                    'queryset': queryset,
+                    'opts': opts,
+                }
+                return TemplateResponse(
+                    request, 'admin/action_confirmation.html', context
+                )
             return func(modeladmin, request, queryset)
+
         wrapper.__name__ = func.__name__
         return wrapper
 
@@ -171,9 +179,14 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         queryset.update(is_active=False)
         count = queryset.count()
         if count:
-            self.message_user(request,
-                              _(f'Successfully made {count} {model_ngettext(self.opts, count)} inactive.'),
-                              messages.SUCCESS)
+            self.message_user(
+                request,
+                _(
+                    f'Successfully made {count} {model_ngettext(self.opts, count)} inactive.'
+                ),
+                messages.SUCCESS,
+            )
+
     make_inactive.short_description = _('Flag selected users as inactive')
 
     @require_confirmation
@@ -181,9 +194,14 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         queryset.update(is_active=True)
         count = queryset.count()
         if count:
-            self.message_user(request,
-                              _(f'Successfully made {count} {model_ngettext(self.opts, count)} active.'),
-                              messages.SUCCESS)
+            self.message_user(
+                request,
+                _(
+                    f'Successfully made {count} {model_ngettext(self.opts, count)} active.'
+                ),
+                messages.SUCCESS,
+            )
+
     make_active.short_description = _('Flag selected users as active')
 
     def get_list_display(self, request):
@@ -191,8 +209,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         Hide `is_superuser` from column from operators
         """
         default_list_display = super().get_list_display(request)
-        if (not request.user.is_superuser and
-                'is_superuser' in default_list_display):
+        if not request.user.is_superuser and 'is_superuser' in default_list_display:
             # avoid editing the default_list_display
             operators_list_display = default_list_display[:]
             operators_list_display.remove('is_superuser')
@@ -201,8 +218,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def get_list_filter(self, request):
         filters = super().get_list_filter(request)
-        if (not request.user.is_superuser and
-                'is_superuser' in filters):
+        if not request.user.is_superuser and 'is_superuser' in filters:
             # hide is_superuser filter for non-superusers
             operators_filter_list = list(filters)
             operators_filter_list.remove('is_superuser')
@@ -240,7 +256,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     def has_change_permission(self, request, obj=None):
         # do not allow operators to edit details of superusers
         # returns 403 if trying to access the change form of a superuser
-        if obj and obj.is_superuser and not request.user.is_superuser:  # pragma: no cover
+        if (
+            obj and obj.is_superuser and not request.user.is_superuser
+        ):  # pragma: no cover
             return False
         return super().has_change_permission(request, obj)
 
@@ -273,11 +291,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         super().save_model(request, obj, form, change)
         if obj.email:
             try:
-                EmailAddress.objects.add_email(request,
-                                               user=obj,
-                                               email=obj.email,
-                                               confirm=True,
-                                               signup=True)
+                EmailAddress.objects.add_email(
+                    request, user=obj, email=obj.email, confirm=True, signup=True
+                )
             except Exception as e:
                 logger.exception(
                     'Got exception {} while sending '
@@ -290,8 +306,12 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
 additional_fields = ['bio', 'url', 'company', 'location', 'phone_number']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
-UserAdmin.add_fieldsets[0][1]['fields'] = ('username', 'email',
-                                           'password1', 'password2')
+UserAdmin.add_fieldsets[0][1]['fields'] = (
+    'username',
+    'email',
+    'password1',
+    'password2',
+)
 UserAdmin.search_fields += ('phone_number',)
 
 
@@ -323,7 +343,9 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
         css = {'all': ('openwisp-users/css/admin.css',)}
 
 
-class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin):
+class OrganizationUserAdmin(
+    MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin
+):
     view_on_site = False
 
     def get_readonly_fields(self, request, obj=None):
@@ -341,15 +363,18 @@ class OrganizationUserAdmin(MultitenantAdminMixin, BaseOrganizationUserAdmin, Ba
         where they are not admins
         """
         if obj and not request.user.is_superuser:
-            operator_org = OrganizationUser.objects.get(organization=obj.organization,
-                                                        user=request.user)
+            operator_org = OrganizationUser.objects.get(
+                organization=obj.organization, user=request.user
+            )
             if operator_org.is_admin:
                 return True
             else:
                 return False
 
 
-class OrganizationOwnerAdmin(MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin,):
+class OrganizationOwnerAdmin(
+    MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin,
+):
     list_display = ('get_user', 'organization')
 
     def get_user(self, obj):
@@ -376,7 +401,9 @@ admin.site.register(Group, GroupAdmin)
 # we can re-enable these models later when they will be really needed
 admin.site.unregister(apps.get_model('account', 'EmailAddress'))
 if allauth_settings.SOCIALACCOUNT_ENABLED:
-    for model in [('socialaccount', 'SocialApp'),
-                  ('socialaccount', 'SocialToken'),
-                  ('socialaccount', 'SocialAccount')]:
+    for model in [
+        ('socialaccount', 'SocialApp'),
+        ('socialaccount', 'SocialToken'),
+        ('socialaccount', 'SocialAccount'),
+    ]:
         admin.site.unregister(apps.get_model(*model))
