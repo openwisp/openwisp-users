@@ -1,6 +1,7 @@
 import logging
 from copy import deepcopy
 
+from allauth import app_settings as allauth_settings
 from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
@@ -373,8 +374,9 @@ admin.site.register(Group, GroupAdmin)
 
 # unregister some admin components to keep the admin interface simple
 # we can re-enable these models later when they will be really needed
-for model in [('account', 'EmailAddress'),
-              ('socialaccount', 'SocialApp'),
-              ('socialaccount', 'SocialToken'),
-              ('socialaccount', 'SocialAccount')]:
-    admin.site.unregister(apps.get_model(*model))
+admin.site.unregister(apps.get_model('account', 'EmailAddress'))
+if allauth_settings.SOCIALACCOUNT_ENABLED:
+    for model in [('socialaccount', 'SocialApp'),
+                  ('socialaccount', 'SocialToken'),
+                  ('socialaccount', 'SocialAccount')]:
+        admin.site.unregister(apps.get_model(*model))
