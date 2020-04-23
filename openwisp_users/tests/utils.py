@@ -28,13 +28,15 @@ class TestMultitenantAdminMixin(object):
             filters = filters | Q(**filter)
         return Permission.objects.filter(filters)
 
-    def _create_operator(self, organizations=[]):
-        operator = user_model.objects.create_user(
+    def _create_operator(self, organizations=[], **kwargs):
+        opts = dict(
             username='operator',
             password='tester',
             email='operator@test.com',
             is_staff=True,
         )
+        opts.update(kwargs)
+        operator = user_model.objects.create_user(**opts)
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
             OrganizationUser.objects.create(user=operator, organization=organization)
