@@ -5,7 +5,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^accounts/', include('openwisp_users.accounts.urls')),
-    url(r'^api/', include('openwisp_users.api.urls')),
+    url(r'^api/v1/', include('openwisp_users.api.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

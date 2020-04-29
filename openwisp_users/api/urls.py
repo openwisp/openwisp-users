@@ -5,7 +5,9 @@ from . import views
 
 urlpatterns = []
 
+app_name = 'users'
+
 if app_settings.USERS_AUTH_API:
     urlpatterns += [
-        url(r'^users/token/', views.obtain_auth_token, name='api-token-auth')
+        url(r'^users/token/', views.obtain_auth_token, name='user_auth_token')
     ]
