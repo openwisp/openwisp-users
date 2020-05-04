@@ -362,7 +362,9 @@ class OrganizationUserAdmin(
         operators should not delete organization users of organizations
         where they are not admins
         """
-        if obj and not request.user.is_superuser:
+        if request.user.is_superuser:
+            return True
+        if obj:
             operator_org = OrganizationUser.objects.get(
                 organization=obj.organization, user=request.user
             )

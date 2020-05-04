@@ -588,6 +588,24 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertTrue(user.is_active)
         self.assertEqual(response.status_code, 200)
 
+    def test_superuser_delete_operator(self):
+        user = self._create_operator()
+        org = self._create_org()
+        org_user = self._create_org_user(user=user, organization=org, is_admin=True)
+        post_data = {
+            '_selected_action': [user.pk],
+            'action': 'delete_selected',
+            'post': 'yes',
+        }
+        self.client.force_login(self._get_admin())
+        path = reverse('admin:openwisp_users_user_changelist')
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.filter(pk=user.pk)
+        org_user_qs = OrganizationUser.objects.filter(pk=org_user.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(user_qs.count(), 0)
+        self.assertEqual(org_user_qs.count(), 0)
+
     @patch('sys.stdout', devnull)
     @patch('sys.stderr', devnull)
     def test_admin_add_user_with_invalid_email(self):
