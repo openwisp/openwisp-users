@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 0.2.2 [2020-05-04]
+--------------------------
+
+- [admin] Fixed regression that caused superusers to
+  not be able to delete regular users
+- [admin] Do not de-register socialaccount if not enabled
+
 Version 0.2.1 [2020-04-07]
 --------------------------
 
