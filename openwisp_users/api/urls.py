@@ -9,5 +9,5 @@ app_name = 'users'
 
 if app_settings.USERS_AUTH_API:
     urlpatterns += [
-        url(r'^users/token/', views.obtain_auth_token, name='user_auth_token')
+        url(r'^user/token/', views.obtain_auth_token, name='user_auth_token')
     ]
