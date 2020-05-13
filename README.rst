@@ -231,6 +231,42 @@ also count valid requests for rate limiting. For more information,
 check Django-rest-framework
 `throttling guide <https://www.django-rest-framework.org/api-guide/throttling/>`_.
 
+API
+---
+
+When the API is enabled this application will provide the following endpoint:
+
+* ``/api/v1/user/token/``
+
+This endpoint only accepts the ``POST`` method and is used to retrieve the
+Bearer token that is required to make API requests to other endpoints.
+
+Example usage of the endpoint:
+
+.. code-block:: shell
+
+    http POST localhost:8000/api/v1/user/token/ username=openwisp password=1234
+
+    HTTP/1.1 200 OK
+    Allow: POST, OPTIONS
+    Content-Length: 52
+    Content-Type: application/json
+    Date: Wed, 13 May 2020 10:59:34 GMT
+    Server: WSGIServer/0.2 CPython/3.6.9
+    Vary: Cookie
+    X-Content-Type-Options: nosniff
+    X-Frame-Options: DENY
+
+    {
+        "token": "7a2e1d3d008253c123c61d56741003db5a194256"
+    }
+
+Example usage of the token:
+
+.. code-block:: shell
+
+    TOKEN=$(http POST :8000/api/v1/user/token/ username=openwisp password=1234 | jq -r .token)
+    http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
 Multitenancy mixins
 -------------------
