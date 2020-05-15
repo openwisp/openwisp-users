@@ -2,6 +2,6 @@ django-organizations>=1.0.0,<1.2.0
 django-extensions>=1.7.5,<2.3
 django-allauth>=0.39.0,<0.42.0
 django-phonenumber-field>=2.4.0,<4.1.0
-phonenumbers>=8.11.0,<8.12.0
+phonenumbers>=8.11.0,<8.13.0
 packaging
 openwisp-utils[qa]>=0.4.1
