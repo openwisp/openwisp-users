@@ -231,12 +231,19 @@ also count valid requests for rate limiting. For more information,
 check Django-rest-framework
 `throttling guide <https://www.django-rest-framework.org/api-guide/throttling/>`_.
 
-API
----
+REST API
+--------
 
-When the API is enabled this application will provide the following endpoint:
+To enable the authentication API the setting [OPENWISP_USERS_AUTH_API](#openwisp-users-auth-api)
+must be set to ``True`` and the URL routes in ``openwisp_users.api.urls`` must
+be included in the root urlconf as explained in the [Setup section](#Setup).
 
-* ``/api/v1/user/token/``
+Obtain Authentication Token
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    /api/v1/user/token/
 
 This endpoint only accepts the ``POST`` method and is used to retrieve the
 Bearer token that is required to make API requests to other endpoints.
