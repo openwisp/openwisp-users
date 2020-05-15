@@ -11,6 +11,7 @@ class OpenwispUsersConfig(AppConfig):
     def ready(self, *args, **kwargs):
         super().ready(*args, **kwargs)
         self.add_default_menu_items()
+        self.set_default_settings()
 
     def add_default_menu_items(self):
         menu_setting = 'OPENWISP_DEFAULT_ADMIN_MENU_ITEMS'
@@ -23,3 +24,12 @@ class OpenwispUsersConfig(AppConfig):
         else:
             current_menu = getattr(settings, menu_setting)
             current_menu += items
+
+    def set_default_settings(self):
+        LOGIN_URL = getattr(settings, 'LOGIN_URL', None)
+        if not LOGIN_URL:
+            setattr(settings, 'LOGIN_URL', 'account_login')
+
+        LOGOUT_URL = getattr(settings, 'LOGOUT_URL', None)
+        if not LOGOUT_URL:
+            setattr(settings, 'LOGOUT_URL', 'account_logout')
