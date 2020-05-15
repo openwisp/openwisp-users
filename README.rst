@@ -169,7 +169,8 @@ Run tests with:
 
 .. code-block:: shell
 
-    ./runtests.py
+    # --parallel and --keepdb are optional but help to speed up the operation
+    ./runtests.py --parallel --keepdb
 
 Settings
 --------

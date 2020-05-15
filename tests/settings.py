@@ -1,7 +1,10 @@
 import os
+import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
+TESTING = sys.argv[1] == 'test'
+PARALLEL = '--parallel' in sys.argv
 
 ALLOWED_HOSTS = []
 
@@ -86,13 +89,25 @@ TEMPLATES = [
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_REDIRECT_URL = 'admin:index'
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://localhost/0',
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient',},
+if not PARALLEL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://localhost/0',
+            'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        }
     }
-}
+# parallel testing with redis cache does not work
+# so we use the local memory cache in this case
+# we still keep redis for the standard non parallel tests
+# to avoid having bad surprises in production
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'openwisp-users',
+        }
+    }
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
