@@ -55,13 +55,6 @@ Alternatively you can install via pip using git:
 
     pip install -e git+git://github.com/openwisp/openwisp-users#egg=openwisp_users
 
-If you want to contribute, install your cloned fork:
-
-.. code-block:: shell
-
-    git clone git@github.com:<your_fork>/openwisp-users.git
-    cd openwisp-users
-    python setup.py develop
 
 Setup (integrate in an existing django project)
 -----------------------------------------------
