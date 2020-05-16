@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'openwisp_users',
     'rest_framework',
     'rest_framework.authtoken',
+    'drf_yasg',
     'testapp',
 ]
 

@@ -54,7 +54,6 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=get_install_requires(),
-    extras_require={'rest': 'djangorestframework>=3.11,<3.12'},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',

@@ -6,6 +6,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^accounts/', include('openwisp_users.accounts.urls')),
     url(r'^api/v1/', include('openwisp_users.api.urls')),
+    url(r'^api/v1/', include('openwisp_utils.api.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()
