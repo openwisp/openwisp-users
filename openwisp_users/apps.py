@@ -1,6 +1,9 @@
 from django.apps import AppConfig
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from openwisp_utils import settings as utils_settings
+
+from . import settings as app_settings
 
 
 class OpenwispUsersConfig(AppConfig):
@@ -33,3 +36,10 @@ class OpenwispUsersConfig(AppConfig):
         LOGOUT_URL = getattr(settings, 'LOGOUT_URL', None)
         if not LOGOUT_URL:
             setattr(settings, 'LOGOUT_URL', 'account_logout')
+
+        if app_settings.USERS_AUTH_API and utils_settings.API_DOCS:
+            SWAGGER_SETTINGS = getattr(settings, 'SWAGGER_SETTINGS', {})
+            SWAGGER_SETTINGS['SECURITY_DEFINITIONS'] = {
+                'Bearer': {'type': 'apiKey', 'in': 'header', 'name': 'Authorization'}
+            }
+            setattr(settings, 'SWAGGER_SETTINGS', SWAGGER_SETTINGS)
