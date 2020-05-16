@@ -220,9 +220,24 @@ check Django-rest-framework
 REST API
 --------
 
-To enable the authentication API the setting [OPENWISP_USERS_AUTH_API](#openwisp-users-auth-api)
-must be set to ``True`` and the URL routes in ``openwisp_users.api.urls`` must
-be included in the root urlconf as explained in the [Setup section](#Setup).
+To enable the API the setting
+`OPENWISP_USERS_AUTH_API <#openwisp-users-auth-api>`_
+must be set to ``True``.
+
+Live documentation
+~~~~~~~~~~~~~~~~~~
+
+A general live API documentation (following the OpenAPI specification) at ``/api/v1/docs/``.
+
+Browsable web interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. image:: docs/images/api-ui.png
+
+Additionally, opening any of the endpoints listed below
+directly in the browser will show the `browsable API interface of Django-REST-Framework
+<https://www.django-rest-framework.org/topics/browsable-api/>`_,
+which makes it even easier to find out the details of each endpoint.
 
 Obtain Authentication Token
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,11 +269,22 @@ Example usage of the endpoint:
         "token": "7a2e1d3d008253c123c61d56741003db5a194256"
     }
 
-Example usage of the token:
+Authenticating with the user token
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The authentication class ``openwisp_users.api.authentication.BearerAuthentication``
+is used across the different OpenWISP modules for authentication.
+
+To use it, first of all get the user token as described above in
+`Obtain Authentication Token <#obtain-authentication-token>`_, then send
+the token in the ``Authorization`` header:
 
 .. code-block:: shell
 
+    # get token
     TOKEN=$(http POST :8000/api/v1/user/token/ username=openwisp password=1234 | jq -r .token)
+
+    # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
 Multitenancy mixins
