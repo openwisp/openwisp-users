@@ -1,11 +1,15 @@
 import uuid
+import warnings
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import Group as BaseGroup
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import post_delete, post_save
+from django.dispatch import receiver
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from organizations.abstract import (
@@ -64,6 +68,11 @@ class User(AbstractUser):
         """
         returns primary keys of organizations the user is associated to
         """
+        warnings.warn(
+            "User.organizations_pk is deprecated in favor of User.organizations_dict"
+            " and will be removed in a future version",
+            DeprecationWarning,
+        )
         manager = OrganizationUser.objects
         qs = (
             manager.filter(user=self, organization__is_active=True)
@@ -72,6 +81,38 @@ class User(AbstractUser):
             .values_list('organization_id')
         )
         return qs
+
+    def is_manager(self, organization):
+        org_pk = str(organization.pk)
+        return (
+            org_pk in self.organizations_dict
+            and self.organizations_dict[org_pk]['is_admin'] is True
+        )
+
+    def is_member(self, organization):
+        org_pk = str(organization.pk)
+        return org_pk in self.organizations_dict
+
+    @property
+    def organizations_dict(self):
+        cache_key = 'user_{}_organizations'.format(self.pk)
+        organizations = cache.get(cache_key)
+        if organizations:
+            return organizations
+
+        manager = OrganizationUser.objects
+        org_users = manager.filter(
+            user=self, organization__is_active=True
+        ).select_related('organization')
+
+        organizations = {}
+        for org_user in org_users:
+            org = org_user.organization
+            org_id = str(org.pk)
+            organizations[org_id] = {'name': org.name, 'is_admin': org_user.is_admin}
+
+        cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days
+        return organizations
 
     def clean(self):
         if self.email == '':
@@ -131,3 +172,9 @@ class OrganizationOwner(AbstractOrganizationOwner):
                     )
                 }
             )
+
+
+@receiver([post_save, post_delete], sender=OrganizationUser)
+def invalidate_organization_dict(sender, instance, **kwargs):
+    cache_key = 'user_{}_organizations'.format(instance.user.pk)
+    cache.delete(cache_key)

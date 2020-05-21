@@ -287,6 +287,15 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+Model helpers
+-------------
+
+The User model provides the following methods to check whether the user
+is a member or an administrator of an organization:
+
+* `def is_manager(self, organization)`
+* `def is_member(self, organization)`
+
 Multitenancy mixins
 -------------------
 
