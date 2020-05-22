@@ -41,6 +41,7 @@ class TestMultitenantAdminMixin(object):
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
             OrganizationUser.objects.create(user=operator, organization=organization)
+        operator.organizations_dict  # force caching
         return operator
 
     def _test_multitenant_admin(self, url, visible, hidden, select_widget=False):
@@ -132,6 +133,7 @@ class TestOrganizationMixin(object):
         )
         user_permissions = Permission.objects.filter(codename__endswith='user')
         operator.user_permissions.add(*user_permissions)
+        operator.organizations_dict  # force caching
         return operator
 
     def _get_org(self, org_name='test org'):
