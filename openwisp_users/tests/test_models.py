@@ -73,6 +73,21 @@ class TestUsers(TestOrganizationMixin, TestCase):
         ou2.delete()
         self.assertEqual(len(user.organizations_dict), 1)
 
+    def test_organizations_dict_cache(self):
+        user = self._create_user(username='organizations_pk')
+        org1 = self._create_org(name='org1')
+
+        with self.assertNumQueries(1):
+            list(user.organizations_dict)
+
+        with self.assertNumQueries(0):
+            list(user.organizations_dict)
+
+        OrganizationUser.objects.create(user=user, organization=org1)
+
+        with self.assertNumQueries(1):
+            list(user.organizations_dict)
+
     def test_is_manager(self):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')

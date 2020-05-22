@@ -97,7 +97,7 @@ class User(AbstractUser):
     def organizations_dict(self):
         cache_key = 'user_{}_organizations'.format(self.pk)
         organizations = cache.get(cache_key)
-        if organizations:
+        if organizations is not None:
             return organizations
 
         manager = OrganizationUser.objects
