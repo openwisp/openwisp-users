@@ -10,9 +10,10 @@ user_model = get_user_model()
 
 class TestMultitenantAdminMixin(object):
     def setUp(self):
-        user_model.objects.create_superuser(
+        user = user_model.objects.create_superuser(
             username='admin', password='tester', email='admin@admin.com'
         )
+        user.organizations_dict  # force caching
 
     def _login(self, username='admin', password='tester'):
         self.client.login(username=username, password=password)
