@@ -293,8 +293,12 @@ Model helpers
 The User model provides the following methods to check whether the user
 is a member or an administrator of an organization:
 
-* `def is_manager(self, organization)`
-* `def is_member(self, organization)`
+.. code-block:: python
+
+    user = User.objects.first()
+    org = Organization.objects.first()
+    user.is_manager(org)
+    user.is_member(org)
 
 Multitenancy mixins
 -------------------

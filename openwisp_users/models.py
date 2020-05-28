@@ -1,5 +1,5 @@
+import logging
 import uuid
-import warnings
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser
@@ -18,6 +18,8 @@ from organizations.abstract import (
     AbstractOrganizationUser,
 )
 from phonenumber_field.modelfields import PhoneNumberField
+
+logger = logging.getLogger(__name__)
 
 
 class UserManager(BaseUserManager):
@@ -68,10 +70,9 @@ class User(AbstractUser):
         """
         returns primary keys of organizations the user is associated to
         """
-        warnings.warn(
+        logging.warn(
             "User.organizations_pk is deprecated in favor of User.organizations_dict"
-            " and will be removed in a future version",
-            DeprecationWarning,
+            " and will be removed in a future version"
         )
         manager = OrganizationUser.objects
         qs = (
