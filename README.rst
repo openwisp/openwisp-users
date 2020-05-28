@@ -295,6 +295,8 @@ is a member or an administrator of an organization:
 
 .. code-block:: python
 
+    from openwisp_users.models import Organization, User
+
     user = User.objects.first()
     org = Organization.objects.first()
     user.is_manager(org)
