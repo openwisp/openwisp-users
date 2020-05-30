@@ -3,6 +3,7 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+import swapper
 
 
 class Migration(migrations.Migration):
@@ -10,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('openwisp_users', '0001_initial'),
+        swapper.dependency('openwisp_users', 'Organization'),
     ]
 
     operations = [
@@ -31,7 +32,7 @@ class Migration(migrations.Migration):
                     'organization',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to='openwisp_users.Organization',
+                        to=swapper.get_model_name('openwisp_users', 'Organization'),
                         verbose_name='organization',
                     ),
                 ),
@@ -57,7 +58,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
-                        to='openwisp_users.Organization',
+                        to=swapper.get_model_name('openwisp_users', 'Organization'),
                         verbose_name='organization',
                     ),
                 ),

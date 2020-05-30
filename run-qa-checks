@@ -1,7 +1,35 @@
 #!/bin/bash
 set -e
-openwisp-qa-check \
-  --migrations-to-ignore 2 \
-  --migration-path "./openwisp_users/migrations ./tests/testapp/migrations" \
-  --migration-module openwisp_users
+
 jshint ./openwisp_users/static/openwisp-users/js/*.js
+
+openwisp-qa-check \
+      --migrations-to-ignore 2 \
+      --migration-path './openwisp_users/migrations' \
+      --migration-module openwisp_users
+
+echo ''
+echo 'Running checks for testapp'
+
+openwisp-qa-check \
+      --skip-isort \
+      --skip-flake8 \
+      --skip-black \
+      --skip-checkmigrations \
+      --skip-checkendline \
+      --skip-checkcommit \
+      --migration-path './tests/testapp/migrations' \
+      --migration-module testapp
+
+echo ''
+echo 'Running checks for SAMPLE_APP'
+
+SAMPLE_APP=1 openwisp-qa-check \
+      --skip-isort \
+      --skip-flake8 \
+      --skip-black \
+      --skip-checkmigrations \
+      --skip-checkendline \
+      --skip-checkcommit \
+      --migration-path './tests/openwisp2/sample_ipam/migrations' \
+      --migration-module sample_users

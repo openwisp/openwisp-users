@@ -6,12 +6,13 @@ import django.utils.timezone
 import model_utils.fields
 import openwisp_users.mixins
 import uuid
+import swapper
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('openwisp_users', '0004_default_groups'),
+        swapper.dependency('openwisp_users', 'Group'),
         ('testapp', '0002_config_template'),
     ]
 
@@ -50,7 +51,7 @@ class Migration(migrations.Migration):
                     'organization',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to='openwisp_users.Organization',
+                        to=swapper.get_model_name('openwisp_users', 'Organization'),
                         verbose_name='organization',
                     ),
                 ),
@@ -91,7 +92,7 @@ class Migration(migrations.Migration):
                     'organization',
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to='openwisp_users.Organization',
+                        to=swapper.get_model_name('openwisp_users', 'Organization'),
                         verbose_name='organization',
                     ),
                 ),
