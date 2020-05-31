@@ -116,7 +116,6 @@ SESSION_CACHE_ALIAS = 'default'
 OPENWISP_ORGANIZATON_USER_ADMIN = True
 OPENWISP_ORGANIZATON_OWNER_ADMIN = True
 OPENWISP_USERS_AUTH_API = True
-OPENWISP_USERS_AUTH_THROTTLE_RATE = '10/hour'
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
