@@ -14,9 +14,20 @@ openwisp-users
 .. image:: https://badge.fury.io/py/openwisp-users.svg
    :target: http://badge.fury.io/py/openwisp-users
 
+.. image:: https://pepy.tech/badge/openwisp-users
+   :target: https://pepy.tech/project/openwisp-users
+   :alt: downloads
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://pypi.org/project/black/
+   :alt: code style: black
+
 ------------
 
-Provides basic multi-tenancy features for OpenWISP 2 (using the Django web-framework).
+Implementation of user management and multi-tenancy for OpenWISP (built with python & django).
+
+.. image:: https://raw.githubusercontent.com/openwisp/openwisp2-docs/master/assets/design/openwisp-logo-black.svg
+  :target: http://openwisp.org
 
 ------------
 
@@ -302,29 +313,19 @@ Multitenancy mixins
 Contributing
 ------------
 
-1. Announce your intentions in the `OpenWISP Mailing List <https://groups.google.com/d/forum/openwisp>`_
-2. Fork this repo and install it
-3. Follow `PEP8, Style Guide for Python Code`_
-4. Write code
-5. Write tests for your code
-6. Ensure all tests pass
-7. Ensure test coverage does not decrease
-8. Document your changes
-9. Send pull request
-
-.. _PEP8, Style Guide for Python Code: http://www.python.org/dev/peps/pep-0008/
-
-Changelog
----------
-
-See `CHANGES <https://github.com/openwisp/openwisp-users/blob/master/CHANGES.rst>`_.
-
-License
--------
-
-See `LICENSE <https://github.com/openwisp/openwisp-users/blob/master/LICENSE>`_.
+Please refer to the `OpenWISP contributing guidelines <http://openwisp.io/docs/developer/contributing.html>`_.
 
 Support
 -------
 
 See `OpenWISP Support Channels <http://openwisp.org/support.html>`_.
+
+Changelog
+---------
+
+See `CHANGES <https://github.com/openwisp/openwisp-utils/blob/master/CHANGES.rst>`_.
+
+License
+-------
+
+See `LICENSE <https://github.com/openwisp/openwisp-utils/blob/master/LICENSE>`_.
