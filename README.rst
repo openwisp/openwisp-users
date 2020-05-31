@@ -323,9 +323,9 @@ See `OpenWISP Support Channels <http://openwisp.org/support.html>`_.
 Changelog
 ---------
 
-See `CHANGES <https://github.com/openwisp/openwisp-utils/blob/master/CHANGES.rst>`_.
+See `CHANGES <https://github.com/openwisp/openwisp-users/blob/master/CHANGES.rst>`_.
 
 License
 -------
 
-See `LICENSE <https://github.com/openwisp/openwisp-utils/blob/master/LICENSE>`_.
+See `LICENSE <https://github.com/openwisp/openwisp-users/blob/master/LICENSE>`_.
