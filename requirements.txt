@@ -3,6 +3,5 @@ django-extensions>=1.7.5,<2.3
 django-allauth>=0.39.0,<0.43.0
 django-phonenumber-field>=2.4.0,<4.1.0
 phonenumbers>=8.11.0,<8.13.0
-# TODO: enable when openwisp-utils 0.5 is released
-# openwisp-utils[rest]~=0.5
+openwisp-utils[rest]~=0.5
 packaging
