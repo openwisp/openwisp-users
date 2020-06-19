@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.auth.management import create_permissions
+import swapper
 
 
 def set_default_organization_uuid(apps, schema_editor):
@@ -8,7 +9,9 @@ def set_default_organization_uuid(apps, schema_editor):
     Get or create a default organization then
     set settings._OPENWISP_DEFAULT_ORG_UUID
     """
-    organization = apps.get_model('openwisp_users', 'organization')
+    org_model = swapper.get_model_name('openwisp_users', 'organization')
+    model_app_label = swapper.split(org_model)[0]
+    organization = apps.get_model(model_app_label, 'organization')
     default_organization = organization.objects.first()
     if default_organization is None:
         default_organization = organization(
@@ -28,7 +31,9 @@ def set_default_organization_uuid(apps, schema_editor):
 
 
 def create_default_groups(apps, schema_editor):
-    group = apps.get_model('openwisp_users', 'group')
+    org_model = swapper.get_model_name('openwisp_users', 'organization')
+    model_app_label = swapper.split(org_model)[0]
+    group = apps.get_model(model_app_label, 'group')
 
     # To populate all the permissions
     for app_config in apps.get_app_configs():
@@ -45,34 +50,34 @@ def create_default_groups(apps, schema_editor):
         admin = group.objects.create(name='Administrator')
         permissions = [
             Permission.objects.get(
-                content_type__app_label="openwisp_users", codename='add_user'
+                content_type__app_label=model_app_label, codename='add_user'
             ).pk,
             Permission.objects.get(
-                content_type__app_label="openwisp_users", codename='change_user'
+                content_type__app_label=model_app_label, codename='change_user'
             ).pk,
             Permission.objects.get(
-                content_type__app_label="openwisp_users",
+                content_type__app_label=model_app_label,
                 codename='change_organizationuser',
             ).pk,
             Permission.objects.get(
-                content_type__app_label="openwisp_users",
+                content_type__app_label=model_app_label,
                 codename='delete_organizationuser',
             ).pk,
             Permission.objects.get(
-                content_type__app_label="openwisp_users",
+                content_type__app_label=model_app_label,
                 codename='add_organizationuser',
             ).pk,
         ]
         try:
             permissions += [
                 Permission.objects.get(
-                    content_type__app_label="openwisp_users", codename='view_user'
+                    content_type__app_label=model_app_label, codename='view_user'
                 ).pk,
                 Permission.objects.get(
-                    content_type__app_label="openwisp_users", codename='view_group'
+                    content_type__app_label=model_app_label, codename='view_group'
                 ).pk,
                 Permission.objects.get(
-                    content_type__app_label="openwisp_users",
+                    content_type__app_label=model_app_label,
                     codename='view_organizationuser',
                 ).pk,
             ]

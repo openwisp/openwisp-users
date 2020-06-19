@@ -5,6 +5,7 @@ mixins used by other openwisp components to implement multi-tenancy
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from swapper import get_model_name
 
 
 class ValidateOrgMixin(object):
@@ -81,7 +82,7 @@ class OrgMixin(ValidateOrgMixin, models.Model):
     """
 
     organization = models.ForeignKey(
-        'openwisp_users.Organization',
+        get_model_name('openwisp_users', 'Organization'),
         verbose_name=_('organization'),
         on_delete=models.CASCADE,
     )

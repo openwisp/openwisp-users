@@ -1,8 +1,12 @@
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from openwisp_users.models import OrganizationUser, User
+from swapper import load_model
 
 from .utils import TestOrganizationMixin
+
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+User = get_user_model()
 
 
 class TestUsers(TestOrganizationMixin, TestCase):

@@ -2,15 +2,34 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db.models import Q
 from django.urls import reverse
+from swapper import load_model
 
-from ..models import Organization, OrganizationOwner, OrganizationUser, User
+Organization = load_model('openwisp_users', 'Organization')
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+User = get_user_model()
 
-user_model = get_user_model()
+
+class TestUserAdditionalFieldsMixin(object):
+    _additional_user_fields = []
+
+    def _additional_params_pop(self, params):
+        fields = self._additional_user_fields
+        for field in fields:
+            params.pop(field[0])
+        return params
+
+    def _additional_params_add(self):
+        params = dict()
+        fields = self._additional_user_fields
+        for field in fields:
+            params.update({field[0]: field[1]})
+        return params
 
 
 class TestMultitenantAdminMixin(object):
     def setUp(self):
-        user_model.objects.create_superuser(
+        User.objects.create_superuser(
             username='admin', password='tester', email='admin@admin.com'
         )
 
@@ -36,7 +55,7 @@ class TestMultitenantAdminMixin(object):
             is_staff=True,
         )
         opts.update(kwargs)
-        operator = user_model.objects.create_user(**opts)
+        operator = User.objects.create_user(**opts)
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
             OrganizationUser.objects.create(user=operator, organization=organization)

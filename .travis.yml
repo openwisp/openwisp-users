@@ -27,6 +27,7 @@ install:
 script:
   - ./run-qa-checks
   - coverage run --source=openwisp_users runtests.py
+  - SAMPLE_APP=1 coverage run --append --source=openwisp_users runtests.py
 
 after_success:
   coveralls

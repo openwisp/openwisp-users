@@ -5,3 +5,4 @@ django-phonenumber-field>=2.4.0,<4.1.0
 phonenumbers>=8.11.0,<8.13.0
 openwisp-utils[rest]~=0.5
 packaging
+swapper~=1.1

@@ -7,6 +7,7 @@ from django import forms
 from django.apps import apps
 from django.contrib import admin, messages
 from django.contrib.admin.utils import model_ngettext
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
@@ -20,12 +21,17 @@ from organizations.base_admin import (
     BaseOrganizationOwnerAdmin,
     BaseOrganizationUserAdmin,
 )
+from swapper import load_model
 
 from . import settings as app_settings
-from .base import BaseAdmin
-from .models import Group, Organization, OrganizationOwner, OrganizationUser, User
 from .multitenancy import MultitenantAdminMixin
+from .utils import BaseAdmin
 
+Group = load_model('openwisp_users', 'Group')
+Organization = load_model('openwisp_users', 'Organization')
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
@@ -152,8 +158,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     def require_confirmation(func):
         """
         Decorator to lead to a confirmation page.
-        This has been used rather than simply adding the same lines in action functions
-        inorder to avoid repetition of the same lines in the two added actions and more actions
+        This has been used rather than simply adding the same lines
+        in action functions inorder to avoid repetition of the same
+        lines in the two added actions and more actions
         incase they are added in future.
         """
 
@@ -182,7 +189,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} {model_ngettext(self.opts, count)} inactive.'
+                    f'Successfully made {count} '
+                    f'{model_ngettext(self.opts, count)} inactive.'
                 ),
                 messages.SUCCESS,
             )
@@ -197,7 +205,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} {model_ngettext(self.opts, count)} active.'
+                    f'Successfully made {count} '
+                    f'{model_ngettext(self.opts, count)} active.'
                 ),
                 messages.SUCCESS,
             )

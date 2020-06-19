@@ -2,30 +2,52 @@ import os
 import smtplib
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_users.models import Organization, OrganizationUser, User
+from swapper import load_model
 
-from .utils import TestMultitenantAdminMixin, TestOrganizationMixin
+from .utils import (
+    TestMultitenantAdminMixin,
+    TestOrganizationMixin,
+    TestUserAdditionalFieldsMixin,
+)
+
+Organization = load_model('openwisp_users', 'Organization')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+User = get_user_model()
+
 
 devnull = open(os.devnull, 'w')
 
 
-class TestUsersAdmin(TestOrganizationMixin, TestCase):
+class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase):
     """ test admin site """
 
-    add_user_inline_params = {
-        'emailaddress_set-TOTAL_FORMS': 0,
-        'emailaddress_set-INITIAL_FORMS': 0,
-        'emailaddress_set-MIN_NUM_FORMS': 0,
-        'emailaddress_set-MAX_NUM_FORMS': 0,
-        'openwisp_users_organizationuser-TOTAL_FORMS': 0,
-        'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-        'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-        'openwisp_users_organizationuser-MAX_NUM_FORMS': 0,
-    }
+    app_label = 'openwisp_users'
+
+    def _get_edit_form_inline_params(self, user, organization):
+        """
+        This function is created to be overridden
+        when the user extends openwisp-users
+        and adds inline forms in the User model
+        """
+        return dict()
+
+    @property
+    def add_user_inline_params(self):
+        return {
+            'emailaddress_set-TOTAL_FORMS': 0,
+            'emailaddress_set-INITIAL_FORMS': 0,
+            'emailaddress_set-MIN_NUM_FORMS': 0,
+            'emailaddress_set-MAX_NUM_FORMS': 0,
+            f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
+            f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+            f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+            f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
+        }
 
     def test_admin_add_user_auto_email(self):
         admin = self._create_admin()
@@ -37,7 +59,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             password2='tester',
         )
         params.update(self.add_user_inline_params)
-        self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        params.update(self._additional_params_add())
+        self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 1)
         user = queryset.first()
@@ -53,7 +76,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             username='testadd', email='', password1='tester', password2='tester'
         )
         params.update(self.add_user_inline_params)
-        response = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        params.update(self._additional_params_add())
+        response = self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 0)
         self.assertContains(response, 'errors field-email')
@@ -68,6 +92,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         params.pop('phone_number')
         params.pop('_password')
         params.pop('last_login')
+        params = self._additional_params_pop(params)
         # inline emails
         params.update(
             {
@@ -79,14 +104,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                 'emailaddress_set-0-primary': True,
                 'emailaddress_set-0-id': user.emailaddress_set.first().id,
                 'emailaddress_set-0-user': user.id,
-                'openwisp_users_organizationuser-TOTAL_FORMS': 0,
-                'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-                'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-MAX_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
+        params.update(self._get_edit_form_inline_params(user, None))
         response = self.client.post(
-            reverse('admin:openwisp_users_user_change', args=[user.pk]),
+            reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
             follow=True,
         )
@@ -116,14 +142,16 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                 'emailaddress_set-INITIAL_FORMS': 0,
                 'emailaddress_set-MIN_NUM_FORMS': 0,
                 'emailaddress_set-MAX_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-TOTAL_FORMS': 0,
-                'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-                'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-MAX_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
+        params.update(self._additional_params_add())
+        params.update(self._get_edit_form_inline_params(admin, None))
         response = self.client.post(
-            reverse('admin:openwisp_users_user_change', args=[admin.pk]), params
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk]), params
         )
         queryset = User.objects.filter(username='testchange')
         self.assertEqual(queryset.count(), 0)
@@ -135,7 +163,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.client.force_login(admin)
         org = self._create_org()
         response = self.client.get(
-            reverse('admin:openwisp_users_organization_change', args=[org.pk])
+            reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
         )
         self.assertNotContains(response, 'viewsitelink')
 
@@ -145,7 +173,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         org = self._create_org()
         ou = org.add_user(admin)
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationuser_change', args=[ou.pk])
+            reverse(f'admin:{self.app_label}_organizationuser_change', args=[ou.pk])
         )
         self.assertNotContains(response, 'viewsitelink')
 
@@ -153,7 +181,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         admin = self._create_admin()
         self.client.force_login(admin)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[admin.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk])
         )
         html = '<input type="checkbox" name="is_superuser"'
         self.assertContains(response, html)
@@ -168,7 +196,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[operator.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         html = (
             '<input type="checkbox" name="is_superuser" checked id="id_is_superuser">'
@@ -179,7 +207,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         admin = self._create_admin()
         self.client.force_login(admin)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[admin.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk])
         )
         html = '<select name="user_permissions"'
         self.assertContains(response, html)
@@ -194,16 +222,16 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[operator.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
-        html = '<div class="readonly">openwisp_users'
+        html = f'<div class="readonly">{self.app_label}'
         self.assertContains(response, html)
 
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()
         operator = self._create_operator()
         self.client.force_login(operator)
-        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
         self.assertNotContains(response, 'admin</a>')
 
     def test_admin_changelist_operator_org_users_visible(self):
@@ -213,7 +241,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         options = {'organization': self._get_org(), 'is_admin': True, 'user': operator}
         self._create_org_user(**options)
         self.client.force_login(operator)
-        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
         self.assertContains(response, 'tester</a>')
         self.assertContains(response, 'operator</a>')
 
@@ -222,7 +250,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         options = {'organization': self._get_org(), 'is_admin': True, 'user': operator}
         self._create_org_user(**options)
         self.client.force_login(operator)
-        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
         self.assertNotContains(response, 'Superuser status</a>')
 
     def test_operator_organization_member(self):
@@ -235,7 +263,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options2)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[operator.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         self.assertContains(response, 'selected>operator-org1</option>')
         self.assertContains(response, 'selected>operator-org2</option>')
@@ -253,7 +281,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options1)
         self._create_org_user(**options2)
         self.client.force_login(operator)
-        response = self.client.get(reverse('admin:openwisp_users_user_add'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertContains(response, 'operator-org1</option>')
         self.assertNotContains(response, 'operator-org2</option>')
 
@@ -272,20 +300,22 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options2)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_organization_change', args=[org1.pk])
+            reverse(f'admin:{self.app_label}_organization_change', args=[org1.pk])
         )
         self.assertContains(
             response, '<input type="text" name="name" value="{0}"'.format(org1.name)
         )
         response = self.client.get(
-            reverse('admin:openwisp_users_organization_change', args=[default_org.pk])
+            reverse(
+                f'admin:{self.app_label}_organization_change', args=[default_org.pk]
+            )
         )
         self.assertContains(
             response,
             '<input type="text" name="name" value="{0}"'.format(default_org.name),
         )
         response = self.client.get(
-            reverse('admin:openwisp_users_organization_change', args=[org2.pk])
+            reverse(f'admin:{self.app_label}_organization_change', args=[org2.pk])
         )
         self.assertNotContains(
             response, '<input type="text" name="name" value="{0}"'.format(org2.name)
@@ -305,7 +335,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         org_user2 = self._create_org_user(**options2)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationuser_change', args=[org_user1.pk])
+            reverse(
+                f'admin:{self.app_label}_organizationuser_change', args=[org_user1.pk]
+            )
         )
         self.assertNotContains(
             response,
@@ -314,7 +346,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             '</label>',
         )
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationuser_change', args=[org_user2.pk])
+            reverse(
+                f'admin:{self.app_label}_organizationuser_change', args=[org_user2.pk]
+            )
         )
         self.assertNotContains(
             response,
@@ -337,23 +371,27 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         org_user2 = self._create_org_user(**options2)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationuser_change', args=[org_user1.pk])
+            reverse(
+                f'admin:{self.app_label}_organizationuser_change', args=[org_user1.pk]
+            )
         )
         self.assertContains(
             response,
             'class="deletelink-box">'
-            '<a href="/admin/openwisp_users/organizationuser/{0}/delete/" '
-            'class="deletelink">Delete'.format(org_user1.pk),
+            f'<a href="/admin/{self.app_label}/organizationuser/{org_user1.pk}'
+            '/delete/" class="deletelink">Delete',
         )
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationuser_change', args=[org_user2.pk])
+            reverse(
+                f'admin:{self.app_label}_organizationuser_change', args=[org_user2.pk]
+            )
         )
         self.assertNotContains(response, 'delete')
 
     def test_admin_changelist_superuser_column_visible(self):
         admin = self._create_admin()
         self.client.force_login(admin)
-        response = self.client.get(reverse('admin:openwisp_users_user_changelist'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
         self.assertContains(response, 'Superuser status</a>')
 
     def test_admin_operator_change_superuser_forbidden(self):
@@ -367,12 +405,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self._create_org_user(**options)
         self.client.force_login(operator)
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[operator.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         self.assertEqual(response.status_code, 200)
         # operator trying to acess change form of superuser gets redirected
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[admin.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk])
         )
         self.assertEqual(response.status_code, 302)
 
@@ -386,8 +424,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             password2='tester',
         )
         params.update(self.add_user_inline_params)
-        self.client.post(reverse('admin:openwisp_users_user_add'), params)
-        res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        params.update(self._additional_params_add())
+        self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
+        res = self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
         self.assertContains(
             res, '<li>User with this Email address already exists.</li>'
         )
@@ -402,6 +441,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         params.pop('phone_number')
         params.pop('_password')
         params.pop('last_login')
+        params = self._additional_params_pop(params)
         params.update(
             {
                 'emailaddress_set-TOTAL_FORMS': 1,
@@ -412,14 +452,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
                 'emailaddress_set-0-primary': True,
                 'emailaddress_set-0-id': user.emailaddress_set.first().id,
                 'emailaddress_set-0-user': user.id,
-                'openwisp_users_organizationuser-TOTAL_FORMS': 0,
-                'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-                'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-MAX_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
+        params.update(self._get_edit_form_inline_params(user, None))
         res = self.client.post(
-            reverse('admin:openwisp_users_user_change', args=[user.pk]),
+            reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
             follow=True,
         )
@@ -430,13 +471,13 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
     def test_admin_add_user_by_superuser(self):
         admin = self._create_admin()
         self.client.force_login(admin)
-        res = self.client.get(reverse('admin:openwisp_users_user_add'))
+        res = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertContains(res, 'is_superuser')
 
     def test_admin_add_user_by_operator(self):
         operator = self._create_operator()
         self.client.force_login(operator)
-        res = self.client.get(reverse('admin:openwisp_users_user_add'))
+        res = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertNotContains(res, 'is_superuser')
 
     def test_admin_add_user_org_required(self):
@@ -451,15 +492,16 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             is_superuser=False,
         )
         params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
         params.update(
             {
-                'openwisp_users_organizationuser-TOTAL_FORMS': 1,
-                'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-                'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-MAX_NUM_FORMS': 1,
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1,
             }
         )
-        res = self.client.post(reverse('admin:openwisp_users_user_add'), params)
+        res = self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 0)
         self.assertContains(res, 'errors field-organization')
@@ -476,16 +518,17 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             is_superuser=True,
         )
         params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
         params.update(
             {
-                'openwisp_users_organizationuser-TOTAL_FORMS': 1,
-                'openwisp_users_organizationuser-INITIAL_FORMS': 0,
-                'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-                'openwisp_users_organizationuser-MAX_NUM_FORMS': 1,
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1,
             }
         )
         res = self.client.post(
-            reverse('admin:openwisp_users_user_add'), params, follow=True
+            reverse(f'admin:{self.app_label}_user_add'), params, follow=True
         )
         self.assertNotContains(res, 'errors field-organization')
         self.assertNotContains(res, 'errors')
@@ -500,19 +543,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.client.force_login(operator)
         admin = self._create_admin()
         response = self.client.get(
-            reverse('admin:openwisp_users_user_change', args=[admin.pk])
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk])
         )
         self.assertEqual(response.status_code, 302)
 
     def test_user_add_user(self):
         operator = self._create_operator()
         self.client.force_login(operator)
-        # removing the "add_organizationuser" permission allows achieving more test coverage
+        # removing the "add_organizationuser" permission allows
+        # achieving more test coverage
         add_organizationuser = Permission.objects.get(
             codename__endswith='add_organizationuser'
         )
         operator.user_permissions.remove(add_organizationuser)
-        response = self.client.get(reverse('admin:openwisp_users_user_add'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertContains(response, '<input type="text" name="username"')
 
     def test_organization_owner(self):
@@ -520,14 +564,14 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.client.force_login(admin)
         self._create_org_owner()
         response = self.client.get(
-            reverse('admin:openwisp_users_organizationowner_changelist')
+            reverse(f'admin:{self.app_label}_organizationowner_changelist')
         )
         self.assertContains(response, 'tester')
 
     def test_organization_uuid_field(self):
         admin = self._create_admin()
         self.client.force_login(admin)
-        response = self.client.get(reverse('admin:openwisp_users_organization_add'))
+        response = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
 
@@ -538,7 +582,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             email='openwisp@test.com',
             is_active=False,
         )
-        path = reverse('admin:openwisp_users_user_changelist')
+        path = reverse(f'admin:{self.app_label}_user_changelist')
         self.client.force_login(self._get_admin())
         post_data = {
             '_selected_action': [user.pk],
@@ -556,7 +600,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             email='openwisp@test.com',
             is_active=True,
         )
-        path = reverse('admin:openwisp_users_user_changelist')
+        path = reverse(f'admin:{self.app_label}_user_changelist')
         self.client.force_login(self._get_admin())
         post_data = {
             '_selected_action': [user.pk],
@@ -576,7 +620,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             email='openwisp@test.com',
             is_active=True,
         )
-        path = reverse('admin:openwisp_users_user_changelist')
+        path = reverse(f'admin:{self.app_label}_user_changelist')
         self.client.force_login(self._get_admin())
         post_data = {
             '_selected_action': [user.pk],
@@ -598,7 +642,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             'post': 'yes',
         }
         self.client.force_login(self._get_admin())
-        path = reverse('admin:openwisp_users_user_changelist')
+        path = reverse(f'admin:{self.app_label}_user_changelist')
         r = self.client.post(path, post_data, follow=True)
         user_qs = User.objects.filter(pk=user.pk)
         org_user_qs = OrganizationUser.objects.filter(pk=org_user.pk)
@@ -618,11 +662,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             password2='tester',
         )
         params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
         with patch('allauth.account.models.EmailAddress.objects.add_email') as mocked:
             mocked.side_effect = smtplib.SMTPSenderRefused(
                 501, '5.1.7 Bad sender address syntax', 'test_name@test_domain'
             )
-            self.client.post(reverse('admin:openwisp_users_user_add'), params)
+            self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
             mocked.assert_called_once()
 
     @classmethod
@@ -630,11 +675,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         devnull.close()
 
 
-class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
+class TestBasicUsersIntegration(
+    TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase
+):
     """
     tests basic integration with openwisp_users
     (designed to be inherited in other openwisp modules)
     """
+
+    app_label = 'openwisp_users'
 
     def _get_edit_form_inline_params(self, user, organization):
         organization_user = OrganizationUser.objects.get(
@@ -651,14 +700,14 @@ class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
             'emailaddress_set-0-id': user.emailaddress_set.first().id,
             'emailaddress_set-0-user': user.id,
             # organization user inline
-            'openwisp_users_organizationuser-TOTAL_FORMS': 1,
-            'openwisp_users_organizationuser-INITIAL_FORMS': 1,
-            'openwisp_users_organizationuser-MIN_NUM_FORMS': 0,
-            'openwisp_users_organizationuser-MAX_NUM_FORMS': 1000,
-            'openwisp_users_organizationuser-0-is_admin': False,
-            'openwisp_users_organizationuser-0-organization': str(organization.pk),
-            'openwisp_users_organizationuser-0-id': str(organization_user.pk),
-            'openwisp_users_organizationuser-0-user': str(user.pk),
+            f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+            f'{self.app_label}_organizationuser-INITIAL_FORMS': 1,
+            f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+            f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1000,
+            f'{self.app_label}_organizationuser-0-is_admin': False,
+            f'{self.app_label}_organizationuser-0-organization': str(organization.pk),
+            f'{self.app_label}_organizationuser-0-id': str(organization_user.pk),
+            f'{self.app_label}_organizationuser-0-user': str(user.pk),
         }
 
     def test_change_user(self):
@@ -672,9 +721,10 @@ class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
         params.pop('phone_number')
         params.pop('_password')
         params.pop('last_login')
+        params = self._additional_params_pop(params)
         params.update(self._get_edit_form_inline_params(user, org))
         response = self.client.post(
-            reverse('admin:openwisp_users_user_change', args=[user.pk]),
+            reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
             follow=True,
         )
@@ -684,6 +734,8 @@ class TestBasicUsersIntegration(TestOrganizationMixin, TestCase):
 
 
 class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, TestCase):
+    app_label = 'openwisp_users'
+
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name='organization1')
         org2 = self._create_org(name='organization2')
@@ -738,7 +790,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
     def test_multitenancy_organization_user_queryset(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
-            url=reverse('admin:openwisp_users_organizationuser_changelist'),
+            url=reverse(f'admin:{self.app_label}_organizationuser_changelist'),
             hidden=[
                 data['organization_user2'].user.username,
                 data['organization_user22'].user.username,
@@ -754,7 +806,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
     def test_multitenancy_organization_owner_queryset(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
-            url=reverse('admin:openwisp_users_organizationowner_changelist'),
+            url=reverse(f'admin:{self.app_label}_organizationowner_changelist'),
             hidden=[data['organization_owner2'].organization_user.user.username],
             visible=[data['organization_owner1'].organization_user.user.username],
         )
@@ -762,7 +814,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
     def test_useradmin_specific_multitenancy_costraints(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
-            url=reverse('admin:openwisp_users_user_changelist'),
+            url=reverse(f'admin:{self.app_label}_user_changelist'),
             visible=[data['user3'], data['operator']],
             hidden=[data['user2'], data['user22'], data['user1'], data['user12']],
         )

@@ -2,6 +2,7 @@ from django.apps import AppConfig
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
+from swapper import get_model_name
 
 from . import settings as app_settings
 
@@ -19,8 +20,8 @@ class OpenwispUsersConfig(AppConfig):
     def add_default_menu_items(self):
         menu_setting = 'OPENWISP_DEFAULT_ADMIN_MENU_ITEMS'
         items = [
-            {'model': 'openwisp_users.User'},
-            {'model': 'openwisp_users.Organization'},
+            {'model': settings.AUTH_USER_MODEL},
+            {'model': get_model_name('openwisp_users', 'Organization')},
         ]
         if not hasattr(settings, menu_setting):
             setattr(settings, menu_setting, items)
