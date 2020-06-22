@@ -13,3 +13,6 @@ def get_api_urls(api_views=None):
             url(r'^user/token/', views.obtain_auth_token, name='user_auth_token')
         ]
     return urlpatterns
+
+
+urlpatterns = get_api_urls()
