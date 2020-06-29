@@ -18,6 +18,7 @@ from .utils import (
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 User = get_user_model()
+Group = load_model('openwisp_users', 'Group')
 
 
 devnull = open(os.devnull, 'w')
@@ -649,6 +650,153 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(r.status_code, 200)
         self.assertEqual(user_qs.count(), 0)
         self.assertEqual(org_user_qs.count(), 0)
+
+    def test_staff_delete_staff(self):
+        org = self._create_org()
+        staff = self._create_user(
+            username='staff', is_staff=True, email='staff@gmail.com'
+        )
+        group = Group.objects.filter(name='Administrator')
+        staff.groups.set(group)
+        self._create_org_user(organization=org, user=staff, is_admin=True)
+        op = self._create_operator()
+        op.groups.set(group)
+        self._create_org_user(organization=org, user=op, is_admin=True)
+        post_data = {
+            '_selected_action': [op.pk],
+            'action': 'delete_selected_modified',
+            'post': 'yes',
+        }
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        self.client.force_login(staff)
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.filter(pk=op.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(user_qs.count(), 0)
+        self.assertContains(r, 'Successfully deleted 1 user')
+
+    def test_superuser_delete_staff(self):
+        org = self._create_org()
+        group = Group.objects.filter(name='Administrator')
+        op = self._create_operator()
+        op.groups.set(group)
+        self._create_org_user(organization=org, user=op, is_admin=True)
+        post_data = {
+            '_selected_action': [op.pk],
+            'action': 'delete_selected_modified',
+            'post': 'yes',
+        }
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        self.client.force_login(self._get_admin())
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.filter(pk=op.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(user_qs.count(), 0)
+        self.assertContains(r, 'Successfully deleted 1 user')
+
+    def test_staff_delete_org_owner(self):
+        org = self._create_org()
+        staff = self._create_user(
+            username='staff', is_staff=True, email='staff@gmail.com'
+        )
+        group = Group.objects.filter(name='Administrator')
+        staff.groups.set(group)
+        op = self._create_operator()
+        op.groups.set(group)
+        org_user = self._create_org_user(organization=org, user=op, is_admin=True)
+        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=staff, is_admin=True)
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        post_data = {
+            'action': 'delete_selected_modified',
+            '_selected_action': [op.pk],
+            'post': 'yes',
+        }
+        self.client.force_login(staff)
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.filter(pk=op.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, f'Can not delete organization owners: {op.username}')
+        self.assertEqual(user_qs.count(), 1)
+
+    def test_superuser_delete_org_owner(self):
+        org = self._create_org()
+        group = Group.objects.filter(name='Administrator')
+        op = self._create_operator()
+        op.groups.set(group)
+        org_user = self._create_org_user(organization=org, user=op, is_admin=True)
+        self._create_org_owner(organization_user=org_user, organization=org)
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        post_data = {
+            'action': 'delete_selected_modified',
+            '_selected_action': [op.pk],
+            'post': 'yes',
+        }
+        self.client.force_login(self._get_admin())
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.filter(pk=op.pk)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Successfully deleted 1 user')
+        self.assertEqual(user_qs.count(), 0)
+
+    def test_staff_bulk_delete(self):
+        org = self._create_org()
+        group = Group.objects.filter(name='Administrator')
+        staff = self._create_user(
+            username='staff', is_staff=True, email='staff@gmail.com'
+        )
+        staff.groups.set(group)
+        op1 = self._create_user(username='op1', is_staff=True, email='op1@gmail.com')
+        op2 = self._create_user(username='op2', is_staff=True, email='op2@gmail.com')
+        op1.groups.set(group)
+        op2.groups.set(group)
+        org_user = self._create_org_user(organization=org, user=op1, is_admin=True)
+        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op2, is_admin=True)
+        self._create_org_user(organization=org, user=staff, is_admin=True)
+        post_data = {
+            'action': 'delete_selected_modified',
+            '_selected_action': [op1.pk, op2.pk],
+        }
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        self.client.force_login(staff)
+        r = self.client.post(path, post_data, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(
+            r, f"1 organization owner can not be deleted: {op1.username}"
+        )
+
+        post_data.update({'post': 'yes'})
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.all()
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Successfully deleted 1 user')
+        self.assertEqual(user_qs.count(), 3)
+        self.assertEqual(user_qs.filter(pk=op2.pk).count(), 0)
+        self.assertEqual(user_qs.filter(pk=op1.pk).count(), 1)
+
+    def test_superuser_bulk_delete(self):
+        org = self._create_org()
+        group = Group.objects.filter(name='Administrator')
+        op1 = self._create_user(username='op1', is_staff=True, email='op1@gmail.com')
+        op2 = self._create_user(username='op2', is_staff=True, email='op2@gmail.com')
+        op1.groups.set(group)
+        op2.groups.set(group)
+        org_user = self._create_org_user(organization=org, user=op1, is_admin=True)
+        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op2, is_admin=True)
+        post_data = {
+            'action': 'delete_selected_modified',
+            '_selected_action': [op1.pk, op2.pk],
+            'post': 'yes',
+        }
+        path = reverse(f'admin:{self.app_label}_user_changelist')
+        self.client.force_login(self._get_admin())
+        r = self.client.post(path, post_data, follow=True)
+        user_qs = User.objects.all()
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Successfully deleted 2 users')
+        self.assertEqual(user_qs.count(), 2)
 
     @patch('sys.stdout', devnull)
     @patch('sys.stderr', devnull)
