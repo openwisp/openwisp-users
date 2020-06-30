@@ -762,9 +762,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.client.force_login(staff)
         r = self.client.post(path, post_data, follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(
-            r, f"delete 1 organization owner: {op1.username}"
-        )
+        self.assertContains(r, f"delete 1 organization owner: {op1.username}")
         post_data.update({'post': 'yes'})
         r = self.client.post(path, post_data, follow=True)
         user_qs = User.objects.all()
