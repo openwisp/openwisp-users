@@ -6,6 +6,7 @@ from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
 from django.contrib import admin, messages
+from django.contrib.admin.actions import delete_selected
 from django.contrib.admin.utils import model_ngettext
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
@@ -13,7 +14,10 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.forms.models import BaseInlineFormSet
+from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.translation import ngettext
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (
@@ -153,7 +157,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     ]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
-    actions = ['make_inactive', 'make_active']
+    actions = ['delete_selected_modified', 'make_inactive', 'make_active']
 
     def require_confirmation(func):
         """
@@ -270,6 +274,50 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         ):  # pragma: no cover
             return False
         return super().has_change_permission(request, obj)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.POST.get('post') and 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    def delete_selected_modified(self, request, queryset):
+        if not request.user.is_superuser:
+            org_owners = []
+            for user in queryset:
+                org_owner = OrganizationOwner.objects.filter(
+                    organization_user=OrganizationUser.objects.get(user=user)
+                )
+                if org_owner:
+                    org_owners.append(user.username)
+            qs = queryset.exclude(username__in=org_owners)
+            users = ', '.join(org_owners)
+            if queryset.count() and not qs.count():
+                self.message_user(
+                    request,
+                    _(f'Can not delete organization owners: {users}'),
+                    messages.ERROR,
+                )
+                redirect_url = reverse(
+                    f'admin:{self.model._meta.app_label}_user_changelist'
+                )
+                return HttpResponseRedirect(redirect_url)
+            count = len(org_owners)
+            if count:
+                self.message_user(
+                    request,
+                    ngettext(
+                        f"%d organization owner can not be deleted: {users}",
+                        f"%d organization owners can not be deleted: {users}",
+                        count,
+                    )
+                    % count,
+                    messages.ERROR,
+                )
+            return delete_selected(self, request, qs)
+        return delete_selected(self, request, queryset)
+
+    delete_selected_modified.short_description = delete_selected.short_description
 
     def get_inline_instances(self, request, obj=None):
         """

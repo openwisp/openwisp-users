@@ -84,3 +84,30 @@ def create_default_groups(apps, schema_editor):
         except Permission.DoesNotExist:
             pass
         admin.permissions.set(permissions)
+
+
+def update_admins_permissions(apps, schema_editor):
+    org_model = swapper.get_model_name('openwisp_users', 'organization')
+    model_app_label = swapper.split(org_model)[0]
+    group = apps.get_model(model_app_label, 'group')
+    email_model = swapper.get_model_name('account', 'EmailAddress')
+    email_app_label = swapper.split(email_model)[0]
+    try:
+        admin = group.objects.get(name='Administrator')
+        permissions = [
+            Permission.objects.get(
+                content_type__app_label=email_app_label, codename='view_emailaddress'
+            ).pk,
+            Permission.objects.get(
+                content_type__app_label=email_app_label, codename='delete_emailaddress'
+            ).pk,
+            Permission.objects.get(
+                content_type__app_label=email_app_label, codename='change_emailaddress'
+            ).pk,
+            Permission.objects.get(
+                content_type__app_label=model_app_label, codename='delete_user'
+            ).pk,
+        ]
+        admin.permissions.add(*permissions)
+    except ObjectDoesNotExist:
+        pass
