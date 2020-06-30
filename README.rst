@@ -87,9 +87,10 @@ Setup (integrate in an existing django project)
         'allauth',
         'allauth.account',
         'allauth.socialaccount',
-        'openwisp_users',
         'rest_framework',
         'rest_framework.authtoken',
+        'drf_yasg',
+        'openwisp_users',
     ]
 
 also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::

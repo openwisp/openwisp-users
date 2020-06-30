@@ -5,8 +5,10 @@ from allauth import app_settings as allauth_settings
 from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.actions import delete_selected
+from django.contrib.admin.sites import NotRegistered
 from django.contrib.admin.utils import model_ngettext
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
@@ -464,3 +466,12 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         ('socialaccount', 'SocialAccount'),
     ]:
         admin.site.unregister(apps.get_model(*model))
+
+
+if 'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG:
+    Token = apps.get_model('authtoken', 'Token')
+
+    try:
+        admin.site.unregister(Token)
+    except NotRegistered:
+        pass

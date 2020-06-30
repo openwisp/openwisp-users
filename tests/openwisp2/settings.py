@@ -28,10 +28,10 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'openwisp_users',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
+    'openwisp_users',
     'testapp',
 ]
 
