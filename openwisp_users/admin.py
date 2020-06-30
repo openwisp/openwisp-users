@@ -157,7 +157,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     ]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
-    actions = ['delete_selected_modified', 'make_inactive', 'make_active']
+    actions = ['delete_selected_overridden', 'make_inactive', 'make_active']
 
     def require_confirmation(func):
         """
@@ -281,43 +281,41 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             del actions['delete_selected']
         return actions
 
-    def delete_selected_modified(self, request, queryset):
+    def delete_selected_overridden(self, request, queryset):
         if not request.user.is_superuser:
-            org_owners = []
-            for user in queryset:
-                org_owner = OrganizationOwner.objects.filter(
-                    organization_user=OrganizationUser.objects.get(user=user)
-                )
-                if org_owner:
-                    org_owners.append(user.username)
-            qs = queryset.exclude(username__in=org_owners)
-            users = ', '.join(org_owners)
-            if queryset.count() and not qs.count():
-                self.message_user(
-                    request,
-                    _(f'Can not delete organization owners: {users}'),
-                    messages.ERROR,
-                )
-                redirect_url = reverse(
-                    f'admin:{self.model._meta.app_label}_user_changelist'
-                )
-                return HttpResponseRedirect(redirect_url)
-            count = len(org_owners)
+            users_pk = queryset.values_list('pk', flat=True)
+            owners_list = list(
+                OrganizationOwner.objects.filter(organization_user__user__in=users_pk)
+                .select_related('organization_user__user')
+                .values_list('organization_user__user__username', flat=True)
+            )
+            owners = ', '.join(owners_list)
+            excluded_owners_qs = queryset.exclude(username__in=owners_list)
+            # if trying to delete any owner, show an error message
+            count = len(owners_list)
             if count:
                 self.message_user(
                     request,
                     ngettext(
-                        f"%d organization owner can not be deleted: {users}",
-                        f"%d organization owners can not be deleted: {users}",
+                        f"Can't delete %d organization owner: {owners}",
+                        f"Can't delete %d organization owners: {owners}",
                         count,
                     )
                     % count,
                     messages.ERROR,
                 )
-            return delete_selected(self, request, qs)
+            # if trying to delete only owners, stop here
+            if queryset.exists() and not excluded_owners_qs.exists():
+                redirect_url = reverse(
+                    f'admin:{self.model._meta.app_label}_user_changelist'
+                )
+                return HttpResponseRedirect(redirect_url)
+            # otherwise proceed but remove owners from the delete queryset
+            else:
+                queryset = excluded_owners_qs
         return delete_selected(self, request, queryset)
 
-    delete_selected_modified.short_description = delete_selected.short_description
+    delete_selected_overridden.short_description = delete_selected.short_description
 
     def get_inline_instances(self, request, obj=None):
         """

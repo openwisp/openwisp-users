@@ -664,7 +664,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_user(organization=org, user=op, is_admin=True)
         post_data = {
             '_selected_action': [op.pk],
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             'post': 'yes',
         }
         path = reverse(f'admin:{self.app_label}_user_changelist')
@@ -683,7 +683,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_user(organization=org, user=op, is_admin=True)
         post_data = {
             '_selected_action': [op.pk],
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             'post': 'yes',
         }
         path = reverse(f'admin:{self.app_label}_user_changelist')
@@ -708,7 +708,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_user(organization=org, user=staff, is_admin=True)
         path = reverse(f'admin:{self.app_label}_user_changelist')
         post_data = {
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             '_selected_action': [op.pk],
             'post': 'yes',
         }
@@ -716,7 +716,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         r = self.client.post(path, post_data, follow=True)
         user_qs = User.objects.filter(pk=op.pk)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, f'Can not delete organization owners: {op.username}')
+        self.assertContains(r, f"Can&#x27;t delete 1 organization owner: {op.username}")
         self.assertEqual(user_qs.count(), 1)
 
     def test_superuser_delete_org_owner(self):
@@ -728,7 +728,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_owner(organization_user=org_user, organization=org)
         path = reverse(f'admin:{self.app_label}_user_changelist')
         post_data = {
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             '_selected_action': [op.pk],
             'post': 'yes',
         }
@@ -755,7 +755,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_user(organization=org, user=op2, is_admin=True)
         self._create_org_user(organization=org, user=staff, is_admin=True)
         post_data = {
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             '_selected_action': [op1.pk, op2.pk],
         }
         path = reverse(f'admin:{self.app_label}_user_changelist')
@@ -763,9 +763,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         r = self.client.post(path, post_data, follow=True)
         self.assertEqual(r.status_code, 200)
         self.assertContains(
-            r, f"1 organization owner can not be deleted: {op1.username}"
+            r, f"Can&#x27;t delete 1 organization owner: {op1.username}"
         )
-
         post_data.update({'post': 'yes'})
         r = self.client.post(path, post_data, follow=True)
         user_qs = User.objects.all()
@@ -786,7 +785,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self._create_org_owner(organization_user=org_user, organization=org)
         self._create_org_user(organization=org, user=op2, is_admin=True)
         post_data = {
-            'action': 'delete_selected_modified',
+            'action': 'delete_selected_overridden',
             '_selected_action': [op1.pk, op2.pk],
             'post': 'yes',
         }
