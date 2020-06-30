@@ -716,7 +716,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         r = self.client.post(path, post_data, follow=True)
         user_qs = User.objects.filter(pk=op.pk)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, f"Can&#x27;t delete 1 organization owner: {op.username}")
+        self.assertContains(r, f"delete 1 organization owner: {op.username}")
         self.assertEqual(user_qs.count(), 1)
 
     def test_superuser_delete_org_owner(self):
@@ -763,7 +763,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         r = self.client.post(path, post_data, follow=True)
         self.assertEqual(r.status_code, 200)
         self.assertContains(
-            r, f"Can&#x27;t delete 1 organization owner: {op1.username}"
+            r, f"delete 1 organization owner: {op1.username}"
         )
         post_data.update({'post': 'yes'})
         r = self.client.post(path, post_data, follow=True)
