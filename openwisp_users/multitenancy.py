@@ -1,8 +1,11 @@
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from swapper import load_model
 
-from .models import OrganizationUser, User
+User = get_user_model()
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class MultitenantAdminMixin(object):

@@ -28,10 +28,10 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'openwisp_users',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
+    'openwisp_users',
     'testapp',
 ]
 
@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'urls'
+ROOT_URLCONF = 'openwisp2.urls'
 
 TIME_ZONE = 'Europe/Rome'
 LANGUAGE_CODE = 'en-gb'
@@ -74,6 +74,7 @@ TEMPLATES = [
             'loaders': [
                 'django.template.loaders.filesystem.Loader',
                 'django.template.loaders.app_directories.Loader',
+                'openwisp_utils.loaders.DependencyLoader',
             ],
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -116,7 +117,17 @@ SESSION_CACHE_ALIAS = 'default'
 OPENWISP_ORGANIZATON_USER_ADMIN = True
 OPENWISP_ORGANIZATON_OWNER_ADMIN = True
 OPENWISP_USERS_AUTH_API = True
-OPENWISP_USERS_AUTH_THROTTLE_RATE = '10/hour'
+
+if os.environ.get('SAMPLE_APP', False):
+    users_index = INSTALLED_APPS.index('openwisp_users')
+    INSTALLED_APPS.insert(users_index, 'openwisp2.sample_users')
+    INSTALLED_APPS.remove('openwisp_users')
+    EXTENDED_APPS = ['openwisp_users']
+    AUTH_USER_MODEL = 'sample_users.User'
+    OPENWISP_USERS_GROUP_MODEL = 'sample_users.Group'
+    OPENWISP_USERS_ORGANIZATION_MODEL = 'sample_users.Organization'
+    OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'sample_users.OrganizationUser'
+    OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'sample_users.OrganizationOwner'
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:

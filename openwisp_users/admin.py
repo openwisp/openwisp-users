@@ -5,14 +5,21 @@ from allauth import app_settings as allauth_settings
 from allauth.account.models import EmailAddress
 from django import forms
 from django.apps import apps
+from django.conf import settings
 from django.contrib import admin, messages
+from django.contrib.admin.actions import delete_selected
+from django.contrib.admin.sites import NotRegistered
 from django.contrib.admin.utils import model_ngettext
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.forms.models import BaseInlineFormSet
+from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.utils.translation import ngettext
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (
@@ -20,12 +27,17 @@ from organizations.base_admin import (
     BaseOrganizationOwnerAdmin,
     BaseOrganizationUserAdmin,
 )
+from swapper import load_model
 
 from . import settings as app_settings
-from .base import BaseAdmin
-from .models import Group, Organization, OrganizationOwner, OrganizationUser, User
 from .multitenancy import MultitenantAdminMixin
+from .utils import BaseAdmin
 
+Group = load_model('openwisp_users', 'Group')
+Organization = load_model('openwisp_users', 'Organization')
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
@@ -147,13 +159,14 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     ]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
-    actions = ['make_inactive', 'make_active']
+    actions = ['delete_selected_overridden', 'make_inactive', 'make_active']
 
     def require_confirmation(func):
         """
         Decorator to lead to a confirmation page.
-        This has been used rather than simply adding the same lines in action functions
-        inorder to avoid repetition of the same lines in the two added actions and more actions
+        This has been used rather than simply adding the same lines
+        in action functions inorder to avoid repetition of the same
+        lines in the two added actions and more actions
         incase they are added in future.
         """
 
@@ -182,7 +195,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} {model_ngettext(self.opts, count)} inactive.'
+                    f'Successfully made {count} '
+                    f'{model_ngettext(self.opts, count)} inactive.'
                 ),
                 messages.SUCCESS,
             )
@@ -197,7 +211,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} {model_ngettext(self.opts, count)} active.'
+                    f'Successfully made {count} '
+                    f'{model_ngettext(self.opts, count)} active.'
                 ),
                 messages.SUCCESS,
             )
@@ -261,6 +276,48 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         ):  # pragma: no cover
             return False
         return super().has_change_permission(request, obj)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.POST.get('post') and 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    def delete_selected_overridden(self, request, queryset):
+        if not request.user.is_superuser:
+            users_pk = queryset.values_list('pk', flat=True)
+            owners_list = list(
+                OrganizationOwner.objects.filter(organization_user__user__in=users_pk)
+                .select_related('organization_user__user')
+                .values_list('organization_user__user__username', flat=True)
+            )
+            owners = ', '.join(owners_list)
+            excluded_owners_qs = queryset.exclude(username__in=owners_list)
+            # if trying to delete any owner, show an error message
+            count = len(owners_list)
+            if count:
+                self.message_user(
+                    request,
+                    ngettext(
+                        f"Can't delete %d organization owner: {owners}",
+                        f"Can't delete %d organization owners: {owners}",
+                        count,
+                    )
+                    % count,
+                    messages.ERROR,
+                )
+            # if trying to delete only owners, stop here
+            if queryset.exists() and not excluded_owners_qs.exists():
+                redirect_url = reverse(
+                    f'admin:{self.model._meta.app_label}_user_changelist'
+                )
+                return HttpResponseRedirect(redirect_url)
+            # otherwise proceed but remove owners from the delete queryset
+            else:
+                queryset = excluded_owners_qs
+        return delete_selected(self, request, queryset)
+
+    delete_selected_overridden.short_description = delete_selected.short_description
 
     def get_inline_instances(self, request, obj=None):
         """
@@ -409,3 +466,12 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         ('socialaccount', 'SocialAccount'),
     ]:
         admin.site.unregister(apps.get_model(*model))
+
+
+if 'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG:
+    Token = apps.get_model('authtoken', 'Token')
+
+    try:
+        admin.site.unregister(Token)
+    except NotRegistered:
+        pass
