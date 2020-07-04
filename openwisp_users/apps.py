@@ -49,20 +49,25 @@ class OpenwispUsersConfig(AppConfig):
 
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+        OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
 
-        post_save.connect(
-            self.update_organizations_dict,
-            sender=OrganizationUser,
-            dispatch_uid='post_save_update_organizations_dict',
-        )
-        post_delete.connect(
-            self.update_organizations_dict,
-            sender=OrganizationUser,
-            dispatch_uid='post_delete_update_organizations_dict',
-        )
+        for model in [OrganizationUser, OrganizationOwner]:
+            for signal, name in signal_tuples:
+                signal.connect(
+                    self.update_organizations_dict,
+                    sender=model,
+                    dispatch_uid='{}_{}_update_organizations_dict'.format(
+                        name, model.__name__
+                    ),
+                )
 
     def update_organizations_dict(cls, instance, **kwargs):
-        cache_key = 'user_{}_organizations'.format(instance.user.pk)
+        if hasattr(instance, 'user'):
+            user = instance.user
+        else:
+            user = instance.organization_user.user
+        cache_key = 'user_{}_organizations'.format(user.pk)
         cache.delete(cache_key)
         # forces caching
-        instance.user.organizations_dict
+        user.organizations_dict

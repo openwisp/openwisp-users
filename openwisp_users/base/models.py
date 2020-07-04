@@ -84,8 +84,16 @@ class AbstractUser(BaseUser):
         org_dict = self.organizations_dict.get(str(organization.pk))
         return org_dict is not None and (org_dict['is_admin'] or org_dict['is_owner'])
 
+    def is_owner(self, organization):
+        org_dict = self.organizations_dict.get(str(organization.pk))
+        return org_dict is not None and org_dict['is_owner']
+
     @property
     def organizations_dict(self):
+        """
+        Returns a dictionary which represents the organizations which
+        the user is member of, or which the user manages or owns.
+        """
         cache_key = 'user_{}_organizations'.format(self.pk)
         organizations = cache.get(cache_key)
         if organizations is not None:
@@ -94,7 +102,7 @@ class AbstractUser(BaseUser):
         manager = load_model('openwisp_users', 'OrganizationUser').objects
         org_users = manager.filter(
             user=self, organization__is_active=True
-        ).select_related('organization')
+        ).select_related('organization', 'organizationowner')
 
         organizations = {}
         for org_user in org_users:
@@ -102,6 +110,7 @@ class AbstractUser(BaseUser):
             org_id = str(org.pk)
             organizations[org_id] = {
                 'is_admin': org_user.is_admin,
+                'is_owner': hasattr(org_user, 'organizationowner'),
             }
 
         cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days

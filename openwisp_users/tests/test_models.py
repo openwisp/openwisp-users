@@ -6,6 +6,7 @@ from swapper import load_model
 from .utils import TestOrganizationMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 User = get_user_model()
 
 
@@ -65,17 +66,20 @@ class TestUsers(TestOrganizationMixin, TestCase):
         ou1 = OrganizationUser.objects.create(
             user=user, organization=org1, is_admin=True
         )
+        OrganizationOwner.objects.create(organization_user=ou1, organization=org1)
         ou2 = OrganizationUser.objects.create(user=user, organization=org2)
 
-        organizations_dict = {
-            str(org1.pk): {'name': org1.name, 'is_admin': ou1.is_admin},
-            str(org2.pk): {'name': org2.name, 'is_admin': ou2.is_admin},
+        expected = {
+            str(org1.pk): {'is_admin': ou1.is_admin, 'is_owner': True},
+            str(org2.pk): {'is_admin': ou2.is_admin, 'is_owner': False},
         }
-        self.assertEqual(user.organizations_dict, organizations_dict)
+        self.assertEqual(user.organizations_dict, expected)
         self.assertEqual(len(user.organizations_dict), 2)
 
         ou2.delete()
         self.assertEqual(len(user.organizations_dict), 1)
+        del expected[str(org2.pk)]
+        self.assertEqual(user.organizations_dict, expected)
 
     def test_organizations_dict_cache(self):
         user = self._create_user(username='organizations_pk')
@@ -93,6 +97,16 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.assertNumQueries(0):
             list(user.organizations_dict)
 
+    def test_is_member(self):
+        user = self._create_user(username='organizations_pk')
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        self.assertFalse(user.is_member(org1))
+        self.assertFalse(user.is_member(org2))
+        OrganizationUser.objects.create(user=user, organization=org1)
+        self.assertTrue(user.is_member(org1))
+        self.assertFalse(user.is_member(org2))
+
     def test_is_manager(self):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')
@@ -107,15 +121,20 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertTrue(user.is_manager(org1))
         self.assertFalse(user.is_manager(org2))
 
-    def test_is_member(self):
+    def test_is_owner(self):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
-        self.assertFalse(user.is_member(org1))
-        self.assertFalse(user.is_member(org2))
-        OrganizationUser.objects.create(user=user, organization=org1)
-        self.assertTrue(user.is_member(org1))
-        self.assertFalse(user.is_member(org2))
+        self.assertFalse(user.is_owner(org1))
+        self.assertFalse(user.is_owner(org2))
+        ou = OrganizationUser.objects.create(
+            user=user, organization=org1, is_admin=True
+        )
+        self.assertFalse(user.is_owner(org1))
+        self.assertFalse(user.is_owner(org2))
+        OrganizationOwner.objects.create(organization_user=ou, organization=org1)
+        self.assertTrue(user.is_owner(org1))
+        self.assertFalse(user.is_owner(org2))
 
     def test_organization_repr(self):
         org = self._create_org(name='org1', is_active=False)
