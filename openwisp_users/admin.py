@@ -99,7 +99,7 @@ class OrganizationUserInline(admin.StackedInline):
             formset.form.base_fields[
                 'organization'
             ].queryset = Organization.objects.filter(
-                pk__in=request.user.organizations_pk
+                pk__in=request.user.organizations_dict.keys()
             )
         return formset
 

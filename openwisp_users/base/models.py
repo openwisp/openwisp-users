@@ -77,16 +77,16 @@ class AbstractUser(BaseUser):
         )
         return qs
 
+    def is_member(self, organization):
+        org_pk = str(organization.pk)
+        return org_pk in self.organizations_dict
+
     def is_manager(self, organization):
         org_pk = str(organization.pk)
         return (
             org_pk in self.organizations_dict
             and self.organizations_dict[org_pk]['is_admin'] is True
         )
-
-    def is_member(self, organization):
-        org_pk = str(organization.pk)
-        return org_pk in self.organizations_dict
 
     @property
     def organizations_dict(self):
