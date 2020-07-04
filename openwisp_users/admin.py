@@ -15,6 +15,7 @@ from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
+from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -27,6 +28,7 @@ from organizations.base_admin import (
     BaseOrganizationOwnerAdmin,
     BaseOrganizationUserAdmin,
 )
+from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
 from . import settings as app_settings
@@ -119,17 +121,53 @@ class OrganizationUserInlineReadOnly(OrganizationUserInline):
         return False
 
 
-class EmailRequiredMixin(forms.ModelForm):
+class UserFormMixin(forms.ModelForm):
     email = forms.EmailField(label=_('Email'), max_length=254, required=True)
 
+    def validate_user_groups(self, data):
+        is_staff = data.get('is_staff')
+        is_superuser = data.get('is_superuser')
+        groups = data.get('groups')
+        if is_staff and not is_superuser and not groups:
+            raise ValidationError(
+                {'groups': _('A staff user must belong to a group, please select one.')}
+            )
 
-class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
+    def clean(self):
+        cleaned_data = super().clean()
+        self.validate_user_groups(cleaned_data)
+        return cleaned_data
+
+
+class UserCreationForm(UserFormMixin, BaseUserCreationForm):
+    phone_number = PhoneNumberField(widget=forms.TextInput(), required=False)
+
     class Meta(BaseUserCreationForm.Meta):
-        fields = ['username', 'email', 'password1', 'password2', 'is_staff']
-        fields_superuser = fields[:] + ['is_superuser']
-        fieldsets = ((None, {'classes': ('wide',), 'fields': fields}),)
+        fields = [
+            'username',
+            'email',
+            'password1',
+            'password2',
+        ]
+        personal_fields = ['first_name', 'last_name', 'phone_number']
+        fieldsets = (
+            (None, {'classes': ('wide',), 'fields': fields}),
+            ('Personal Info', {'classes': ('wide',), 'fields': personal_fields}),
+            (
+                'Permissions',
+                {'classes': ('wide',), 'fields': ['is_active', 'is_staff', 'groups']},
+            ),
+        )
         fieldsets_superuser = (
-            (None, {'classes': ('wide',), 'fields': fields_superuser}),
+            (None, {'classes': ('wide',), 'fields': fields}),
+            ('Personal Info', {'classes': ('wide',), 'fields': personal_fields}),
+            (
+                'Permissions',
+                {
+                    'classes': ('wide',),
+                    'fields': ['is_active', 'is_staff', 'is_superuser', 'groups'],
+                },
+            ),
         )
 
     class Media:
@@ -139,7 +177,7 @@ class UserCreationForm(EmailRequiredMixin, BaseUserCreationForm):
         )
 
 
-class UserChangeForm(EmailRequiredMixin, BaseUserChangeForm):
+class UserChangeForm(UserFormMixin, BaseUserChangeForm):
     pass
 
 

@@ -469,6 +469,46 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             res, '<li>User with this Email address already exists.</li>'
         )
 
+    def test_change_staff_without_group(self):
+        self.client.force_login(self._get_admin())
+        user = self._create_operator()
+        self._create_org_user(user=user)
+        params = user.__dict__
+        params.pop('_password')
+        params.pop('last_login')
+        params.pop('phone_number')
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
+        r = self.client.post(path, params, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(
+            r, 'A staff user must belong to a group, please select one.'
+        )
+        user.refresh_from_db()
+        self.assertEqual(user.groups.count(), 0)
+
+    def test_change_staff_with_group(self):
+        self.client.force_login(self._get_admin())
+        user = self._create_operator()
+        org = self._get_org()
+        org.add_user(user)
+        group = Group.objects.get(name='Administrator')
+        params = user.__dict__
+        params['groups'] = str(group.pk)
+        params.pop('phone_number')
+        params.pop('_password')
+        params.pop('last_login')
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
+        r = self.client.post(path, params, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'error')
+        user.refresh_from_db()
+        self.assertEqual(user.groups.count(), 1)
+        self.assertEqual(user.groups.get(name='Administrator').pk, group.pk)
+
     def test_admin_add_user_by_superuser(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -506,6 +546,87 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 0)
         self.assertContains(res, 'errors field-organization')
+
+    def test_admin_user_add_form(self):
+        self.client.force_login(self._get_admin())
+        r = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
+        self.assertContains(r, 'first_name')
+        self.assertContains(r, 'last_name')
+        self.assertContains(r, 'phone_number')
+        self.assertContains(r, 'groups')
+
+    def test_add_staff_without_group(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        org = self._get_org()
+        params = dict(
+            username='testadd',
+            email='test@testadd.com',
+            password1='tester',
+            password2='tester',
+            is_staff=True,
+        )
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        params.update(
+            {
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1,
+                f'{self.app_label}_organizationuser-0-is_admin': 'on',
+                f'{self.app_label}_organizationuser-0-organization': str(org.pk),
+            }
+        )
+        res = self.client.post(
+            reverse(f'admin:{self.app_label}_user_add'), params, follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(
+            res, 'A staff user must belong to a group, please select one.'
+        )
+        user = User.objects.filter(username='testadd')
+        self.assertEqual(user.count(), 0)
+
+    def test_add_staff_with_group(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        group = Group.objects.get(name='Administrator')
+        org = self._get_org()
+        params = dict(
+            username='testadd',
+            email='test@testadd.com',
+            password1='tester',
+            password2='tester',
+            is_staff=True,
+        )
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        params.update(
+            {
+                'groups': str(group.pk),
+                f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
+                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1,
+                f'{self.app_label}_organizationuser-0-is_admin': 'on',
+                f'{self.app_label}_organizationuser-0-organization': str(org.pk),
+            }
+        )
+        res = self.client.post(
+            reverse(f'admin:{self.app_label}_user_add'), params, follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'error')
+        user = User.objects.filter(username='testadd')
+        self.assertEqual(user.count(), 1)
+
+    def test_add_user_fieldsets(self):
+        self.client.force_login(self._get_admin())
+        r = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Permissions')
+        self.assertContains(r, 'Personal Info')
 
     def test_admin_add_superuser_org_not_required(self):
         admin = self._create_admin()
