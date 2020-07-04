@@ -299,6 +299,21 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+Model helpers
+-------------
+
+The User model provides the following methods to check whether the user
+is a member or an administrator of an organization:
+
+.. code-block:: python
+
+    from openwisp_users.models import Organization, User
+
+    user = User.objects.first()
+    org = Organization.objects.first()
+    user.is_manager(org)
+    user.is_member(org)
+
 Multitenancy mixins
 -------------------
 

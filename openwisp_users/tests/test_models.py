@@ -56,6 +56,66 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user = self._create_user(username='organizations_pk')
         self.assertEqual(len(user.organizations_pk), 0)
 
+    def test_organizations_dict(self):
+        user = self._create_user(username='organizations_pk')
+        self.assertEqual(user.organizations_dict, {})
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        self._create_org(name='org3')
+        ou1 = OrganizationUser.objects.create(
+            user=user, organization=org1, is_admin=True
+        )
+        ou2 = OrganizationUser.objects.create(user=user, organization=org2)
+
+        organizations_dict = {
+            str(org1.pk): {'name': org1.name, 'is_admin': ou1.is_admin},
+            str(org2.pk): {'name': org2.name, 'is_admin': ou2.is_admin},
+        }
+        self.assertEqual(user.organizations_dict, organizations_dict)
+        self.assertEqual(len(user.organizations_dict), 2)
+
+        ou2.delete()
+        self.assertEqual(len(user.organizations_dict), 1)
+
+    def test_organizations_dict_cache(self):
+        user = self._create_user(username='organizations_pk')
+        org1 = self._create_org(name='org1')
+
+        with self.assertNumQueries(1):
+            list(user.organizations_dict)
+
+        with self.assertNumQueries(0):
+            list(user.organizations_dict)
+
+        OrganizationUser.objects.create(user=user, organization=org1)
+
+        with self.assertNumQueries(1):
+            list(user.organizations_dict)
+
+    def test_is_manager(self):
+        user = self._create_user(username='organizations_pk')
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        self.assertFalse(user.is_manager(org1))
+        self.assertFalse(user.is_manager(org2))
+        ou = OrganizationUser.objects.create(user=user, organization=org1)
+        self.assertFalse(user.is_manager(org1))
+        self.assertFalse(user.is_manager(org2))
+        ou.is_admin = True
+        ou.save()
+        self.assertTrue(user.is_manager(org1))
+        self.assertFalse(user.is_manager(org2))
+
+    def test_is_member(self):
+        user = self._create_user(username='organizations_pk')
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        self.assertFalse(user.is_member(org1))
+        self.assertFalse(user.is_member(org2))
+        OrganizationUser.objects.create(user=user, organization=org1)
+        self.assertTrue(user.is_member(org1))
+        self.assertFalse(user.is_member(org2))
+
     def test_organization_repr(self):
         org = self._create_org(name='org1', is_active=False)
         self.assertIn('disabled', str(org))

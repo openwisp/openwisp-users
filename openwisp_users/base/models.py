@@ -1,14 +1,18 @@
+import logging
 import uuid
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from swapper import load_model
+
+logger = logging.getLogger(__name__)
 
 
 class UserManager(BaseUserManager):
@@ -60,7 +64,10 @@ class AbstractUser(BaseUser):
         """
         returns primary keys of organizations the user is associated to
         """
-
+        logger.warn(
+            "User.organizations_pk is deprecated in favor of User.organizations_dict"
+            " and will be removed in a future version"
+        )
         manager = load_model('openwisp_users', 'OrganizationUser').objects
         qs = (
             manager.filter(user=self, organization__is_active=True)
@@ -69,6 +76,38 @@ class AbstractUser(BaseUser):
             .values_list('organization_id')
         )
         return qs
+
+    def is_manager(self, organization):
+        org_pk = str(organization.pk)
+        return (
+            org_pk in self.organizations_dict
+            and self.organizations_dict[org_pk]['is_admin'] is True
+        )
+
+    def is_member(self, organization):
+        org_pk = str(organization.pk)
+        return org_pk in self.organizations_dict
+
+    @property
+    def organizations_dict(self):
+        cache_key = 'user_{}_organizations'.format(self.pk)
+        organizations = cache.get(cache_key)
+        if organizations is not None:
+            return organizations
+
+        manager = load_model('openwisp_users', 'OrganizationUser').objects
+        org_users = manager.filter(
+            user=self, organization__is_active=True
+        ).select_related('organization')
+
+        organizations = {}
+        for org_user in org_users:
+            org = org_user.organization
+            org_id = str(org.pk)
+            organizations[org_id] = {'name': org.name, 'is_admin': org_user.is_admin}
+
+        cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days
+        return organizations
 
     def clean(self):
         if self.email == '':

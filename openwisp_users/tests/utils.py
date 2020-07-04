@@ -29,9 +29,10 @@ class TestUserAdditionalFieldsMixin(object):
 
 class TestMultitenantAdminMixin(object):
     def setUp(self):
-        User.objects.create_superuser(
+        user = User.objects.create_superuser(
             username='admin', password='tester', email='admin@admin.com'
         )
+        user.organizations_dict  # force caching
 
     def _login(self, username='admin', password='tester'):
         self.client.login(username=username, password=password)
@@ -58,7 +59,9 @@ class TestMultitenantAdminMixin(object):
         operator = User.objects.create_user(**opts)
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
-            OrganizationUser.objects.create(user=operator, organization=organization)
+            ou = OrganizationUser(user=operator, organization=organization)
+            ou.save()
+        operator.organizations_dict  # force caching
         return operator
 
     def _test_multitenant_admin(self, url, visible, hidden, select_widget=False):
@@ -150,6 +153,7 @@ class TestOrganizationMixin(object):
         )
         user_permissions = Permission.objects.filter(codename__endswith='user')
         operator.user_permissions.add(*user_permissions)
+        operator.organizations_dict  # force caching
         return operator
 
     def _get_org(self, org_name='test org'):
