@@ -89,7 +89,8 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
         OrganizationUser.objects.create(user=user, organization=org1)
 
-        with self.assertNumQueries(1):
+        # cache is automatically updated
+        with self.assertNumQueries(0):
             list(user.organizations_dict)
 
     def test_is_manager(self):

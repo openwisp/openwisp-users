@@ -52,16 +52,18 @@ class OpenwispUsersConfig(AppConfig):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
         post_save.connect(
-            self.invalidate_organization_dict,
+            self.update_organizations_dict,
             sender=OrganizationUser,
-            dispatch_uid='post_save_invalidate_organization_dict',
+            dispatch_uid='post_save_update_organizations_dict',
         )
         post_delete.connect(
-            self.invalidate_organization_dict,
+            self.update_organizations_dict,
             sender=OrganizationUser,
-            dispatch_uid='post_delete_invalidate_organization_dict',
+            dispatch_uid='post_delete_update_organizations_dict',
         )
 
-    def invalidate_organization_dict(cls, instance, **kwargs):
+    def update_organizations_dict(cls, instance, **kwargs):
         cache_key = 'user_{}_organizations'.format(instance.user.pk)
         cache.delete(cache_key)
+        # forces caching
+        instance.user.organizations_dict
