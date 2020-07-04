@@ -78,15 +78,11 @@ class AbstractUser(BaseUser):
         return qs
 
     def is_member(self, organization):
-        org_pk = str(organization.pk)
-        return org_pk in self.organizations_dict
+        return str(organization.pk) in self.organizations_dict
 
     def is_manager(self, organization):
-        org_pk = str(organization.pk)
-        return (
-            org_pk in self.organizations_dict
-            and self.organizations_dict[org_pk]['is_admin'] is True
-        )
+        org_dict = self.organizations_dict.get(str(organization.pk))
+        return org_dict is not None and (org_dict['is_admin'] or org_dict['is_owner'])
 
     @property
     def organizations_dict(self):
@@ -104,7 +100,9 @@ class AbstractUser(BaseUser):
         for org_user in org_users:
             org = org_user.organization
             org_id = str(org.pk)
-            organizations[org_id] = {'name': org.name, 'is_admin': org_user.is_admin}
+            organizations[org_id] = {
+                'is_admin': org_user.is_admin,
+            }
 
         cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days
         return organizations

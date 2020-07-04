@@ -6,7 +6,6 @@ from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
 from swapper import get_model_name, load_model
 
-# from django.dispatch import receiver
 from . import settings as app_settings
 
 
