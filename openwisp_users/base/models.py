@@ -119,6 +119,8 @@ class AbstractUser(BaseUser):
     def clean(self):
         if self.email == '':
             self.email = None
+        if self.phone_number == '':
+            self.phone_number = None
 
 
 class BaseGroup(object):
