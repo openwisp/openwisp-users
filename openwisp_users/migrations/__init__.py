@@ -111,3 +111,25 @@ def update_admins_permissions(apps, schema_editor):
         admin.permissions.add(*permissions)
     except ObjectDoesNotExist:
         pass
+
+
+def get_model(apps, name):
+    model_name = swapper.get_model_name('openwisp_users', name)
+    model_label = swapper.split(model_name)[0]
+    return apps.get_model(model_label, name)
+
+
+def create_organization_owners(apps, schema_editor):
+    OrganizationOwner = get_model(apps, 'OrganizationOwner')
+    OrganizationUser = get_model(apps, 'OrganizationUser')
+    Organization = get_model(apps, 'Organization')
+    for org in Organization.objects.all():
+        org_user = (
+            OrganizationUser.objects.filter(organization=org, is_admin=True)
+            .order_by('created')
+            .first()
+        )
+        if not OrganizationOwner.objects.filter(organization=org).exists() and org_user:
+            OrganizationOwner.objects.create(
+                organization_user=org_user, organization=org
+            )

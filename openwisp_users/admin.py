@@ -74,6 +74,11 @@ class RequiredInlineFormSet(BaseInlineFormSet):
         return form
 
 
+class OrganizationOwnerInline(admin.StackedInline):
+    model = OrganizationOwner
+    extra = 0
+
+
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
@@ -416,7 +421,7 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
 
 class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
     view_on_site = False
-    inlines = []
+    inlines = [OrganizationOwnerInline]
     readonly_fields = ['uuid']
     ordering = ['name']
 

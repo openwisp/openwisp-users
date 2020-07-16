@@ -1,12 +1,15 @@
 from django.apps import AppConfig
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
 from swapper import get_model_name, load_model
 
 from . import settings as app_settings
+from .utils import logger
 
 
 class OpenwispUsersConfig(AppConfig):
@@ -61,6 +64,11 @@ class OpenwispUsersConfig(AppConfig):
                         name, model.__name__
                     ),
                 )
+        post_save.connect(
+            self.create_organization_owner,
+            sender=OrganizationUser,
+            dispatch_uid='make_first_org_user_org_owner',
+        )
 
     def update_organizations_dict(cls, instance, **kwargs):
         if hasattr(instance, 'user'):
@@ -71,3 +79,31 @@ class OpenwispUsersConfig(AppConfig):
         cache.delete(cache_key)
         # forces caching
         user.organizations_dict
+
+    def create_organization_owner(cls, instance, created, **kwargs):
+        if not created or not instance.is_admin:
+            return
+        OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        OrganizationUser = kwargs.get('sender')
+        is_another_org_manager_exist = (
+            OrganizationUser.objects.filter(organization=instance.organization)
+            .exclude(pk=instance.pk)
+            .exists()
+        )
+        is_org_owner_exist = OrganizationOwner.objects.filter(
+            organization_user=instance
+        ).exists()
+        if not is_another_org_manager_exist and not is_org_owner_exist:
+            with transaction.atomic():
+                try:
+                    owner = OrganizationOwner(
+                        organization_user=instance, organization=instance.organization
+                    )
+                    owner.full_clean()
+                    owner.save()
+                except ValidationError as e:
+                    logger.exception(
+                        f'Got exception {type(e)} while saving '
+                        f'OrganizationOwner with organization_user {instance} and '
+                        f'organization {instance.organization}'
+                    )

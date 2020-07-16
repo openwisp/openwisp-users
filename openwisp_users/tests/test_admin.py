@@ -5,10 +5,12 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
+from ..utils import logger
 from .utils import (
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
@@ -17,9 +19,9 @@ from .utils import (
 
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 User = get_user_model()
 Group = load_model('openwisp_users', 'Group')
-
 
 devnull = open(os.devnull, 'w')
 
@@ -172,7 +174,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         admin = self._create_admin()
         self.client.force_login(admin)
         org = self._create_org()
-        ou = org.add_user(admin)
+        ou = self._create_org_user(organization=org, user=admin)
         response = self.client.get(
             reverse(f'admin:{self.app_label}_organizationuser_change', args=[ou.pk])
         )
@@ -493,7 +495,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.client.force_login(self._get_admin())
         user = self._create_operator()
         org = self._get_org()
-        org.add_user(user)
+        self._create_org_user(organization=org, user=user)
         group = Group.objects.get(name='Administrator')
         params = user.__dict__
         params['groups'] = str(group.pk)
@@ -692,6 +694,54 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         )
         self.assertContains(response, 'tester')
 
+    def test_first_org_manager_creates_org_owner(self):
+        org = self._get_org()
+        user = self._get_user()
+        org_user = self._create_org_user(organization=org, user=user, is_admin=True)
+        org_owner_qs = OrganizationOwner.objects.all()
+        self.assertEqual(org_owner_qs.count(), 1)
+        org_owner = org_owner_qs.first()
+        self.assertEqual(org_owner.organization, org)
+        self.assertEqual(org_owner.organization_user, org_user)
+
+    def test_first_org_member_creates_no_org_owner(self):
+        org = self._get_org()
+        user = self._get_user()
+        self._create_org_user(organization=org, user=user, is_admin=False)
+        org_owner_qs = OrganizationOwner.objects.all()
+        self.assertEqual(org_owner_qs.count(), 0)
+
+    def test_second_orguser_creates_no_org_owner(self):
+        org = self._get_org()
+        user = self._get_user()
+        org_user = self._create_org_user(organization=org, user=user, is_admin=True)
+        user1 = self._create_user(username='user1', email='user1@gmail.com')
+        self._create_org_user(organization=org, user=user1, is_admin=True)
+        org_owner_qs = OrganizationOwner.objects.all()
+        self.assertEqual(org_owner_qs.count(), 1)
+        org_owner = org_owner_qs.first()
+        self.assertEqual(org_owner.organization, org)
+        self.assertEqual(org_owner.organization_user, org_user)
+
+    def test_view_org_owner_org_admin(self):
+        self.client.force_login(self._get_admin())
+        r = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Organization owners')
+
+    @patch.object(
+        OrganizationOwner, 'full_clean', side_effect=ValidationError('invalid')
+    )
+    @patch.object(logger, 'exception')
+    def test_invalid_org_owner(self, mocked_owner, logger_exception):
+        org = self._create_org(name='invalid')
+        user = self._create_user(username='invalid', email='invalid@email.com')
+        org_user = self._create_org_user(organization=org, user=user, is_admin=True)
+        mocked_owner.assert_called_once()
+        logger_exception.assert_called_once()
+        owner_qs = OrganizationOwner.objects.filter(organization_user=org_user)
+        self.assertEqual(owner_qs.count(), 0)
+
     def test_organization_uuid_field(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -826,8 +876,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         staff.groups.set(group)
         op = self._create_operator()
         op.groups.set(group)
-        org_user = self._create_org_user(organization=org, user=op, is_admin=True)
-        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op, is_admin=True)
         self._create_org_user(organization=org, user=staff, is_admin=True)
         path = reverse(f'admin:{self.app_label}_user_changelist')
         post_data = {
@@ -847,8 +896,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         group = Group.objects.filter(name='Administrator')
         op = self._create_operator()
         op.groups.set(group)
-        org_user = self._create_org_user(organization=org, user=op, is_admin=True)
-        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op, is_admin=True)
         path = reverse(f'admin:{self.app_label}_user_changelist')
         post_data = {
             'action': 'delete_selected_overridden',
@@ -873,8 +921,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         op2 = self._create_user(username='op2', is_staff=True, email='op2@gmail.com')
         op1.groups.set(group)
         op2.groups.set(group)
-        org_user = self._create_org_user(organization=org, user=op1, is_admin=True)
-        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op1, is_admin=True)
         self._create_org_user(organization=org, user=op2, is_admin=True)
         self._create_org_user(organization=org, user=staff, is_admin=True)
         post_data = {
@@ -902,8 +949,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         op2 = self._create_user(username='op2', is_staff=True, email='op2@gmail.com')
         op1.groups.set(group)
         op2.groups.set(group)
-        org_user = self._create_org_user(organization=org, user=op1, is_admin=True)
-        self._create_org_owner(organization_user=org_user, organization=org)
+        self._create_org_user(organization=org, user=op1, is_admin=True)
         self._create_org_user(organization=org, user=op2, is_admin=True)
         post_data = {
             'action': 'delete_selected_overridden',
@@ -982,7 +1028,7 @@ class TestBasicUsersIntegration(
         admin = self._create_admin()
         user = self._create_user()
         org = Organization.objects.first()
-        org.add_user(user)
+        self._create_org_user(organization=org, user=user)
         self.client.force_login(admin)
         params = user.__dict__
         params['bio'] = 'Test change'
