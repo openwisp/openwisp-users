@@ -166,3 +166,24 @@ class TestUsers(TestOrganizationMixin, TestCase):
         u.save()
         self.assertIsNone(u.email)
         self.assertEqual(User.objects.filter(email=None).count(), 2)
+
+    def test_add_users_with_empty_phone_numbers(self):
+        user1 = self.user_model(
+            username='user1',
+            email='email1@email.com',
+            password='user1',
+            phone_number='',
+        )
+        user2 = self.user_model(
+            username='user2',
+            email='email2@email.com',
+            password='user2',
+            phone_number='',
+        )
+        user1.full_clean()
+        user2.full_clean()
+        user1.save()
+        user2.save()
+        self.assertIsNone(user1.phone_number)
+        self.assertIsNone(user2.phone_number)
+        self.assertEqual(self.user_model.objects.filter(phone_number=None).count(), 2)
