@@ -513,6 +513,141 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(user.groups.count(), 1)
         self.assertEqual(user.groups.get(name='Administrator').pk, group.pk)
 
+    def test_staff_cannot_edit_org_owner(self):
+        user1 = self._create_user(
+            username="user1", email="email1@mail.com", is_staff=True
+        )
+        user2 = self._create_user(
+            username="user2", email="email2@mail.com", is_staff=True
+        )
+        org = self._get_org()
+        org_user2 = self._create_org_user(user=user2, organization=org, is_admin=True)
+        org_owner = self._create_org_owner(
+            organization=org, organization_user=org_user2
+        )
+        self._create_org_user(user=user1, organization=org, is_admin=True)
+        group = Group.objects.filter(name='Administrator')
+        user1.groups.set(group)
+        user2.groups.set(group)
+        self.client.force_login(user1)
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
+        r = self.client.get(path)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, f'class="readonly">{user2.username}')
+        message = (
+            "You do not have permission to edit or delete "
+            "this user because they are owner of an organization."
+        )
+        self.assertContains(r, message)
+
+        org_owner.delete()
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
+        r = self.client.get(path)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, f'class="readonly">{user2.username}')
+
+    def _test_change(self, options):
+        user1 = None
+        user2 = None
+        group = Group.objects.get(name='Administrator')
+        org = self._get_org()
+        for key, user in options.items():
+            u = self._create_user(**user.get('fields'))
+            org_user = self._create_org_user(user=u, organization=org, is_admin=True)
+            if user.get('is_owner'):
+                self._create_org_owner(organization=org, organization_user=org_user)
+            u.groups.add(group)
+            if user1:
+                user2 = u
+                continue
+            user1 = u
+        if user1 and not user2:
+            user2 = user1
+        self.client.force_login(user1)
+        params = user2.__dict__
+        params['username'] = 'newuser1'
+        params['groups'] = str(group.pk)
+        params.pop('phone_number')
+        params.pop('_password')
+        params.pop('last_login')
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        params.update(self._get_edit_form_inline_params(user2, org))
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
+        r = self.client.post(path, params, follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, 'error')
+        user2.refresh_from_db()
+        self.assertEqual(user2.username, 'newuser1')
+
+    def test_staff_can_edit_staff(self):
+        options = {
+            'user1': {
+                'fields': {
+                    'username': 'user1',
+                    'email': 'email1@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': False,
+            },
+            'user2': {
+                'fields': {
+                    'username': 'user2',
+                    'email': 'email2@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': False,
+            },
+        }
+        self._test_change(options)
+
+    def test_org_owner_can_edit_staff(self):
+        options = {
+            'user1': {
+                'fields': {
+                    'username': 'user1',
+                    'email': 'email1@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': True,
+            },
+            'user2': {
+                'fields': {
+                    'username': 'user2',
+                    'email': 'email2@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': False,
+            },
+        }
+        self._test_change(options)
+
+    def test_org_owner_can_edit_org_owner(self):
+        options = {
+            'user1': {
+                'fields': {
+                    'username': 'user1',
+                    'email': 'email1@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': True,
+            },
+        }
+        self._test_change(options)
+
+    def test_staff_can_edit_itself(self):
+        options = {
+            'user1': {
+                'fields': {
+                    'username': 'user1',
+                    'email': 'email1@mail.com',
+                    'is_staff': True,
+                },
+                'is_owner': False,
+            },
+        }
+        self._test_change(options)
+
     def test_admin_add_user_by_superuser(self):
         admin = self._create_admin()
         self.client.force_login(admin)
