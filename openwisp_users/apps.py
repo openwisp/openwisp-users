@@ -1,3 +1,5 @@
+import logging
+
 from django.apps import AppConfig
 from django.conf import settings
 from django.core.cache import cache
@@ -9,7 +11,8 @@ from openwisp_utils import settings as utils_settings
 from swapper import get_model_name, load_model
 
 from . import settings as app_settings
-from .utils import logger
+
+logger = logging.getLogger(__name__)
 
 
 class OpenwispUsersConfig(AppConfig):
