@@ -6,6 +6,9 @@ Version 0.3.0 [unreleased]
 
 WIP
 
+- `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_:
+  [admin] Added support for organization owners
+
 Version 0.2.2 [2020-05-04]
 --------------------------
 

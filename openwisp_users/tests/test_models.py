@@ -66,7 +66,6 @@ class TestUsers(TestOrganizationMixin, TestCase):
         ou1 = OrganizationUser.objects.create(
             user=user, organization=org1, is_admin=True
         )
-        OrganizationOwner.objects.create(organization_user=ou1, organization=org1)
         ou2 = OrganizationUser.objects.create(user=user, organization=org2)
 
         expected = {
@@ -127,12 +126,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         org2 = self._create_org(name='org2')
         self.assertFalse(user.is_owner(org1))
         self.assertFalse(user.is_owner(org2))
-        ou = OrganizationUser.objects.create(
-            user=user, organization=org1, is_admin=True
-        )
-        self.assertFalse(user.is_owner(org1))
-        self.assertFalse(user.is_owner(org2))
-        OrganizationOwner.objects.create(organization_user=ou, organization=org1)
+        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
         self.assertTrue(user.is_owner(org1))
         self.assertFalse(user.is_owner(org2))
 

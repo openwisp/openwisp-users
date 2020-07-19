@@ -375,6 +375,15 @@ Usage exmaple:
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
 
+Organization Owners
+-------------------
+
+An organization owner is a user who is designated as the owner
+of a particular organization and this owner can not be deleted
+or edited by other administrators. Only the superuser has the permissons to do this.
+
+By default, the first manager of an organization is designated as the owner of that organization.
+
 Multitenancy mixins
 -------------------
 
