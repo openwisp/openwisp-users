@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
-from ..utils import logger
+from ..apps import logger as apps_logger
 from .utils import (
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
@@ -732,7 +732,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     @patch.object(
         OrganizationOwner, 'full_clean', side_effect=ValidationError('invalid')
     )
-    @patch.object(logger, 'exception')
+    @patch.object(apps_logger, 'exception')
     def test_invalid_org_owner(self, mocked_owner, logger_exception):
         org = self._create_org(name='invalid')
         user = self._create_user(username='invalid', email='invalid@email.com')
