@@ -8,6 +8,7 @@ WIP
 
 - `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_:
   [admin] Added support for organization owners
+- [admin] Made organization owners read-only to non-superusers
 
 Version 0.2.2 [2020-05-04]
 --------------------------

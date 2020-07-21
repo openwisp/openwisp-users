@@ -88,6 +88,13 @@ class AbstractUser(BaseUser):
         org_dict = self.organizations_dict.get(str(organization.pk))
         return org_dict is not None and org_dict['is_owner']
 
+    @cached_property
+    def is_owner_of_any_organization(self):
+        for value in self.organizations_dict.values():
+            if value['is_owner']:
+                return True
+        return False
+
     @property
     def organizations_dict(self):
         """

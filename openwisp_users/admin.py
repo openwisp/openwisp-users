@@ -58,6 +58,12 @@ class EmailAddressInline(admin.StackedInline):
         """
         return False
 
+    def has_change_permission(self, request, obj=None):
+        if user_not_allowed_to_change_owner(request.user, obj):
+            self.can_delete = False
+            return False
+        return super().has_change_permission(request, obj)
+
 
 class RequiredInlineFormSet(BaseInlineFormSet):
     """
@@ -124,6 +130,11 @@ class OrganizationUserInlineReadOnly(OrganizationUserInline):
 
     def has_add_permission(self, request, obj=None):
         return False
+
+    def has_change_permission(self, request, obj=None):
+        if user_not_allowed_to_change_owner(request.user, obj):
+            return False
+        return super().has_change_permission(request, obj)
 
 
 class UserFormMixin(forms.ModelForm):
@@ -203,6 +214,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
     actions = ['delete_selected_overridden', 'make_inactive', 'make_active']
+
+    # To ensure extended apps use this template.
+    change_form_template = 'admin/openwisp_users/user/change_form.html'
 
     def require_confirmation(func):
         """
@@ -312,6 +326,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         return fields
 
     def has_change_permission(self, request, obj=None):
+        if user_not_allowed_to_change_owner(request.user, obj):
+            return False
         # do not allow operators to edit details of superusers
         # returns 403 if trying to access the change form of a superuser
         if (
@@ -319,6 +335,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         ):  # pragma: no cover
             return False
         return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if user_not_allowed_to_change_owner(request.user, obj):
+            return False
+        return super().has_delete_permission(request, obj)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -379,6 +400,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         return []
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        obj = self.model.objects.get(pk=object_id)
+        if user_not_allowed_to_change_owner(request.user, obj):
+            show_owner_warning = True
+            extra_context.update({'show_owner_warning': show_owner_warning})
         if not request.user.is_superuser:
             self.inlines[1] = OrganizationUserInlineReadOnly
         return super().change_view(request, object_id, form_url, extra_context)
@@ -518,3 +544,12 @@ if 'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG:
         admin.site.unregister(Token)
     except NotRegistered:
         pass
+
+
+def user_not_allowed_to_change_owner(user, obj):
+    return (
+        obj
+        and not user.is_superuser
+        and user.pk != obj.pk
+        and obj.is_owner_of_any_organization
+    )
