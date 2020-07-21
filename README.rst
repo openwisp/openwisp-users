@@ -378,6 +378,58 @@ Usage exmaple:
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
 
+Django REST Framework Permission Classes
+----------------------------------------
+
+The custom `Django REST Framework <https://www.django-rest-framework.org/>`_
+permission classes ``IsOrganizationMember``, ``IsOrganizationManager``
+and ``IsOrganizationOwner`` can be used in the API to ensure that the
+request user is in the same organization as requested object and is
+organization member, manager or owner respectively. Usage example:
+
+.. code-block:: python
+
+    from openwisp_users.api.permissions import IsOrganizationManager
+    from rest_framework import generics
+
+    class MyApiView(generics.APIView):
+        permission_classes = (IsOrganizationMember,)
+
+``organization_field``
+~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+------------------+
+| **type**:    | ``string``       |
++--------------+------------------+
+| **default**: | ``organization`` |
++--------------+------------------+
+
+``organization_field`` can be used to define where to look to
+find the organization of the current object.
+In most cases this won't need to be changed, but it does need to
+be changed when the ``organization`` is defined only on a parent object.
+
+For example, in `openwisp-firmware-upgrader <https://github.com/openwisp/openwisp-firmware-upgrader>`_,
+``organization`` is defined on ``Category`` and ``Build`` has a relation
+to ``category``, so the organization of Build instances is inferred from
+the organization of the Category.
+
+Therefore, to implement the permission class correctly, we would have to do:
+
+.. code-block:: python
+
+    from openwisp_users.api.permissions import IsOrganizationManager
+    from rest_framework import generics
+
+    class MyApiView(generics.APIView):
+        permission_classes = (IsOrganizationMember,)
+        organization_field = 'category__organization'
+
+This will translate into accessing ``obj.category.organization``.
+Ensure the queryset of your views make use of
+`select_related <https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
+in these cases to avoid generating too many queries.
+
 Organization Owners
 -------------------
 
