@@ -522,9 +522,6 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         )
         org = self._get_org()
         org_user2 = self._create_org_user(user=user2, organization=org, is_admin=True)
-        org_owner = self._create_org_owner(
-            organization=org, organization_user=org_user2
-        )
         self._create_org_user(user=user1, organization=org, is_admin=True)
         group = Group.objects.filter(name='Administrator')
         user1.groups.set(group)
@@ -540,6 +537,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         )
         self.assertContains(r, message)
 
+        org_owner = OrganizationOwner.objects.get(organization_user=org_user2)
         org_owner.delete()
         path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
         r = self.client.get(path)
@@ -553,9 +551,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         org = self._get_org()
         for key, user in options.items():
             u = self._create_user(**user.get('fields'))
-            org_user = self._create_org_user(user=u, organization=org, is_admin=True)
-            if user.get('is_owner'):
-                self._create_org_owner(organization=org, organization_user=org_user)
+            self._create_org_user(user=u, organization=org, is_admin=True)
             u.groups.add(group)
             if user1:
                 user2 = u

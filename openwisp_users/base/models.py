@@ -90,7 +90,7 @@ class AbstractUser(BaseUser):
 
     @cached_property
     def is_owner_of_any_organization(self):
-        for org_pk, value in self.organizations_dict.items():
+        for value in self.organizations_dict.values():
             if value['is_owner']:
                 return True
         return False
