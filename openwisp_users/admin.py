@@ -451,6 +451,18 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
     readonly_fields = ['uuid']
     ordering = ['name']
 
+    def get_inline_instances(self, request, obj=None):
+        """
+        Remove OrganizationOwnerInline from organization add form
+        """
+        inlines = super().get_inline_instances(request, obj).copy()
+        if not obj:
+            for inline in inlines:
+                if isinstance(inline, OrganizationOwnerInline):
+                    inlines.remove(inline)
+                    break
+        return inlines
+
     def has_change_permission(self, request, obj=None):
         """
         Allow operator to change an organization only if
