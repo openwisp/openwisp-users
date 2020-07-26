@@ -854,11 +854,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(org_owner.organization, org)
         self.assertEqual(org_owner.organization_user, org_user)
 
-    def test_view_org_owner_org_admin(self):
+    def test_organzation_add_inline_owner_absent(self):
         self.client.force_login(self._get_admin())
-        r = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
-        self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Organization owners')
+        response = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Organization owners')
+
+    def test_organzation_change_inline_owner_present(self):
+        org = self._create_org()
+        self.client.force_login(self._get_admin())
+        response = self.client.get(
+            reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Organization owners')
 
     @patch.object(
         OrganizationOwner, 'full_clean', side_effect=ValidationError('invalid')
