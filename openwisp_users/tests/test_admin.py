@@ -215,7 +215,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         html = '<select name="user_permissions"'
         self.assertContains(response, html)
 
-    def test_admin_change_user_permissions_readonly(self):
+    def test_admin_change_non_superuser_readonly_fields(self):
         operator = self._create_operator()
         options = {
             'organization': self._get_org(),
@@ -227,8 +227,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         response = self.client.get(
             reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
-        html = f'<div class="readonly">{self.app_label}'
-        self.assertContains(response, html)
+        with self.subTest('User Permissions'):
+            html = f'<div class="readonly">{self.app_label}'
+            self.assertContains(response, html)
+        with self.subTest('Organization User Inline'):
+            html = 'class="readonly"><img src="/static/admin/img/icon'
+            self.assertContains(response, html)
 
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()

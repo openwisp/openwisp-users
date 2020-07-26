@@ -385,10 +385,22 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def get_inline_instances(self, request, obj=None):
         """
-        Avoid displaying inline objects when adding a new user
+        1. Avoid displaying inline objects when adding a new user
+        2. Make OrganizationUserInline readonly for non-superuser
         """
         if obj:
-            return super().get_inline_instances(request, obj)
+            inlines = super().get_inline_instances(request, obj).copy()
+            if not request.user.is_superuser:
+                for inline in inlines:
+                    if isinstance(inline, OrganizationUserInline):
+                        orguser_index = inlines.index(inline)
+                        inlines.remove(inline)
+                        orguser_readonly = OrganizationUserInlineReadOnly(
+                            self.model, self.admin_site
+                        )
+                        inlines.insert(orguser_index, orguser_readonly)
+                        break
+            return inlines
         inline = OrganizationUserInline(self.model, self.admin_site)
         if request:
             if hasattr(inline, '_has_add_permission'):
@@ -405,8 +417,6 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if user_not_allowed_to_change_owner(request.user, obj):
             show_owner_warning = True
             extra_context.update({'show_owner_warning': show_owner_warning})
-        if not request.user.is_superuser:
-            self.inlines[1] = OrganizationUserInlineReadOnly
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_model(self, request, obj, form, change):
