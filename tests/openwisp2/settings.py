@@ -5,6 +5,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
 TESTING = sys.argv[1] == 'test'
 PARALLEL = '--parallel' in sys.argv
+SHELL = 'shell' in sys.argv or 'shell_plus' in sys.argv
 
 ALLOWED_HOSTS = []
 
@@ -87,7 +88,7 @@ TEMPLATES = [
     }
 ]
 
-if not TESTING:
+if not TESTING and SHELL:
     LOGGING = {
         'disable_existing_loggers': False,
         'version': 1,
