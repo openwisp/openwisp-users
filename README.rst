@@ -312,7 +312,10 @@ many database queries.
 
 .. code-block:: python
 
-    from openwisp_users.models import Organization, User
+    import swapper
+
+    User = swapper.load_model('openwisp_users', 'User')
+    Organization = swapper.load_model('openwisp_users', 'Organization')
 
     user = User.objects.first()
     org = Organization.objects.first()
