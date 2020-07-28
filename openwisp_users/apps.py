@@ -2,10 +2,11 @@ import logging
 
 from django.apps import AppConfig
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
 from swapper import get_model_name, load_model
@@ -56,6 +57,7 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        User = get_user_model()
         signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
 
         for model in [OrganizationUser, OrganizationOwner]:
@@ -72,6 +74,12 @@ class OpenwispUsersConfig(AppConfig):
             sender=OrganizationUser,
             dispatch_uid='make_first_org_user_org_owner',
         )
+        for model in [User.user_permissions.through, User.groups.through]:
+            m2m_changed.connect(
+                self.update_user_permissions,
+                sender=model,
+                dispatch_uid='update_user_permissions',
+            )
 
     def update_organizations_dict(cls, instance, **kwargs):
         if hasattr(instance, 'user'):
@@ -110,3 +118,9 @@ class OpenwispUsersConfig(AppConfig):
                         f'OrganizationOwner with organization_user {instance} and '
                         f'organization {instance.organization}'
                     )
+
+    def update_user_permissions(cls, instance, action, **kwargs):
+        if action == 'post_remove' or action == 'post_add':
+            cache_key = f'user_{instance.pk}_permissions'
+            cache.delete(cache_key)
+            instance.permissions

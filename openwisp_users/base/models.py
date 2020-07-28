@@ -129,6 +129,23 @@ class AbstractUser(BaseUser):
         if self.phone_number == '':
             self.phone_number = None
 
+    @property
+    def permissions(self):
+        """
+        Returns the user permissions from the cache, if the cache is
+        empty it will call self.get_all_permissions() and cache the result
+        """
+        cache_key = f'user_{self.pk}_permissions'
+        permissions = cache.get(cache_key)
+        if permissions is not None:
+            return permissions
+        permissions = self.get_all_permissions()
+        cache.set(cache_key, permissions)
+        return permissions
+
+    def has_permission(self, permission):
+        return permission in self.permissions
+
 
 class BaseGroup(object):
     """

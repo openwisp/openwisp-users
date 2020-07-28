@@ -299,6 +299,9 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+All user permissions are cached and can be accessed as follows ``obj.permissions``. This cache
+is updated each time the user's permissions or group is changed.
+
 Organization membership helpers
 -------------------------------
 
@@ -374,6 +377,31 @@ Usage exmaple:
     ... {'20135c30-d486-4d68-993f-322b8acb51c4': {'is_admin': True, 'is_owner': False}}
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
+
+User permissions
+~~~~~~~~~~~~~~~~
+
+The ``User`` model of openwisp-users provides a ``permissions`` helper which returns
+the user's permissions from the cache, cache invalidation is handled automatically.
+
+.. code-block:: python
+
+    >>> user.permissions
+    ... {'account.add_emailaddress',
+         'account.change_emailaddress',
+         'account.delete_emailaddress',
+         'account.view_emailaddress',
+         'openwisp_users.add_organizationuser',
+         'openwisp_users.add_user',
+         'openwisp_users.change_organizationuser',
+         'openwisp_users.change_user',
+         'openwisp_users.delete_organizationuser',
+         'openwisp_users.delete_user'}
+
+``has_permission(permission)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The method accepts a permission and checks if this exist in the user's cached permissions.
 
 Organization Owners
 -------------------
