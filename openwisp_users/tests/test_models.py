@@ -207,7 +207,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.assertNumQueries(0):
             self.assertEqual(user.get_all_permissions(), user.permissions)
 
-    def test_has_model_permission(self):
+    def test_has_permission(self):
         app_label = 'account'
         user = self.user_model(
             username='user', email='email1@email.com', password='user1', is_staff=True

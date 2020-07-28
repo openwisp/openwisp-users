@@ -299,9 +299,6 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
-All user permissions are cached and can be accessed as follows ``obj.permissions``. This cache
-is updated each time the user's permissions or group is changed.
-
 Organization membership helpers
 -------------------------------
 
@@ -378,11 +375,17 @@ Usage exmaple:
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
 
-User permissions
-~~~~~~~~~~~~~~~~
+Permissions helpers
+-------------------
 
-The ``User`` model of openwisp-users provides a ``permissions`` helper which returns
-the user's permissions from the cache, cache invalidation is handled automatically.
+The ``User`` model provides methods to check permissions in an efficient way
+(without generating database queries each time the permissions are accessed).
+
+``permissions``
+~~~~~~~~~~~~~~~
+
+The ``permissions`` property helper returns the user's permissions
+from the cache, cache invalidation is handled automatically.
 
 .. code-block:: python
 
@@ -401,14 +404,23 @@ the user's permissions from the cache, cache invalidation is handled automatical
 ``has_permission(permission)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The method accepts a permission and checks if this exist in the user's cached permissions.
+The method checks whether the user has the specified permission and
+returns ``True`` or ``False`` accordingly.
+
+It uses the `permissions property helper <#permissions>`_ under the hood
+to avoid generating database queries each time is called.
+
+.. code-block:: python
+
+    >>> user.has_permission('openwisp_users.add_user')
+    ... True
 
 Organization Owners
 -------------------
 
 An organization owner is a user who is designated as the owner
 of a particular organization and this owner can not be deleted
-or edited by other administrators. Only the superuser has the permissons to do this.
+or edited by other administrators. Only the superuser has the permissions to do this.
 
 By default, the first manager of an organization is designated as the owner of that organization.
 
