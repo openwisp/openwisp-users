@@ -317,7 +317,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'admin:{self.app_label}_organization_change', args=[default_org.pk]
             )
         )
-        self.assertContains(
+        self.assertNotContains(
             response,
             '<input type="text" name="name" value="{0}"'.format(default_org.name),
         )
