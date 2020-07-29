@@ -144,6 +144,8 @@ class AbstractUser(BaseUser):
         return permissions
 
     def has_permission(self, permission):
+        if self.is_superuser:
+            return True
         return permission in self.permissions
 
 

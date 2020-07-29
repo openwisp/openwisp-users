@@ -57,6 +57,7 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        Group = load_model('openwisp_users', 'Group')
         User = get_user_model()
         signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
 
@@ -74,7 +75,11 @@ class OpenwispUsersConfig(AppConfig):
             sender=OrganizationUser,
             dispatch_uid='make_first_org_user_org_owner',
         )
-        for model in [User.user_permissions.through, User.groups.through]:
+        for model in [
+            User.user_permissions.through,
+            User.groups.through,
+            Group.permissions.through,
+        ]:
             m2m_changed.connect(
                 self.update_user_permissions,
                 sender=model,
@@ -119,8 +124,15 @@ class OpenwispUsersConfig(AppConfig):
                         f'organization {instance.organization}'
                     )
 
-    def update_user_permissions(cls, instance, action, **kwargs):
+    def update_user_permissions(cls, instance, action, sender, **kwargs):
         if action == 'post_remove' or action == 'post_add':
-            cache_key = f'user_{instance.pk}_permissions'
-            cache.delete(cache_key)
-            instance.permissions
+            if sender.__name__ == 'Group_permissions':
+                for user in instance.user_set.all():
+                    cls.update_cached_permissions(user)
+            else:
+                cls.update_cached_permissions(instance)
+
+    def update_cached_permissions(cls, user):
+        cache_key = f'user_{user.pk}_permissions'
+        cache.delete(cache_key)
+        user.permissions

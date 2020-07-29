@@ -299,6 +299,9 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+All user permissions are cached and can be accessed as follows ``obj.permissions``. This cache
+is updated each time the user's permissions or group is changed.
+
 Organization membership helpers
 -------------------------------
 
@@ -404,7 +407,8 @@ from the cache, cache invalidation is handled automatically.
 ``has_permission(permission)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The method checks whether the user has the specified permission and
+For superusers, the method returns ``True`` regardless of the permission passed to it.
+While for other users, the method checks whether the user has the specified permission and
 returns ``True`` or ``False`` accordingly.
 
 It uses the `permissions property helper <#permissions>`_ under the hood
