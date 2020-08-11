@@ -100,9 +100,10 @@ class OrganizationUserInline(admin.StackedInline):
         if request.user.is_superuser:
             return formset
         if not request.user.is_superuser and not obj:
-            operator_orgs = OrganizationUser.objects.values_list('organization').filter(
-                user=request.user, is_admin=True
-            )
+            operator_orgs = []
+            for pk, value in request.user.organizations_dict.items():
+                if value['is_admin']:
+                    operator_orgs.append(pk)
             formset.form.base_fields[
                 'organization'
             ].queryset = Organization.objects.filter(pk__in=operator_orgs)
@@ -478,13 +479,8 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
         Allow operator to change an organization only if
         they is an admin of that organization
         """
-        if obj and not request.user.is_superuser:
-            try:
-                org = OrganizationUser.objects.get(organization=obj, user=request.user)
-                if not org.is_admin:
-                    return False
-            except OrganizationUser.DoesNotExist:
-                pass
+        if obj and not request.user.is_superuser and not request.user.is_manager(obj):
+            return False
         return super().has_change_permission(request, obj)
 
     class Media(UUIDAdmin.Media):
@@ -512,14 +508,9 @@ class OrganizationUserAdmin(
         """
         if request.user.is_superuser:
             return True
-        if obj:
-            operator_org = OrganizationUser.objects.get(
-                organization=obj.organization, user=request.user
-            )
-            if operator_org.is_admin:
-                return True
-            else:
-                return False
+        if obj and not request.user.is_manager(obj.organization):
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 class OrganizationOwnerAdmin(
