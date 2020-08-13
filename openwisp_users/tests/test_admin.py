@@ -215,7 +215,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         html = '<select name="user_permissions"'
         self.assertContains(response, html)
 
-    def test_admin_change_user_permissions_readonly(self):
+    def test_admin_change_non_superuser_readonly_fields(self):
         operator = self._create_operator()
         options = {
             'organization': self._get_org(),
@@ -227,8 +227,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         response = self.client.get(
             reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
-        html = f'<div class="readonly">{self.app_label}'
-        self.assertContains(response, html)
+        with self.subTest('User Permissions'):
+            html = f'<div class="readonly">{self.app_label}'
+            self.assertContains(response, html)
+        with self.subTest('Organization User Inline'):
+            html = 'class="readonly"><img src="/static/admin/img/icon'
+            self.assertContains(response, html)
 
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()
@@ -313,10 +317,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'admin:{self.app_label}_organization_change', args=[default_org.pk]
             )
         )
-        self.assertContains(
-            response,
-            '<input type="text" name="name" value="{0}"'.format(default_org.name),
-        )
+        self.assertEqual(response.status_code, 302)
         response = self.client.get(
             reverse(f'admin:{self.app_label}_organization_change', args=[org2.pk])
         )
@@ -854,11 +855,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(org_owner.organization, org)
         self.assertEqual(org_owner.organization_user, org_user)
 
-    def test_view_org_owner_org_admin(self):
+    def test_organzation_add_inline_owner_absent(self):
         self.client.force_login(self._get_admin())
-        r = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
-        self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Organization owners')
+        response = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Organization owners')
+
+    def test_organzation_change_inline_owner_present(self):
+        org = self._create_org()
+        self.client.force_login(self._get_admin())
+        response = self.client.get(
+            reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Organization owners')
 
     @patch.object(
         OrganizationOwner, 'full_clean', side_effect=ValidationError('invalid')
@@ -1094,6 +1104,192 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'Successfully deleted 2 users')
         self.assertEqual(user_qs.count(), 2)
+
+    def test_admin_user_has_change_org_perm(self):
+        user = self._get_user()
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+        self.assertIn(
+            f'{self.app_label}.change_organization', user.get_all_permissions()
+        )
+
+    def test_can_change_org(self):
+        org = self._get_org()
+        user = self._create_user(
+            username='change', password='change', email='email@email', is_staff=True
+        )
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+        org_user = self._create_org_user(user=user, organization=org, is_admin=True)
+        path = reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
+
+        with self.subTest('org owner can change org'):
+            self.client.force_login(user)
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, f'<input type="text" name="name" value="{org.name}"')
+
+        with self.subTest('managers can change org'):
+            OrganizationOwner.objects.all().delete()
+            self.client.force_login(user)
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, f'<input type="text" name="name" value="{org.name}"')
+
+        with self.subTest('member can not edit org'):
+            OrganizationOwner.objects.all().delete()
+            org_user.is_admin = False
+            org_user.save()
+            self.client.force_login(user)
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, f'class="readonly">{org.name}')
+
+    def test_only_superuser_has_add_delete_org_perm(self):
+        user = self._create_user(
+            username='change', password='change', email='email@email', is_staff=True
+        )
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+        org = self._get_org()
+        add_params = {
+            'name': 'new org',
+            'slug': 'new',
+            'owner-TOTAL_FORMS': '0',
+            'owner-INITIAL_FORMS': '0',
+            'owner-MIN_NUM_FORMS': '0',
+            'owner-MAX_NUM_FORMS': '1',
+        }
+        delete_params = {
+            'action': 'delete_selected',
+            '_selected_action': [org.pk],
+            'post': 'yes',
+        }
+        add_path = reverse(f'admin:{self.app_label}_organization_add')
+        delete_path = reverse(f'admin:{self.app_label}_organization_changelist')
+
+        with self.subTest('Administrators can not add org'):
+            self.client.force_login(user)
+            r = self.client.post(add_path, add_params, follow=True)
+            self.assertEqual(r.status_code, 403)
+            orgs = Organization.objects.filter(slug='new')
+            self.assertEqual(orgs.count(), 0)
+
+        with self.subTest('Administrators can not delete org'):
+            self.client.force_login(user)
+            r = self.client.post(delete_path, delete_params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            orgs = Organization.objects.filter(pk=org.pk)
+            self.assertEqual(orgs.count(), 1)
+
+        with self.subTest('superuser can add org'):
+            self.client.force_login(self._get_admin())
+            r = self.client.post(add_path, add_params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            orgs = Organization.objects.get(name='new org')
+            self.assertEqual(orgs.name, 'new org')
+
+        with self.subTest('superuser can delete org'):
+            self.client.force_login(self._get_admin())
+            r = self.client.post(delete_path, delete_params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, 'Successfully deleted 1 organization')
+            orgs = Organization.objects.filter(pk=org.pk)
+            self.assertEqual(orgs.count(), 0)
+
+    def test_can_change_inline_org_owner(self):
+        user1 = self._create_user(
+            username='user1', password='user1', email='email1@email', is_staff=True
+        )
+        user2 = self._create_user(
+            username='user2', password='user2', email='email2@email', is_staff=True
+        )
+        group = Group.objects.filter(name='Administrator')
+        user1.groups.set(group)
+        user2.groups.set(group)
+        org = self._get_org()
+        org_user = self._create_org_user(user=user1, organization=org, is_admin=True)
+        org_owner = OrganizationOwner.objects.get(organization_user=org_user)
+        org_user2 = self._create_org_user(organization=org, user=user2, is_admin=True)
+        params = {
+            'name': org.name,
+            'slug': org.slug,
+            'owner-TOTAL_FORMS': '1',
+            'owner-INITIAL_FORMS': '1',
+            'owner-MIN_NUM_FORMS': '0',
+            'owner-MAX_NUM_FORMS': '1',
+            'owner-0-organization_user': f'{org_user.pk}',
+            'owner-0-organization': f'{org.pk}',
+            'owner-0-id': f'{org_owner.pk}',
+        }
+        path = reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
+
+        with self.subTest('manager can not edit inline org owner'):
+            self.client.force_login(user2)
+            params.update({'owner-0-organization_user': f'{org_user2.pk}'})
+            r = self.client.post(path, params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            org_owners = OrganizationOwner.objects.filter(organization_user=org_user2)
+            self.assertEqual(org_owners.count(), 0)
+
+        with self.subTest('owner can edit inline org owner'):
+            self.client.force_login(user1)
+            params.update({'owner-0-organization_user': f'{org_user2.pk}'})
+            r = self.client.post(path, params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            org_owners = OrganizationOwner.objects.filter(organization_user=org_user2)
+            self.assertEqual(org_owners.count(), 1)
+
+        with self.subTest('superuser can edit inline org owner'):
+            self.client.force_login(self._get_admin())
+            user3 = self._create_user(
+                username='user3', password='user3', email='email3@email', is_staff=True
+            )
+            user3.groups.set(group)
+            org_user3 = self._create_org_user(
+                organization=org, user=user3, is_admin=True
+            )
+            params.update({'owner-0-organization_user': f'{org_user3.pk}'})
+            r = self.client.post(path, params, follow=True)
+            self.assertEqual(r.status_code, 200)
+            org_owners = OrganizationOwner.objects.filter(organization_user=org_user3)
+            self.assertEqual(org_owners.count(), 1)
+
+    def test_only_superuser_can_delete_inline_org_owner(self):
+        org = self._get_org()
+        user = self._create_user(
+            username='change', password='change', email='email@email', is_staff=True
+        )
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+        self._create_org_user(organization=org, user=user, is_admin=True)
+        path = reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
+
+        with self.subTest('org owners can not delete inline org owner'):
+            self.client.force_login(user)
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotContains(r, '-DELETE">Delete')
+
+        with self.subTest('managers can not delete inline org owner'):
+            user1 = self._create_user(
+                username='change1',
+                password='change1',
+                email='email1@email',
+                is_staff=True,
+            )
+            user1.groups.set(group)
+            self._create_org_user(organization=org, user=user1, is_admin=True)
+            self.client.force_login(user1)
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotContains(r, '-DELETE">Delete')
+
+        with self.subTest('superuser can delete inline org owner'):
+            self.client.force_login(self._get_admin())
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, '-DELETE">Delete')
 
     @patch('sys.stdout', devnull)
     @patch('sys.stderr', devnull)

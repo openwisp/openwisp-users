@@ -5,6 +5,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
 TESTING = sys.argv[1] == 'test'
 PARALLEL = '--parallel' in sys.argv
+SHELL = 'shell' in sys.argv or 'shell_plus' in sys.argv
 
 ALLOWED_HOSTS = []
 
@@ -36,7 +37,7 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = 'openwisp_users.User'
-SITE_ID = '1'
+SITE_ID = 1
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -86,6 +87,34 @@ TEMPLATES = [
         },
     }
 ]
+
+if not TESTING and SHELL:
+    LOGGING = {
+        'disable_existing_loggers': False,
+        'version': 1,
+        'handlers': {
+            'console': {
+                # logging handler that outputs log messages to terminal
+                'class': 'logging.StreamHandler',
+                'level': 'DEBUG',  # message level to be written to console
+            },
+        },
+        'loggers': {
+            '': {
+                # this sets root level logger to log debug and higher level
+                # logs to console. All other loggers inherit settings from
+                # root level logger.
+                'handlers': ['console'],
+                'level': 'DEBUG',
+                'propagate': False,
+            },
+            'django.db': {
+                'level': 'DEBUG',
+                'handlers': ['console'],
+                'propagate': False,
+            },
+        },
+    }
 
 # during development only
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

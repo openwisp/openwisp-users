@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.auth.management import create_permissions
+from django.core.exceptions import ObjectDoesNotExist
 import swapper
 
 
@@ -133,3 +134,22 @@ def create_organization_owners(apps, schema_editor):
             OrganizationOwner.objects.create(
                 organization_user=org_user, organization=org
             )
+
+
+def allow_admins_change_organization(apps, schema_editor):
+    Group = get_model(apps, 'Group')
+    try:
+        admins = Group.objects.get(name='Administrator')
+        permissions = [
+            Permission.objects.get(
+                content_type__app_label=Group._meta.app_label,
+                codename='change_organization',
+            ).pk,
+            Permission.objects.get(
+                content_type__app_label=Group._meta.app_label,
+                codename='change_organizationowner',
+            ).pk,
+        ]
+        admins.permissions.add(*permissions)
+    except ObjectDoesNotExist:
+        pass

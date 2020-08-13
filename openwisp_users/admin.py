@@ -84,6 +84,11 @@ class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
 
+    def has_change_permission(self, request, obj=None):
+        if obj and not request.user.is_superuser and not request.user.is_owner(obj):
+            return False
+        return super().has_change_permission(request, obj)
+
 
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
@@ -100,9 +105,10 @@ class OrganizationUserInline(admin.StackedInline):
         if request.user.is_superuser:
             return formset
         if not request.user.is_superuser and not obj:
-            operator_orgs = OrganizationUser.objects.values_list('organization').filter(
-                user=request.user, is_admin=True
-            )
+            operator_orgs = []
+            for pk, value in request.user.organizations_dict.items():
+                if value['is_admin']:
+                    operator_orgs.append(pk)
             formset.form.base_fields[
                 'organization'
             ].queryset = Organization.objects.filter(pk__in=operator_orgs)
@@ -385,10 +391,22 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def get_inline_instances(self, request, obj=None):
         """
-        Avoid displaying inline objects when adding a new user
+        1. Avoid displaying inline objects when adding a new user
+        2. Make OrganizationUserInline readonly for non-superuser
         """
         if obj:
-            return super().get_inline_instances(request, obj)
+            inlines = super().get_inline_instances(request, obj).copy()
+            if not request.user.is_superuser:
+                for inline in inlines:
+                    if isinstance(inline, OrganizationUserInline):
+                        orguser_index = inlines.index(inline)
+                        inlines.remove(inline)
+                        orguser_readonly = OrganizationUserInlineReadOnly(
+                            self.model, self.admin_site
+                        )
+                        inlines.insert(orguser_index, orguser_readonly)
+                        break
+            return inlines
         inline = OrganizationUserInline(self.model, self.admin_site)
         if request:
             if hasattr(inline, '_has_add_permission'):
@@ -405,8 +423,6 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if user_not_allowed_to_change_owner(request.user, obj):
             show_owner_warning = True
             extra_context.update({'show_owner_warning': show_owner_warning})
-        if not request.user.is_superuser:
-            self.inlines[1] = OrganizationUserInlineReadOnly
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_model(self, request, obj, form, change):
@@ -445,24 +461,32 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
     pass
 
 
-class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
+class OrganizationAdmin(
+    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, UUIDAdmin
+):
     view_on_site = False
     inlines = [OrganizationOwnerInline]
     readonly_fields = ['uuid']
     ordering = ['name']
 
+    def get_inline_instances(self, request, obj=None):
+        """
+        Remove OrganizationOwnerInline from organization add form
+        """
+        inlines = super().get_inline_instances(request, obj).copy()
+        if not obj:
+            for inline in inlines:
+                if isinstance(inline, OrganizationOwnerInline):
+                    inlines.remove(inline)
+                    break
+        return inlines
+
     def has_change_permission(self, request, obj=None):
         """
-        Allow operator to change an organization only if
-        they is an admin of that organization
+        Allow only managers and superuser to change organization
         """
-        if obj and not request.user.is_superuser:
-            try:
-                org = OrganizationUser.objects.get(organization=obj, user=request.user)
-                if not org.is_admin:
-                    return False
-            except OrganizationUser.DoesNotExist:
-                pass
+        if obj and not request.user.is_superuser and not request.user.is_manager(obj):
+            return False
         return super().has_change_permission(request, obj)
 
     class Media(UUIDAdmin.Media):
@@ -490,14 +514,9 @@ class OrganizationUserAdmin(
         """
         if request.user.is_superuser:
             return True
-        if obj:
-            operator_org = OrganizationUser.objects.get(
-                organization=obj.organization, user=request.user
-            )
-            if operator_org.is_admin:
-                return True
-            else:
-                return False
+        if obj and not request.user.is_manager(obj.organization):
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 class OrganizationOwnerAdmin(

@@ -18,6 +18,8 @@ urlpatterns = [
     url(r'^accounts/', include('openwisp_users.accounts.urls')),
     url(r'^api/v1/', include((get_api_urls(api_views), 'users'), namespace='users')),
     url(r'^api/v1/', include('openwisp_utils.api.urls')),
+    # Only for testing 'testapp'
+    url(r'^testing', include('testapp.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

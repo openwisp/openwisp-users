@@ -43,6 +43,8 @@ class MultitenantAdminMixin(object):
             return qs
         if hasattr(self.model, 'organization'):
             return qs.filter(organization__in=user.organizations_dict.keys())
+        if self.model.__name__ == 'Organization':
+            return qs.filter(pk__in=user.organizations_dict.keys())
         elif not self.multitenant_parent:
             return qs
         else:
