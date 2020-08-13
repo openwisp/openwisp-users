@@ -84,6 +84,11 @@ class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
 
+    def has_change_permission(self, request, obj=None):
+        if obj and not request.user.is_superuser and not request.user.is_owner(obj):
+            return False
+        return super().has_change_permission(request, obj)
+
 
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
@@ -456,7 +461,9 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
     pass
 
 
-class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
+class OrganizationAdmin(
+    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, UUIDAdmin
+):
     view_on_site = False
     inlines = [OrganizationOwnerInline]
     readonly_fields = ['uuid']
@@ -476,8 +483,7 @@ class OrganizationAdmin(BaseOrganizationAdmin, BaseAdmin, UUIDAdmin):
 
     def has_change_permission(self, request, obj=None):
         """
-        Allow operator to change an organization only if
-        they is an admin of that organization
+        Allow only managers and superuser to change organization
         """
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False

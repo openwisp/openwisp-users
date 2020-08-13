@@ -299,6 +299,18 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+Organization permissions
+------------------------
+
+Below are some key permissions which governs how users interract with organization objects.
+
+- All users who belong to the Administrators group and are organization
+  managers (``OrganizationUser.is_admin=True``), have the permission to edit
+  the organizations details which they administrate.
+- Only super users have the permission to add and delete organizations.
+- Only super users and organization owners have the permission to change
+  the ``OrganizationOwner`` inline or delete the relation.
+
 Organization membership helpers
 -------------------------------
 
