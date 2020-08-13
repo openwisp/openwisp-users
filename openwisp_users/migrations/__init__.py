@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.contrib.auth.management import create_permissions
+from django.core.exceptions import ObjectDoesNotExist
 import swapper
 
 
