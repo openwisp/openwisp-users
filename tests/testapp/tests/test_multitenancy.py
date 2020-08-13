@@ -1,14 +1,11 @@
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
-from . import CreateMixin
-from .models import Book, Shelf
+from ..models import Book, Shelf
+from .mixins import TestMultitenancyMixin
 
 
-class TestMultitenancy(
-    CreateMixin, TestMultitenantAdminMixin, TestOrganizationMixin, TestCase
-):
+class TestMultitenancy(TestMultitenancyMixin, TestCase):
     book_model = Book
     shelf_model = Shelf
     operator_permission_filter = [

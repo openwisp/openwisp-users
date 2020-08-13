@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import resolve, reverse
 from openwisp_users.tests.utils import TestOrganizationMixin
 
-from .models import Config, Template
+from ..models import Config, Template
 
 
 class TestIntegration(TestOrganizationMixin, TestCase):
