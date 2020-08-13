@@ -390,6 +390,47 @@ Usage exmaple:
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
 
+Permissions helpers
+-------------------
+
+The ``User`` model provides methods to check permissions in an efficient way
+(without generating database queries each time the permissions are accessed).
+
+``permissions``
+~~~~~~~~~~~~~~~
+
+The ``permissions`` property helper returns the user's permissions
+from the cache, cache invalidation is handled automatically.
+
+.. code-block:: python
+
+    >>> user.permissions
+    ... {'account.add_emailaddress',
+         'account.change_emailaddress',
+         'account.delete_emailaddress',
+         'account.view_emailaddress',
+         'openwisp_users.add_organizationuser',
+         'openwisp_users.add_user',
+         'openwisp_users.change_organizationuser',
+         'openwisp_users.change_user',
+         'openwisp_users.delete_organizationuser',
+         'openwisp_users.delete_user'}
+
+``has_permission(permission)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For superusers, the method returns ``True`` regardless of the permission passed to it.
+While for other users, the method checks whether the user has the specified permission and
+returns ``True`` or ``False`` accordingly.
+
+It uses the `permissions property helper <#permissions>`_ under the hood
+to avoid generating database queries each time is called.
+
+.. code-block:: python
+
+    >>> user.has_permission('openwisp_users.add_user')
+    ... True
+
 Django REST Framework Permission Classes
 ----------------------------------------
 
@@ -447,7 +488,7 @@ Organization Owners
 
 An organization owner is a user who is designated as the owner
 of a particular organization and this owner can not be deleted
-or edited by other administrators. Only the superuser has the permissons to do this.
+or edited by other administrators. Only the superuser has the permissions to do this.
 
 By default, the first manager of an organization is designated as the owner of that organization.
 

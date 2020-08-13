@@ -11,6 +11,7 @@ WIP
 - [admin] Made organization owners read-only to non-superusers
 - `organization permissions <https://github.com/openwisp/openwisp-users#organization-permissions>`_:
   [admin] Allowed administrator role to access organization admin
+- [model] Added `user permission helpers <https://github.com/openwisp/openwisp-users#permissions-helpers>`_
 
 Version 0.2.2 [2020-05-04]
 --------------------------

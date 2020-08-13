@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from swapper import load_model
@@ -7,6 +8,7 @@ from .utils import TestOrganizationMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+Group = load_model('openwisp_users', 'Group')
 User = get_user_model()
 
 
@@ -181,3 +183,61 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertIsNone(user1.phone_number)
         self.assertIsNone(user2.phone_number)
         self.assertEqual(self.user_model.objects.filter(phone_number=None).count(), 2)
+
+    def test_cache_user_permission(self):
+        user = self.user_model(
+            username='user', email='email1@email.com', password='user1', is_staff=True
+        )
+        user.full_clean()
+        user.save()
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+
+        with self.subTest('Test cached permissions'):
+            with self.assertNumQueries(0):
+                user.permissions
+            self.assertEqual(user.get_all_permissions(), user.permissions)
+
+        with self.subTest('Test group permissions changed'):
+            self.assertIn('account.view_emailaddress', user.permissions)
+            permission = Permission.objects.get(codename='view_emailaddress')
+            g = group.first()
+            g.permissions.remove(permission.pk)
+            g.refresh_from_db()
+            self.assertNotIn('account.view_emailaddress', user.permissions)
+
+        with self.subTest('Test group changed'):
+            user.groups.remove(group.first().pk)
+            user.groups.set(Group.objects.filter(name='Operator'))
+            with self.assertNumQueries(0):
+                self.assertEqual(user.get_all_permissions(), user.permissions)
+
+        with self.subTest('Test user permission changed'):
+            permission = Permission.objects.filter(codename='add_organization')
+            user.user_permissions.add(*permission)
+            with self.assertNumQueries(0):
+                self.assertEqual(user.get_all_permissions(), user.permissions)
+
+    def test_operator_has_permission(self):
+        app_label = 'account'
+        user = self.user_model(
+            username='user', email='email1@email.com', password='user1', is_staff=True
+        )
+        user.full_clean()
+        user.save()
+        group = Group.objects.filter(name='Administrator')
+        user.groups.set(group)
+        self.assertFalse(user.has_permission(f'{app_label}.view_wrong'))
+        self.assertTrue(user.has_permission(f'{app_label}.view_emailaddress'))
+
+    def test_superuser_has_permission(self):
+        user = self.user_model(
+            username='superuser',
+            email='email@email.com',
+            password='test',
+            is_staff=True,
+            is_superuser=True,
+        )
+        user.full_clean()
+        user.save()
+        self.assertTrue(user.has_permission('not_found.not_found'))
