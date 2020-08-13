@@ -302,7 +302,7 @@ the token in the ``Authorization`` header:
 Organization permissions
 ------------------------
 
-Below are some key permissions which governs how users interract with organization objects.
+Here's a summary of the default permissions:
 
 - All users who belong to the Administrators group and are organization
   managers (``OrganizationUser.is_admin=True``), have the permission to edit
