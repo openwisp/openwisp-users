@@ -193,14 +193,13 @@ in the user administration section.
 +--------------+------------------+
 | **type**:    | ``boolean``      |
 +--------------+------------------+
-| **default**: | ``False``        |
+| **default**: | ``True``         |
 +--------------+------------------+
 
 Indicates whether the admin section for managing ``OrganizationOwner`` items
 is enabled or not.
 
-It is disabled by default because `OpenWISP <http://openwisp.org>`_ does not use
-this feature of `django-organizations <https://github.com/bennylope/django-organizations>`_ yet.
+Find out more information about `organization owners <#organization-owners>`_.
 
 ``OPENWISP_USERS_AUTH_API``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
