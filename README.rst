@@ -211,7 +211,7 @@ this feature of `django-organizations <https://github.com/bennylope/django-organ
 | **default**: | ``False``    |
 +--------------+--------------+
 
-Indicates whether the API is enabled or not.
+Indicates whether the `REST API <#rest-api>`_ is enabled or not.
 
 ``OPENWISP_USERS_AUTH_THROTTLE_RATE``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -222,7 +222,8 @@ Indicates whether the API is enabled or not.
 | **default**: | ``100/day``  |
 +--------------+--------------+
 
-Indicates the rate throttling for the API authentication endpoint.
+Indicates the rate throttling for the
+`Obtain Authentication <#obtain-authentication-token>`_ API endpoint.
 
 Please note that the current rate throttler is very basic and will
 also count valid requests for rate limiting. For more information,
@@ -308,8 +309,17 @@ Here's a summary of the default permissions:
   managers (``OrganizationUser.is_admin=True``), have the permission to edit
   the organizations details which they administrate.
 - Only super users have the permission to add and delete organizations.
-- Only super users and organization owners have the permission to change
-  the ``OrganizationOwner`` inline or delete the relation.
+- Only super users and `organization owners <#organization-owners>`_
+  have the permission to change the ``OrganizationOwner`` inline or delete the relation.
+
+Organization Owners
+-------------------
+
+An organization owner is a user who is designated as the owner
+of a particular organization and this owner can not be deleted
+or edited by other administrators. Only the superuser has the permissions to do this.
+
+By default, the first manager of an organization is designated as the owner of that organization.
 
 Organization membership helpers
 -------------------------------
@@ -482,15 +492,6 @@ This will translate into accessing ``obj.category.organization``.
 Ensure the queryset of your views make use of
 `select_related <https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
 in these cases to avoid generating too many queries.
-
-Organization Owners
--------------------
-
-An organization owner is a user who is designated as the owner
-of a particular organization and this owner can not be deleted
-or edited by other administrators. Only the superuser has the permissions to do this.
-
-By default, the first manager of an organization is designated as the owner of that organization.
 
 Multitenancy mixins
 -------------------
