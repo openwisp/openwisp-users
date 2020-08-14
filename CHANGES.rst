@@ -1,17 +1,33 @@
 Changelog
 =========
 
-Version 0.3.0 [unreleased]
+Version 0.3.0 [2020-08-14]
 --------------------------
 
-WIP
+Features
+~~~~~~~~
 
-- `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_:
-  [admin] Added support for organization owners
-- [admin] Made organization owners read-only to non-superusers
-- `organization permissions <https://github.com/openwisp/openwisp-users#organization-permissions>`_:
-  [admin] Allowed administrator role to access organization admin
-- [model] Added `user permission helpers <https://github.com/openwisp/openwisp-users#permissions-helpers>`_
+- [models] Added `swappable models and extensible classes <https://github.com/openwisp/openwisp-users#extend-openwisp-users>`_
+- [admin] Added support for `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_ 
+- [admin] Added default owner to each organization
+- [api] Added `ObtainTokenView REST API endpoint <https://github.com/openwisp/openwisp-users#obtain-authentication-token>`_ for bearer authentication
+- [api] Added `OPENWISP_USERS_AUTH_API <https://github.com/openwisp/openwisp-users#openwisp-users-auth-api>`_ and `OPENWISP_USERS_AUTH_THROTTLE_RATE <https://github.com/openwisp/openwisp-users#openwisp-users-auth-throttle-rate>`_ settings
+- [api] Added `Django REST Framework permission classes <https://github.com/openwisp/openwisp-users#django-rest-framework-permission-classes>`_
+- [models] Added `Organization membership helpers <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
+- [models] Added `User permission helpers <https://github.com/openwisp/openwisp-users#permissions-helpers>`_
+
+Changes
+~~~~~~~
+
+- Enabled `organization owner admin <https://github.com/openwisp/openwisp-users#openwisp-organizaton-owner-admin>`_ by default
+- [dependencies] Upgraded ``django-allauth 0.42.0``, ``django-extensions 3.0.2``,
+  ``openwisp-utils 0.5[rest]`` and ``phonenumbers 8.12.0``
+
+Bugfixes
+~~~~~~~~
+
+- [admin] Fixed administrator edit/delete users of the same organization
+- [admin] Fixed unique validation error on empty phone number
 
 Version 0.2.2 [2020-05-04]
 --------------------------
