@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
@@ -100,16 +100,10 @@ class OpenwispUsersConfig(AppConfig):
         if not created or not instance.is_admin:
             return
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-        OrganizationUser = kwargs.get('sender')
-        is_another_org_manager_exist = (
-            OrganizationUser.objects.filter(organization=instance.organization)
-            .exclude(pk=instance.pk)
-            .exists()
-        )
-        is_org_owner_exist = OrganizationOwner.objects.filter(
-            organization_user=instance
+        org_owner_exist = OrganizationOwner.objects.filter(
+            organization=instance.organization
         ).exists()
-        if not is_another_org_manager_exist and not is_org_owner_exist:
+        if not org_owner_exist:
             with transaction.atomic():
                 try:
                     owner = OrganizationOwner(
@@ -117,7 +111,7 @@ class OpenwispUsersConfig(AppConfig):
                     )
                     owner.full_clean()
                     owner.save()
-                except ValidationError as e:
+                except (ValidationError, IntegrityError) as e:
                     logger.exception(
                         f'Got exception {type(e)} while saving '
                         f'OrganizationOwner with organization_user {instance} and '
