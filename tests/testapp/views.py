@@ -1,4 +1,7 @@
 import swapper
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from openwisp_users.api.authentication import BearerAuthentication
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
@@ -6,8 +9,6 @@ from openwisp_users.api.permissions import (
     IsOrganizationMember,
     IsOrganizationOwner,
 )
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .models import Config, Template
 

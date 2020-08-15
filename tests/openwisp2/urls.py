@@ -3,6 +3,7 @@ import os
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
 from openwisp_users.api.urls import get_api_urls
 
 if os.environ.get('SAMPLE_APP', False):

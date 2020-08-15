@@ -1,6 +1,5 @@
 from django.core.cache import cache
 from django.test import RequestFactory
-from openwisp_users.api.authentication import BearerAuthentication
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -8,6 +7,8 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from openwisp_users.api.authentication import BearerAuthentication
 
 from . import APITestCase
 

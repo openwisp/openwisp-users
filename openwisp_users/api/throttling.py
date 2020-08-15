@@ -1,5 +1,6 @@
-from openwisp_users import settings as app_settings
 from rest_framework.throttling import AnonRateThrottle
+
+from openwisp_users import settings as app_settings
 
 
 class AuthRateThrottle(AnonRateThrottle):

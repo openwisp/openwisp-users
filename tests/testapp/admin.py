@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from openwisp_users.multitenancy import (
     MultitenantAdminMixin,
     MultitenantOrgFilter,

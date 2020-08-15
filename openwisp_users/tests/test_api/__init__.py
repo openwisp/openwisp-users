@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+
 from openwisp_users.tests.utils import TestMultitenantAdminMixin
 
 

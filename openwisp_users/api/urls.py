@@ -1,4 +1,5 @@
 from django.conf.urls import url
+
 from openwisp_users import settings as app_settings
 
 from . import views

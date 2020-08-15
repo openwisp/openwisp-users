@@ -1,8 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from openwisp_users.mixins import OrgMixin, ShareableOrgMixin
 from openwisp_utils.base import TimeStampedEditableModel
+
+from openwisp_users.mixins import OrgMixin, ShareableOrgMixin
 
 
 class Template(ShareableOrgMixin):

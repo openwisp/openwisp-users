@@ -1,5 +1,6 @@
 from django.core.cache import cache
 from django.urls import reverse
+
 from openwisp_users.api.throttling import AuthRateThrottle
 
 from . import APITestCase
