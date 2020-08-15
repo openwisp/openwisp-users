@@ -3,6 +3,6 @@ django-extensions~=3.0.2
 django-allauth>=0.39.0,<0.43.0
 django-phonenumber-field>=2.4.0,<4.1.0
 phonenumbers>=8.11.0,<8.13.0
-openwisp-utils[rest]~=0.5
+openwisp-utils[rest]~=0.6.0
 packaging
 swapper~=1.1
