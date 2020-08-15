@@ -7,7 +7,7 @@ TESTING = sys.argv[1] == 'test'
 PARALLEL = '--parallel' in sys.argv
 SHELL = 'shell' in sys.argv or 'shell_plus' in sys.argv
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'openwisp-users.db',}
@@ -63,7 +63,6 @@ USE_TZ = True
 USE_I18N = False
 USE_L10N = False
 STATIC_URL = '/static/'
-CORS_ORIGIN_ALLOW_ALL = True
 
 TEMPLATES = [
     {
@@ -144,7 +143,6 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 OPENWISP_ORGANIZATON_USER_ADMIN = True
-OPENWISP_ORGANIZATON_OWNER_ADMIN = True
 OPENWISP_USERS_AUTH_API = True
 
 if os.environ.get('SAMPLE_APP', False):
