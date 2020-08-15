@@ -1,9 +1,11 @@
 # Manually Created
+
 from django.db import migrations
 from openwisp_users.migrations import (
     set_default_organization_uuid,
     create_default_groups,
     update_admins_permissions,
+    allow_admins_change_organization,
 )
 import swapper
 
@@ -25,5 +27,8 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             update_admins_permissions, reverse_code=migrations.RunPython.noop
+        ),
+        migrations.RunPython(
+            allow_admins_change_organization, reverse_code=migrations.RunPython.noop
         ),
     ]

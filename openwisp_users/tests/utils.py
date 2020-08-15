@@ -191,7 +191,9 @@ class TestOrganizationMixin(object):
 
     def _get_org_user(self):
         try:
-            return OrganizationUser.objects.get(organization=self._get_org())
+            return OrganizationUser.objects.get(
+                user=self._get_user(), organization=self._get_org()
+            )
         except OrganizationUser.DoesNotExist:
             return self._create_org_user()
 

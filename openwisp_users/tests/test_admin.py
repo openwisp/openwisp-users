@@ -31,7 +31,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     app_label = 'openwisp_users'
 
-    def _get_edit_form_inline_params(self, user, organization):
+    def _get_org_edit_form_inline_params(self, user, organization):
+        """
+        This function is created to be overridden
+        when the user extends openwisp-users
+        and adds inline forms in the Organization model.
+        """
+        return dict()
+
+    def _get_user_edit_form_inline_params(self, user, organization):
         """
         This function is created to be overridden
         when the user extends openwisp-users
@@ -88,8 +96,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_admin_change_user_auto_email(self):
         admin = self._create_admin()
+        self._create_org_user(user=admin)
         self.client.force_login(admin)
-        user = self._create_user(username='changemailtest')
+        user = self._create_user(email='old@mail.com', username='changemailtest')
         params = user.__dict__
         params['email'] = 'new@mail.com'
         params.pop('phone_number')
@@ -113,7 +122,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
-        params.update(self._get_edit_form_inline_params(user, None))
+        params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
         response = self.client.post(
             reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
@@ -128,6 +137,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_admin_change_user_email_empty(self):
         admin = self._create_admin(email='')
+        self._create_org_user(user=admin)
         self.client.force_login(admin)
         params = dict(
             username='testchange',
@@ -151,8 +161,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
-        params.update(self._additional_params_add())
-        params.update(self._get_edit_form_inline_params(admin, None))
+        params.update(self._get_user_edit_form_inline_params(admin, self._get_org()))
         response = self.client.post(
             reverse(f'admin:{self.app_label}_user_change', args=[admin.pk]), params
         )
@@ -438,8 +447,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_edit_user_email_exists(self):
         admin = self._create_admin()
         self.client.force_login(admin)
-        self._create_user()
+        self._get_org_user()
         user = self._create_user(email='asd@asd.com', username='newTester')
+        self._create_org_user(user=user)
         params = user.__dict__
         params['email'] = 'test@tester.com'
         params.pop('phone_number')
@@ -462,7 +472,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
-        params.update(self._get_edit_form_inline_params(user, None))
+        params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
         res = self.client.post(
             reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
@@ -482,7 +492,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('phone_number')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
-        params.update(self._get_edit_form_inline_params(user, None))
+        params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
         path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
         r = self.client.post(path, params, follow=True)
         self.assertEqual(r.status_code, 200)
@@ -505,7 +515,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('last_login')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
-        params.update(self._get_edit_form_inline_params(user, org))
+        params.update(self._get_user_edit_form_inline_params(user, org))
         path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
         r = self.client.post(path, params, follow=True)
         self.assertEqual(r.status_code, 200)
@@ -569,7 +579,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('last_login')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
-        params.update(self._get_edit_form_inline_params(user2, org))
+        params.update(self._get_user_edit_form_inline_params(user2, org))
         path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
         r = self.client.post(path, params, follow=True)
         self.assertEqual(r.status_code, 200)
@@ -1165,6 +1175,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             '_selected_action': [org.pk],
             'post': 'yes',
         }
+        add_params.update(self._get_org_edit_form_inline_params(user, org))
         add_path = reverse(f'admin:{self.app_label}_organization_add')
         delete_path = reverse(f'admin:{self.app_label}_organization_changelist')
 
@@ -1223,9 +1234,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             'owner-0-id': f'{org_owner.pk}',
         }
         path = reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
-
         with self.subTest('manager can not edit inline org owner'):
             self.client.force_login(user2)
+            params.update(self._get_org_edit_form_inline_params(user2, org))
             params.update({'owner-0-organization_user': f'{org_user2.pk}'})
             r = self.client.post(path, params, follow=True)
             self.assertEqual(r.status_code, 200)
@@ -1234,6 +1245,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
         with self.subTest('owner can edit inline org owner'):
             self.client.force_login(user1)
+            params.update(self._get_org_edit_form_inline_params(user1, org))
             params.update({'owner-0-organization_user': f'{org_user2.pk}'})
             r = self.client.post(path, params, follow=True)
             self.assertEqual(r.status_code, 200)
@@ -1241,6 +1253,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.assertEqual(org_owners.count(), 1)
 
         with self.subTest('superuser can edit inline org owner'):
+            params.update(self._get_org_edit_form_inline_params(self._get_admin(), org))
             self.client.force_login(self._get_admin())
             user3 = self._create_user(
                 username='user3', password='user3', email='email3@email', is_staff=True
@@ -1326,7 +1339,7 @@ class TestBasicUsersIntegration(
 
     app_label = 'openwisp_users'
 
-    def _get_edit_form_inline_params(self, user, organization):
+    def _get_user_edit_form_inline_params(self, user, organization):
         organization_user = OrganizationUser.objects.get(
             user=user, organization=organization
         )
@@ -1339,7 +1352,7 @@ class TestBasicUsersIntegration(
             'emailaddress_set-0-verified': True,
             'emailaddress_set-0-primary': True,
             'emailaddress_set-0-id': user.emailaddress_set.first().id,
-            'emailaddress_set-0-user': user.id,
+            'emailaddress_set-0-user': str(user.pk),
             # organization user inline
             f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
             f'{self.app_label}_organizationuser-INITIAL_FORMS': 1,
@@ -1363,7 +1376,7 @@ class TestBasicUsersIntegration(
         params.pop('_password')
         params.pop('last_login')
         params = self._additional_params_pop(params)
-        params.update(self._get_edit_form_inline_params(user, org))
+        params.update(self._get_user_edit_form_inline_params(user, org))
         response = self.client.post(
             reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
             params,
