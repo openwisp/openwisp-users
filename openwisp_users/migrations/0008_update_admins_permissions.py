@@ -1,4 +1,5 @@
 from django.db import migrations
+
 from openwisp_users.migrations import update_admins_permissions
 
 

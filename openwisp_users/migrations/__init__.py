@@ -1,8 +1,8 @@
-from django.conf import settings
-from django.contrib.auth.models import Permission
-from django.contrib.auth.management import create_permissions
-from django.core.exceptions import ObjectDoesNotExist
 import swapper
+from django.conf import settings
+from django.contrib.auth.management import create_permissions
+from django.contrib.auth.models import Permission
+from django.core.exceptions import ObjectDoesNotExist
 
 
 def set_default_organization_uuid(apps, schema_editor):
