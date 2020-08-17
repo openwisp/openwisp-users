@@ -22,20 +22,58 @@ additional_fields = [
 ]
 
 
-class TestUsersAdmin(BaseTestUsersAdmin):
+class GetEditFormInlineMixin(object):
+    """
+    The following code is only used in testing,
+    please remove it or replace it with your
+    Inline form fields data.
+    """
+
+    def _get_org_edit_form_inline_params(self, user, organization):
+        """
+        This function is created to be overridden
+        when the user extends openwisp-users
+        and adds inline forms in the Organization model.
+        """
+        params = super()._get_user_edit_form_inline_params(user, organization)
+        params.update(
+            {
+                'organizationinlinemodel-TOTAL_FORMS': 1,
+                'organizationinlinemodel-INITIAL_FORMS': 0,
+                'organizationinlinemodel-MIN_NUM_FORMS': 0,
+                'organizationinlinemodel-MAX_NUM_FORMS': 1,
+                'organizationinlinemodel-0-details': '',
+                'organizationinlinemodel-0-user': str(organization.pk),
+            }
+        )
+        return params
+
+    def _get_user_edit_form_inline_params(self, user, organization):
+        """
+        This function is created to be overridden
+        when the user extends openwisp-users
+        and adds inline forms in the User model.
+        """
+        params = super()._get_user_edit_form_inline_params(user, organization)
+        params.update(
+            {
+                'userinlinemodel-TOTAL_FORMS': 1,
+                'userinlinemodel-INITIAL_FORMS': 0,
+                'userinlinemodel-MIN_NUM_FORMS': 0,
+                'userinlinemodel-MAX_NUM_FORMS': 1,
+                'userinlinemodel-0-details': '',
+                'userinlinemodel-0-user': str(user.pk),
+            }
+        )
+        return params
+
+
+class TestUsersAdmin(GetEditFormInlineMixin, BaseTestUsersAdmin):
     app_label = 'sample_users'
     _additional_user_fields = additional_fields
 
-    # def _get_edit_form_inline_params(self, user, organization):
-    #     """
-    #     This function is created to be overridden
-    #     when the user extends openwisp-users
-    #     and adds inline forms in the User model
-    #     """
-    #     add your code here
 
-
-class TestBasicUsersIntegration(BaseTestBasicUsersIntegration):
+class TestBasicUsersIntegration(GetEditFormInlineMixin, BaseTestBasicUsersIntegration):
     app_label = 'sample_users'
     _additional_user_fields = additional_fields
 

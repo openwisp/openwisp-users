@@ -18,6 +18,8 @@ from openwisp_users.base.models import (
 
 class DetailsModel(models.Model):
     """
+    You do not need to copy this model in your
+    application it is only for testing purposes.
     This field serves no purpose, it only serves as an example
     for extending models and used for testing purposes.
     It will be inherited by all the models.
@@ -57,3 +59,18 @@ class OrganizationOwner(DetailsModel, BaseOrganizationOwner, AbstractOrganizatio
 
 class Group(DetailsModel, BaseGroup, AbstractGroup):
     pass
+
+
+#########################################
+# You do not need to copy the following in
+# your application it is only for module
+# testing purposes.
+#########################################
+
+
+class UserInlineModel(DetailsModel, models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+
+class OrganizationInlineModel(DetailsModel, models.Model):
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE)

@@ -18,3 +18,26 @@ usermodel_change_form(admin.UserAdmin, additional_fields)
 # Add field to the admin / operator display_list on changelist view
 # and make it searchable.
 usermodel_list_and_search(admin.UserAdmin, additional_fields)
+
+
+#########################################
+# You do not need to copy the following in
+# your application it is only for module
+# testing purposes.
+#########################################
+
+from django.contrib.admin import StackedInline  # noqa
+
+from .models import OrganizationInlineModel, UserInlineModel  # noqa
+
+
+class UserInlineAdmin(StackedInline):
+    model = UserInlineModel
+
+
+class OrganizationInlineAdmin(StackedInline):
+    model = OrganizationInlineModel
+
+
+admin.UserAdmin.inlines += (UserInlineAdmin,)
+admin.OrganizationAdmin.inlines += (OrganizationInlineAdmin,)

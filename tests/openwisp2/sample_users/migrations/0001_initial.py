@@ -249,6 +249,29 @@ class Migration(migrations.Migration):
             bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
+            name='UserInlineModel',
+            fields=[
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                ('details', models.CharField(blank=True, max_length=64, null=True)),
+                (
+                    'user',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={'abstract': False,},
+        ),
+        migrations.CreateModel(
             name='OrganizationUser',
             fields=[
                 (
@@ -337,6 +360,29 @@ class Migration(migrations.Migration):
             ],
             options={'abstract': False,},
             bases=(organizations.base.UnicodeMixin, models.Model),
+        ),
+        migrations.CreateModel(
+            name='OrganizationInlineModel',
+            fields=[
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                ('details', models.CharField(blank=True, max_length=64, null=True)),
+                (
+                    'organization',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to='sample_users.Organization',
+                    ),
+                ),
+            ],
+            options={'abstract': False,},
         ),
         migrations.AddField(
             model_name='organization',
