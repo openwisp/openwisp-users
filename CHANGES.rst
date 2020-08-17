@@ -4,8 +4,8 @@ Changelog
 Version 0.3.1 [2020-08-17]
 --------------------------
 
+- [deps] Updated openwisp-utils to 0.6.0
 - [test] Added functions to add inline fields in extended app's integration testing
-- [chores] Improved create_organization_owner
 
 Version 0.3.0 [2020-08-14]
 --------------------------
