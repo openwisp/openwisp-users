@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 0.3.1 [2020-08-17]
+--------------------------
+
+- [deps] Updated openwisp-utils to 0.6.0
+- [test] Added functions to add inline fields in extended app's integration testing
+
 Version 0.3.0 [2020-08-14]
 --------------------------
 
@@ -8,7 +14,7 @@ Features
 ~~~~~~~~
 
 - [models] Added `swappable models and extensible classes <https://github.com/openwisp/openwisp-users#extend-openwisp-users>`_
-- [admin] Added support for `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_ 
+- [admin] Added support for `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_
 - [admin] Added default owner to each organization
 - [api] Added `ObtainTokenView REST API endpoint <https://github.com/openwisp/openwisp-users#obtain-authentication-token>`_ for bearer authentication
 - [api] Added `OPENWISP_USERS_AUTH_API <https://github.com/openwisp/openwisp-users#openwisp-users-auth-api>`_ and `OPENWISP_USERS_AUTH_THROTTLE_RATE <https://github.com/openwisp/openwisp-users#openwisp-users-auth-throttle-rate>`_ settings
