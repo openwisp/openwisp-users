@@ -7,11 +7,12 @@ import django.contrib.auth.models
 import django.contrib.auth.validators
 import django.db.models.deletion
 import django.utils.timezone
-import openwisp_users.models
 import organizations.base
 import organizations.fields
 from django.conf import settings
 from django.db import migrations, models
+
+import openwisp_users.models
 
 
 class Migration(migrations.Migration):
