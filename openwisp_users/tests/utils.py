@@ -82,14 +82,18 @@ class TestMultitenantAdminMixin(object):
 
         # ensure elements in visible list are visible to operator
         for el in visible:
-            self.assertContains(
-                response, _f(el, select_widget), msg_prefix='[operator contains]'
-            )
+            with self.subTest(el):
+                self.assertContains(
+                    response, _f(el, select_widget), msg_prefix='[operator contains]'
+                )
         # ensure elements in hidden list are not visible to operator
         for el in hidden:
-            self.assertNotContains(
-                response, _f(el, select_widget), msg_prefix='[operator not-contains]'
-            )
+            with self.subTest(el):
+                self.assertNotContains(
+                    response,
+                    _f(el, select_widget),
+                    msg_prefix='[operator not-contains]',
+                )
 
         # now become superuser
         self._logout()
