@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+import django
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
@@ -162,6 +163,14 @@ class AbstractUser(BaseUser):
         if self.is_superuser:
             return True
         return permission in self.permissions
+
+
+# on django 3.1, the max length of first_name has been changed, we need to
+# backport this change to the previous versions to avoid migration issues
+# TODO: remove this when support to django < 3.1 is dropped
+if django.VERSION < (3, 1):
+    first_name = AbstractUser._meta.get_field('first_name')
+    first_name.max_length = 150
 
 
 class BaseGroup(object):
