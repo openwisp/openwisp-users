@@ -1,35 +1,34 @@
 Changelog
 =========
 
-Version 0.4.0 [unreleased]
+Version 0.4.0 [2020-08-23]
 --------------------------
 
 Features
 ~~~~~~~~
 
-- [models] Added `organizations_managed helper <https://github.com/openwisp/openwisp-users#organizations-managed>`_
-- [models] Added `organizations_owned helper <https://github.com/openwisp/openwisp-users#organizations-managed>`_
+- [models] Added `organizations_managed <https://github.com/openwisp/openwisp-users#organizations-managed>`_ helper
+- [models] Added `organizations_owned <https://github.com/openwisp/openwisp-users#organizations-owned>`_ helper
 
-Changes/Bugfixes
-~~~~~~~~~~~~~~~~
+Changes
+~~~~~~~
 
-**Potentially backward incompatible change**:
-
-Multi-tenant admin classes now allow only org managers.
-
-Before this version, a user needed to be only org member
-to see items of that organization in the admin, but this
-is wrong! An ``OrganizationUser`` which has ``is_admin=False`` is
-only an end-user of that organization.
-Instead, an ``OrganizationUser`` which has ``is_admin=True`` is
-also a manager and only this type of user shall be allowed
-to manage items of the organization through the django admin site.
-
-This is needed in order to support users being simple end-users
-in one organization but administrators in others, otherwise
-a staff user who is administrator of one organization would be
-able to change also items of other organizations where
-they are only members and not managers.
+- [admin]: **Potentially backward incompatible change**:
+  Multi-tenant admin classes now allow only org managers.
+  Before this version, a user needed to be only org member
+  to see items of that organization in the admin, but this
+  is wrong! An ``OrganizationUser`` which has ``is_admin=False`` is
+  only an end-user of that organization.
+  Instead, an ``OrganizationUser`` which has ``is_admin=True`` is
+  also a manager and only this type of user shall be allowed
+  to manage items of the organization through the django admin site.
+  This is needed in order to support users being simple end-users
+  in one organization but administrators in others, otherwise
+  a staff user who is administrator of one organization would be
+  able to change also items of other organizations where
+  they are only members and not managers.
+- [dependencies] Added support for django 3.1
+- [dependencies] django-phonenumber-field 5.0
 
 Version 0.3.1 [2020-08-17]
 --------------------------
