@@ -59,7 +59,9 @@ class TestMultitenantAdminMixin(object):
         operator = User.objects.create_user(**opts)
         operator.user_permissions.add(*self.get_operator_permissions())
         for organization in organizations:
-            OrganizationUser.objects.create(user=operator, organization=organization)
+            OrganizationUser.objects.create(
+                user=operator, organization=organization, is_admin=True
+            )
         operator.organizations_dict  # force caching
         return operator
 

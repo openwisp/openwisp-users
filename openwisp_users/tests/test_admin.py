@@ -282,7 +282,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         self.assertContains(response, 'selected>operator-org1</option>')
-        self.assertContains(response, 'selected>operator-org2</option>')
+        self.assertNotContains(response, 'selected>operator-org2</option>')
 
     def test_operator_can_see_organization_add_user(self):
         org1 = self._create_org(name='operator-org1')
@@ -330,9 +330,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         response = self.client.get(
             reverse(f'admin:{self.app_label}_organization_change', args=[org2.pk])
         )
-        self.assertNotContains(
-            response, '<input type="text" name="name" value="{0}"'.format(org2.name)
-        )
+        self.assertEqual(response.status_code, 302)
 
     def test_operator_change_org_is_admin(self):
         org1 = self._create_org(name='test-org1')
@@ -363,12 +361,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'admin:{self.app_label}_organizationuser_change', args=[org_user2.pk]
             )
         )
-        self.assertNotContains(
-            response,
-            '<input type="checkbox" name="is_admin" id="id_is_admin">'
-            '<label class="vCheckboxLabel" for="id_is_admin">Is admin'
-            '</label>',
-        )
+        self.assertEqual(response.status_code, 302)
 
     def test_admin_operator_delete_org_user(self):
         org1 = self._create_org(name='test-org1')
@@ -399,7 +392,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 f'admin:{self.app_label}_organizationuser_change', args=[org_user2.pk]
             )
         )
-        self.assertNotContains(response, 'delete')
+        self.assertEqual(response.status_code, 302)
 
     def test_admin_changelist_superuser_column_visible(self):
         admin = self._create_admin()
@@ -1152,8 +1145,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             org_user.save()
             self.client.force_login(user)
             r = self.client.get(path)
-            self.assertEqual(r.status_code, 200)
-            self.assertContains(r, f'class="readonly">{org.name}')
+            self.assertEqual(r.status_code, 302)
 
     def test_only_superuser_has_add_delete_org_perm(self):
         user = self._create_user(
@@ -1402,11 +1394,13 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             username='user23', email='user23j@something.com', is_superuser=True
         )
         user3 = self._create_user(username='user3', email='user3@something.com',)
-        organization_user1 = self._create_org_user(organization=org1, user=user1)
+        organization_user1 = self._create_org_user(
+            organization=org1, user=user1, is_admin=True
+        )
         organization_user12 = self._create_org_user(organization=org1, user=user12)
         organization_user2 = self._create_org_user(organization=org2, user=user2)
         organization_user22 = self._create_org_user(organization=org2, user=user22)
-        organization_owner1 = self._create_org_owner(
+        organization_owner1 = OrganizationOwner.objects.get(
             organization_user=organization_user1, organization=org1
         )
         organization_owner2 = self._create_org_owner(
@@ -1416,8 +1410,8 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         organization_user3 = self._create_org_user(
             organization=org3, user=operator, is_admin=True
         )
-        organization_user31 = self._create_org_user(organization=org3, user=user3,)
-        organization_user1o = self._create_org_user(organization=org1, user=operator,)
+        organization_user31 = self._create_org_user(organization=org3, user=user3)
+        organization_user1o = self._create_org_user(organization=org1, user=operator)
         data = dict(
             org1=org1,
             org2=org2,
@@ -1441,8 +1435,14 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         )
         return data
 
+    def _make_org_manager(self, user, org):
+        ou = OrganizationUser.objects.get(organization=org, user=user)
+        ou.is_admin = True
+        ou.save()
+
     def test_multitenancy_organization_user_queryset(self):
         data = self._create_multitenancy_test_env()
+        self._make_org_manager(data['operator'], data['org1'])
         self._test_multitenant_admin(
             url=reverse(f'admin:{self.app_label}_organizationuser_changelist'),
             hidden=[
@@ -1459,6 +1459,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
 
     def test_multitenancy_organization_owner_queryset(self):
         data = self._create_multitenancy_test_env()
+        self._make_org_manager(data['operator'], data['org1'])
         self._test_multitenant_admin(
             url=reverse(f'admin:{self.app_label}_organizationowner_changelist'),
             hidden=[data['organization_owner2'].organization_user.user.username],
@@ -1471,4 +1472,23 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             url=reverse(f'admin:{self.app_label}_user_changelist'),
             visible=[data['user3'], data['operator']],
             hidden=[data['user2'], data['user22'], data['user1'], data['user12']],
+        )
+
+    def test_multitenant_admin_manager_only(self):
+        staff = self._create_user(
+            username='staff__user', email='staff@staff.org', is_staff=True
+        )
+        staff_org = self._create_org(name='staff_org')
+        other_org = Organization.objects.create(name='other org', slug='other-org')
+        admin_group = Group.objects.get(name='Administrator')
+        staff.groups.add(admin_group)
+        self._create_org_user(organization=other_org, user=staff, is_admin=False)
+        self._create_org_user(organization=staff_org, user=staff, is_admin=True)
+        self._login(staff)
+        user1 = self._create_user(username='user1__otherorg', email='user1@user1.org')
+        self._create_org_user(organization=other_org, user=user1, is_admin=False)
+        self._test_multitenant_admin(
+            url=reverse(f'admin:{self.app_label}_organizationuser_changelist'),
+            hidden=[user1.username],
+            visible=[staff.username],
         )

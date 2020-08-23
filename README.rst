@@ -403,7 +403,7 @@ Usage exmaple:
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This attribute returns a list containing the primary keys of the organizations
-which the user can manages.
+which the user can manage.
 
 Usage example:
 
@@ -521,14 +521,15 @@ in these cases to avoid generating too many queries.
 Multitenancy mixins
 -------------------
 
-* **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class will make it multitenant.
+* **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class will make it multitenant
+  (users will only be able to see items of the organizations they manage or own).
   Set ``multitenant_shared_relations`` to the list of parameters you wish to have only organization
   specific options.
 
-* **MultitenantOrgFilter**: admin filter that shows only organizations the current user is associated with in its available choices.
+* **MultitenantOrgFilter**: admin filter that shows only organizations the current user can manage in its available choices.
 
 * **MultitenantRelatedOrgFilter**: similar ``MultitenantOrgFilter`` but shows only objects which have a relation with
-  one of the organizations the current user is associated with.
+  one of the organizations the current user can manage.
 
 Extend openwisp-users
 ---------------------

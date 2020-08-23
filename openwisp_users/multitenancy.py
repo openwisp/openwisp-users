@@ -42,14 +42,14 @@ class MultitenantAdminMixin(object):
         if user.is_superuser:
             return qs
         if hasattr(self.model, 'organization'):
-            return qs.filter(organization__in=user.organizations_dict.keys())
+            return qs.filter(organization__in=user.organizations_managed)
         if self.model.__name__ == 'Organization':
-            return qs.filter(pk__in=user.organizations_dict.keys())
+            return qs.filter(pk__in=user.organizations_managed)
         elif not self.multitenant_parent:
             return qs
         else:
             qsarg = '{0}__organization__in'.format(self.multitenant_parent)
-            return qs.filter(**{qsarg: user.organizations_dict.keys()})
+            return qs.filter(**{qsarg: user.organizations_managed})
 
     def _edit_form(self, request, form):
         """
@@ -62,7 +62,7 @@ class MultitenantAdminMixin(object):
         """
         fields = form.base_fields
         if not request.user.is_superuser:
-            orgs_pk = request.user.organizations_dict.keys()
+            orgs_pk = request.user.organizations_managed
             # organizations relation;
             # may be readonly and not present in field list
             if 'organization' in fields:
@@ -122,7 +122,7 @@ class MultitenantOrgFilter(admin.RelatedFieldListFilter):
     def field_choices(self, field, request, model_admin):
         if request.user.is_superuser:
             return super().field_choices(field, request, model_admin)
-        organizations = request.user.organizations_dict.keys()
+        organizations = request.user.organizations_managed
         return field.get_choices(
             include_blank=False,
             limit_choices_to={self.multitenant_lookup: organizations},

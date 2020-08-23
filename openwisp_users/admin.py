@@ -104,19 +104,11 @@ class OrganizationUserInline(admin.StackedInline):
         formset = super().get_formset(request, obj=obj, **kwargs)
         if request.user.is_superuser:
             return formset
-        if not request.user.is_superuser and not obj:
-            operator_orgs = []
-            for pk, value in request.user.organizations_dict.items():
-                if value['is_admin']:
-                    operator_orgs.append(pk)
-            formset.form.base_fields[
-                'organization'
-            ].queryset = Organization.objects.filter(pk__in=operator_orgs)
-        if not request.user.is_superuser and obj:
+        if not request.user.is_superuser:
             formset.form.base_fields[
                 'organization'
             ].queryset = Organization.objects.filter(
-                pk__in=request.user.organizations_dict.keys()
+                pk__in=request.user.organizations_managed
             )
         return formset
 
@@ -556,7 +548,9 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         admin.site.unregister(apps.get_model(*model))
 
 
-if 'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG:
+if (
+    'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG
+):  # pragma: no cover
     Token = apps.get_model('authtoken', 'Token')
 
     try:
