@@ -399,6 +399,32 @@ Usage exmaple:
     >>> user.organizations_dict.keys()
     ... dict_keys(['20135c30-d486-4d68-993f-322b8acb51c4'])
 
+``organizations_managed``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This attribute returns a list containing the primary keys of the organizations
+which the user can manages.
+
+Usage example:
+
+.. code-block:: python
+
+    >>> user.organizations_managed
+    ... ['20135c30-d486-4d68-993f-322b8acb51c4']
+
+``organizations_owned``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This attribute returns a list containing the primary keys of the organizations
+which the user owns.
+
+Usage example:
+
+.. code-block:: python
+
+    >>> user.organizations_owned
+    ... ['20135c30-d486-4d68-993f-322b8acb51c4']
+
 Permissions helpers
 -------------------
 

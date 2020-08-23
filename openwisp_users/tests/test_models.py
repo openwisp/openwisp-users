@@ -132,6 +132,28 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertTrue(user.is_owner(org1))
         self.assertFalse(user.is_owner(org2))
 
+    def test_organizations_managed(self):
+        user = self._create_user(username='organizations_pk')
+        self.assertEqual(user.organizations_managed, [])
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        org3 = self._create_org(name='org3')
+        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
+        OrganizationUser.objects.create(user=user, organization=org2, is_admin=True)
+        OrganizationUser.objects.create(user=user, organization=org3, is_admin=False)
+        self.assertEqual(user.organizations_managed, [str(org1.pk), str(org2.pk)])
+
+    def test_organizations_owned(self):
+        user = self._create_user(username='organizations_pk')
+        self.assertEqual(user.organizations_managed, [])
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        org3 = self._create_org(name='org3')
+        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
+        OrganizationUser.objects.create(user=user, organization=org2, is_admin=True)
+        OrganizationUser.objects.create(user=user, organization=org3, is_admin=False)
+        self.assertEqual(user.organizations_owned, [str(org1.pk), str(org2.pk)])
+
     def test_organization_repr(self):
         org = self._create_org(name='org1', is_active=False)
         self.assertIn('disabled', str(org))

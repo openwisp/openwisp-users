@@ -123,6 +123,21 @@ class AbstractUser(BaseUser):
         cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days
         return organizations
 
+    def __get_orgs(self, attribute):
+        org_list = []
+        for org_pk, options in self.organizations_dict.items():
+            if options[attribute]:
+                org_list.append(org_pk)
+        return org_list
+
+    @cached_property
+    def organizations_managed(self):
+        return self.__get_orgs('is_admin')
+
+    @cached_property
+    def organizations_owned(self):
+        return self.__get_orgs('is_owner')
+
     def clean(self):
         if self.email == '':
             self.email = None

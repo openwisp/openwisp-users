@@ -4,7 +4,11 @@ Changelog
 Version 0.4.0 [unreleased]
 --------------------------
 
-WIP
+Features
+~~~~~~~~
+
+- [models] Added `organizations_managed helper <https://github.com/openwisp/openwisp-users#organizations-managed>`_
+- [models] Added `organizations_owned helper <https://github.com/openwisp/openwisp-users#organizations-managed>`_
 
 Version 0.3.1 [2020-08-17]
 --------------------------

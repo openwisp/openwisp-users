@@ -95,6 +95,14 @@ class OpenwispUsersConfig(AppConfig):
         cache.delete(cache_key)
         # forces caching
         user.organizations_dict
+        try:
+            del user.organizations_managed
+        except AttributeError:
+            pass
+        try:
+            del user.organizations_owned
+        except AttributeError:
+            pass
 
     def create_organization_owner(cls, instance, created, **kwargs):
         if not created or not instance.is_admin:
