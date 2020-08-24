@@ -106,20 +106,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('last_login')
         params = self._additional_params_pop(params)
         # inline emails
+        params.update(self.add_user_inline_params)
         params.update(
             {
                 'emailaddress_set-TOTAL_FORMS': 1,
                 'emailaddress_set-INITIAL_FORMS': 1,
-                'emailaddress_set-MIN_NUM_FORMS': 0,
-                'emailaddress_set-MAX_NUM_FORMS': 0,
                 'emailaddress_set-0-verified': True,
                 'emailaddress_set-0-primary': True,
                 'emailaddress_set-0-id': user.emailaddress_set.first().id,
                 'emailaddress_set-0-user': user.id,
-                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
-                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
         params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
@@ -149,18 +144,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             company='',
             location='',
         )
-        params.update(
-            {
-                'emailaddress_set-TOTAL_FORMS': 0,
-                'emailaddress_set-INITIAL_FORMS': 0,
-                'emailaddress_set-MIN_NUM_FORMS': 0,
-                'emailaddress_set-MAX_NUM_FORMS': 0,
-                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
-                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
-            }
-        )
+        params.update(self.add_user_inline_params)
         params.update(self._get_user_edit_form_inline_params(admin, self._get_org()))
         response = self.client.post(
             reverse(f'admin:{self.app_label}_user_change', args=[admin.pk]), params
@@ -449,20 +433,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('_password')
         params.pop('last_login')
         params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
         params.update(
             {
                 'emailaddress_set-TOTAL_FORMS': 1,
                 'emailaddress_set-INITIAL_FORMS': 1,
-                'emailaddress_set-MIN_NUM_FORMS': 0,
-                'emailaddress_set-MAX_NUM_FORMS': 0,
                 'emailaddress_set-0-verified': True,
                 'emailaddress_set-0-primary': True,
                 'emailaddress_set-0-id': user.emailaddress_set.first().id,
                 'emailaddress_set-0-user': user.id,
-                f'{self.app_label}_organizationuser-TOTAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-INITIAL_FORMS': 0,
-                f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
-                f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 0,
             }
         )
         params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
