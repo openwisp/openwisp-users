@@ -123,7 +123,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             params,
             follow=True,
         )
-        self.assertNotContains(response, 'error')
+        self.assertNotContains(response, 'Please correct the error below.')
         user = User.objects.get(username='changemailtest')
         email_set = user.emailaddress_set
         self.assertEqual(email_set.count(), 2)
@@ -491,7 +491,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
         r = self.client.post(path, params, follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertNotContains(r, 'error')
+        self.assertNotContains(r, 'Please correct the error below.')
         user.refresh_from_db()
         self.assertEqual(user.groups.count(), 1)
         self.assertEqual(user.groups.get(name='Administrator').pk, group.pk)
@@ -555,7 +555,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         path = reverse(f'admin:{self.app_label}_user_change', args=[user2.pk])
         r = self.client.post(path, params, follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertNotContains(r, 'error')
+        self.assertNotContains(r, 'Please correct the error below.')
         user2.refresh_from_db()
         self.assertEqual(user2.username, 'newuser1')
 
@@ -735,7 +735,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_user_add'), params, follow=True
         )
         self.assertEqual(res.status_code, 200)
-        self.assertNotContains(res, 'error')
+        self.assertNotContains(res, 'Please correct the error below.')
         user = User.objects.filter(username='testadd')
         self.assertEqual(user.count(), 1)
 
@@ -771,7 +771,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_user_add'), params, follow=True
         )
         self.assertNotContains(res, 'errors field-organization')
-        self.assertNotContains(res, 'errors')
+        self.assertNotContains(res, 'Please correct the errors below.')
         queryset = User.objects.filter(username='testadd')
         self.assertEqual(queryset.count(), 1)
         user = queryset.first()
@@ -1353,7 +1353,7 @@ class TestBasicUsersIntegration(
             params,
             follow=True,
         )
-        self.assertNotContains(response, 'error')
+        self.assertNotContains(response, 'Please correct the error below.')
         user.refresh_from_db()
         self.assertEqual(user.bio, params['bio'])
 
