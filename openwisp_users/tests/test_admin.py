@@ -1297,6 +1297,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     @classmethod
     def tearDownClass(cls):
+        super().tearDownClass()
         devnull.close()
 
 
