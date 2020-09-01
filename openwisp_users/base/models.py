@@ -224,6 +224,15 @@ class BaseOrganizationUser(models.Model):
     class Meta:
         abstract = True
 
+    def clean(self):
+        if self.user.is_owner(str(self.organization_id)) and not self.is_admin:
+            raise ValidationError(
+                _(
+                    f'{self.user.username} is the owner of the organization: '
+                    f'{self.organization}, and cannot be downgraded'
+                )
+            )
+
 
 class BaseOrganizationOwner(models.Model):
     """

@@ -289,3 +289,26 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(User._get_pk(org), pk)
         self.assertEqual(User._get_pk(org.pk), pk)
         self.assertEqual(User._get_pk(pk), pk)
+
+    def test_orguser_is_admin_change(self):
+        org = self._create_org(name='test-org')
+        user1 = self._create_user(username='user1', email='user1@email.com')
+        user2 = self._create_user(username='user2', email='user2@email.com')
+        org_user1 = self._create_org_user(user=user1, organization=org, is_admin=True)
+        org_user2 = self._create_org_user(user=user2, organization=org, is_admin=True)
+
+        with self.subTest('change is_admin when org_user belongs to org_owner'):
+            msg = (
+                f'{user1.username} is the owner of the organization: '
+                f'{org}, and cannot be downgraded'
+            )
+            with self.assertRaisesMessage(ValidationError, msg):
+                with self.assertNumQueries(1):
+                    org_user1.is_admin = False
+                    org_user1.full_clean()
+
+        with self.subTest('change is_admin when org_user doesnot belong to orgowner'):
+            org_user2.is_admin = False
+            org_user2.full_clean()
+            org_user2.save()
+            self.assertEqual(org_user2.is_admin, False)
