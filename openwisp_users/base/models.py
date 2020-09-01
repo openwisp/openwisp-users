@@ -78,15 +78,24 @@ class AbstractUser(BaseUser):
         )
         return qs
 
+    @staticmethod
+    def _get_pk(obj):
+        """ meant for internal usage only """
+        if isinstance(obj, (uuid.UUID, str)):
+            pk = obj
+        else:
+            pk = obj.pk
+        return str(pk)
+
     def is_member(self, organization):
-        return str(organization.pk) in self.organizations_dict
+        return self._get_pk(organization) in self.organizations_dict
 
     def is_manager(self, organization):
-        org_dict = self.organizations_dict.get(str(organization.pk))
+        org_dict = self.organizations_dict.get(self._get_pk(organization))
         return org_dict is not None and (org_dict['is_admin'] or org_dict['is_owner'])
 
     def is_owner(self, organization):
-        org_dict = self.organizations_dict.get(str(organization.pk))
+        org_dict = self.organizations_dict.get(self._get_pk(organization))
         return org_dict is not None and org_dict['is_owner']
 
     @cached_property

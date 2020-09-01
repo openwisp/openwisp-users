@@ -6,6 +6,7 @@ from swapper import load_model
 
 from .utils import TestOrganizationMixin
 
+Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 Group = load_model('openwisp_users', 'Group')
@@ -102,35 +103,53 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
-        self.assertFalse(user.is_member(org1))
-        self.assertFalse(user.is_member(org2))
-        OrganizationUser.objects.create(user=user, organization=org1)
-        self.assertTrue(user.is_member(org1))
-        self.assertFalse(user.is_member(org2))
+
+        with self.subTest('org instance'):
+            self.assertFalse(user.is_member(org1))
+            self.assertFalse(user.is_member(org2))
+            OrganizationUser.objects.create(user=user, organization=org1)
+            self.assertTrue(user.is_member(org1))
+            self.assertFalse(user.is_member(org2))
+
+        with self.subTest('org pk'):
+            self.assertTrue(user.is_member(org1.pk))
+            self.assertFalse(user.is_member(str(org2.pk)))
 
     def test_is_manager(self):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
-        self.assertFalse(user.is_manager(org1))
-        self.assertFalse(user.is_manager(org2))
-        ou = OrganizationUser.objects.create(user=user, organization=org1)
-        self.assertFalse(user.is_manager(org1))
-        self.assertFalse(user.is_manager(org2))
-        ou.is_admin = True
-        ou.save()
-        self.assertTrue(user.is_manager(org1))
-        self.assertFalse(user.is_manager(org2))
+
+        with self.subTest('org instance'):
+            self.assertFalse(user.is_manager(org1))
+            self.assertFalse(user.is_manager(org2))
+            ou = OrganizationUser.objects.create(user=user, organization=org1)
+            self.assertFalse(user.is_manager(org1))
+            self.assertFalse(user.is_manager(org2))
+            ou.is_admin = True
+            ou.save()
+            self.assertTrue(user.is_manager(org1))
+            self.assertFalse(user.is_manager(org2))
+
+        with self.subTest('org pk'):
+            self.assertTrue(user.is_manager(org1.pk))
+            self.assertFalse(user.is_manager(str(org2.pk)))
 
     def test_is_owner(self):
         user = self._create_user(username='organizations_pk')
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
-        self.assertFalse(user.is_owner(org1))
-        self.assertFalse(user.is_owner(org2))
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.assertTrue(user.is_owner(org1))
-        self.assertFalse(user.is_owner(org2))
+
+        with self.subTest('org instance'):
+            self.assertFalse(user.is_owner(org1))
+            self.assertFalse(user.is_owner(org2))
+            OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
+            self.assertTrue(user.is_owner(org1))
+            self.assertFalse(user.is_owner(org2))
+
+        with self.subTest('org pk'):
+            self.assertTrue(user.is_owner(org1.pk))
+            self.assertFalse(user.is_owner(str(org2.pk)))
 
     def test_organizations_managed(self):
         user = self._create_user(username='organizations_pk')
@@ -263,3 +282,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user.full_clean()
         user.save()
         self.assertTrue(user.has_permission('not_found.not_found'))
+
+    def test_user_get_pk(self):
+        org = Organization.objects.first()
+        pk = str(org.pk)
+        self.assertEqual(User._get_pk(org), pk)
+        self.assertEqual(User._get_pk(org.pk), pk)
+        self.assertEqual(User._get_pk(pk), pk)

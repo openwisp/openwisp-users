@@ -344,10 +344,19 @@ many database queries.
     user.is_manager(org)
     user.is_owner(org)
 
+    # also valid (avoids query to retrieve Organization instance)
+    device = Device.objects.first()
+    user.is_member(device.organization_id)
+    user.is_manager(device.organization_id)
+    user.is_owner(device.organization_id)
+
 ``is_member(org)``
 ~~~~~~~~~~~~~~~~~~
 
 Returns ``True`` if the user is member of the ``Organization`` instance passed.
+Alternatively, ``UUID`` or ``str`` can be passed instead of an organization instance,
+which will be interpreted as the organization primary key; this second option is
+recommended when building the organization instance requires an extra query.
 
 This check shall be used when access needs to be granted to end-users who
 need to consume a service offered by an organization they're member of
@@ -358,6 +367,9 @@ need to consume a service offered by an organization they're member of
 
 Returns ``True`` if the user is member of the ``Organization`` instance
 and has the ``OrganizationUser.is_admin`` field set to ``True``.
+Alternatively, ``UUID`` or ``str`` can be passed instead of an organization instance,
+which will be interpreted as the organization primary key; this second option is
+recommended when building the organization instance requires an extra query.
 
 This check shall be used when access needs to be granted to the managers of
 an organization users who need to perform administrative tasks
@@ -369,6 +381,9 @@ an organization users who need to perform administrative tasks
 Returns ``True`` if the user is member of the ``Organization`` instance
 and is owner of the organization (checks the presence of an
 ``OrganizationOwner`` instance for the user).
+Alternatively, ``UUID`` or ``str`` can be passed instead of an organization instance,
+which will be interpreted as the organization primary key; this second option is
+recommended when building the organization instance requires an extra query.
 
 There can be only one owner for each organization.
 
