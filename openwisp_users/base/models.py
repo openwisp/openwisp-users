@@ -83,8 +83,12 @@ class AbstractUser(BaseUser):
         """ meant for internal usage only """
         if isinstance(obj, (uuid.UUID, str)):
             pk = obj
-        else:
+        elif isinstance(obj, BaseOrganization):
             pk = obj.pk
+        elif obj is None:
+            return None
+        else:
+            raise ValueError('expected UUID, str or Organization instance')
         return str(pk)
 
     def is_member(self, organization):
@@ -225,7 +229,7 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
-        if self.user.is_owner(str(self.organization_id)) and not self.is_admin:
+        if self.user.is_owner(self.organization_id) and not self.is_admin:
             raise ValidationError(
                 _(
                     f'{self.user.username} is the owner of the organization: '

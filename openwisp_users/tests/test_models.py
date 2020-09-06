@@ -286,9 +286,19 @@ class TestUsers(TestOrganizationMixin, TestCase):
     def test_user_get_pk(self):
         org = Organization.objects.first()
         pk = str(org.pk)
-        self.assertEqual(User._get_pk(org), pk)
-        self.assertEqual(User._get_pk(org.pk), pk)
-        self.assertEqual(User._get_pk(pk), pk)
+        with self.subTest('standard tests'):
+            self.assertEqual(User._get_pk(org), pk)
+            self.assertEqual(User._get_pk(org.pk), pk)
+            self.assertEqual(User._get_pk(pk), pk)
+        with self.subTest('None case'):
+            self.assertEqual(User._get_pk(None), None)
+        with self.subTest('ValueError if another type passed'):
+            with self.assertRaises(ValueError) as context_manager:
+                User._get_pk([])
+            self.assertEqual(
+                str(context_manager.exception),
+                'expected UUID, str or Organization instance',
+            )
 
     def test_orguser_is_admin_change(self):
         org = self._create_org(name='test-org')
