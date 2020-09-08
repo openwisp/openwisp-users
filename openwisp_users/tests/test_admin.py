@@ -1275,6 +1275,78 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.assertEqual(r.status_code, 200)
             self.assertContains(r, '-DELETE">Delete')
 
+    def test_delete_org_user(self):
+        self.client.force_login(self._get_admin())
+        user1 = self._create_user(username='user1', email='user1@email.com')
+        org1 = self._create_org(name='org1')
+        org_user = self._create_org_user(user=user1, organization=org1, is_admin=True)
+
+        with self.subTest('test delete org user which belongs to owner'):
+            post_data = {'post': 'yes'}
+            url = reverse(
+                f'admin:{self.app_label}_organizationuser_delete', args=[org_user.pk]
+            )
+            r = self.client.post(url, post_data, follow=True)
+            qs = OrganizationUser.objects.filter(organization=org1, user=user1)
+            self.assertEqual(r.status_code, 200)
+            msg = (
+                't delete this organization user because it '
+                'belongs to an organization owner'
+            )
+            self.assertContains(r, msg)
+            self.assertEqual(qs.count(), 1)
+
+        with self.subTest('test delete org user which belongs to no owner'):
+            org2 = self._create_org(name='org2')
+            org_u = self._create_org_user(user=user1, organization=org2, is_admin=False)
+            post_data = {'post': 'yes'}
+            url = reverse(
+                f'admin:{self.app_label}_organizationuser_delete', args=[org_u.pk]
+            )
+            r = self.client.post(url, post_data, follow=True)
+            qs = OrganizationUser.objects.filter(organization=org2, user=user1)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, 'was deleted successfully.')
+            self.assertEqual(qs.count(), 0)
+
+        with self.subTest("Can not delete only owner's org user with action"):
+            post_data = {
+                'action': 'delete_selected_overridden',
+                '_selected_action': [org_user.pk],
+                'post': 'yes',
+            }
+            url = reverse(f'admin:{self.app_label}_organizationuser_changelist')
+            with self.assertNumQueries(8):
+                r = self.client.post(url, post_data, follow=True)
+            qs = OrganizationUser.objects.filter(user=user1, organization=org1)
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, 't delete organization users which belong to owners')
+            self.assertEqual(qs.count(), 1)
+
+        with self.subTest('delete org users with some belonging to owners'):
+            org2 = self._create_org(name='org2')
+            org_user2 = self._create_org_user(user=user1, organization=org2)
+            post_data = {
+                'action': 'delete_selected_overridden',
+                '_selected_action': [org_user.pk, org_user2.pk],
+            }
+            url = reverse(f'admin:{self.app_label}_organizationuser_changelist')
+            r = self.client.post(url, post_data, follow=True)
+            self.assertEqual(r.status_code, 200)
+            msg = (
+                't delete 1 organization user because '
+                'it belongs to an organization owner'
+            )
+            self.assertContains(r, msg)
+            post_data.update({'post': 'yes'})
+            with self.assertNumQueries(17):
+                r = self.client.post(url, post_data, follow=True)
+            qs = OrganizationUser.objects.filter(pk__in=[org_user.pk, org_user2.pk])
+            self.assertEqual(r.status_code, 200)
+            self.assertContains(r, 'Successfully deleted 1 organization user.')
+            self.assertEqual(qs.count(), 1)
+            self.assertEqual(qs.first().organization, org1)
+
     @patch('sys.stdout', devnull)
     @patch('sys.stderr', devnull)
     def test_admin_add_user_with_invalid_email(self):
@@ -1357,6 +1429,40 @@ class TestBasicUsersIntegration(
         self.assertNotContains(response, 'Please correct the error below.')
         user.refresh_from_db()
         self.assertEqual(user.bio, params['bio'])
+
+    def _delete_inline_org_user(self, is_admin=False):
+        admin = self._create_admin()
+        user = self._create_user()
+        org = self._create_org(name='inline-org')
+        self._create_org_user(organization=org, user=user, is_admin=is_admin)
+        self.client.force_login(admin)
+        params = user.__dict__
+        params.pop('phone_number')
+        params.pop('_password')
+        params.pop('last_login')
+        params = self._additional_params_pop(params)
+        params.update(self._get_user_edit_form_inline_params(user, org))
+        params.update({f'{self.app_label}_organizationuser-0-DELETE': 'on'})
+        path = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
+
+        r = self.client.post(path, params, follow=True)
+        qs = OrganizationUser.objects.filter(user=user)
+        self.assertEqual(r.status_code, 200)
+        if is_admin:
+            single_msg = (
+                't delete 1 organization user because it '
+                'belongs to an organization owner.'
+            )
+            self.assertContains(r, single_msg)
+            self.assertEqual(qs.count(), 1)
+        else:
+            self.assertEqual(qs.count(), 0)
+
+    def test_delete_inline_org_user(self):
+        self._delete_inline_org_user()
+
+    def test_delete_inline_owner_org_user(self):
+        self._delete_inline_org_user(is_admin=True)
 
 
 class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, TestCase):

@@ -28,6 +28,7 @@ from organizations.base_admin import (
     BaseOrganizationOwnerAdmin,
     BaseOrganizationUserAdmin,
 )
+from organizations.exceptions import OwnershipRequired
 from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
@@ -436,6 +437,31 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                     )
                 )
 
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        not_deleted = 0
+        for obj in formset.deleted_objects:
+            try:
+                obj.delete()
+            except OwnershipRequired:
+                not_deleted += 1
+        if not_deleted:
+            single_msg = (
+                f"Can't delete {not_deleted} organization user because it "
+                'belongs to an organization owner.'
+            )
+            multiple_msg = (
+                f"Can't delete {not_deleted} organization users because they "
+                'belong to some organization owners.'
+            )
+            self.message_user(
+                request,
+                ngettext(single_msg, multiple_msg, not_deleted,),
+                messages.ERROR,
+            )
+        for instance in instances:
+            instance.save()
+
 
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
 additional_fields = ['bio', 'url', 'company', 'location', 'phone_number']
@@ -489,6 +515,7 @@ class OrganizationUserAdmin(
     MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin
 ):
     view_on_site = False
+    actions = ['delete_selected_overridden']
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
@@ -509,6 +536,67 @@ class OrganizationUserAdmin(
         if obj and not request.user.is_manager(obj.organization):
             return False
         return super().has_delete_permission(request, obj)
+
+    def delete_view(self, request, object_id, extra_context=None):
+        try:
+            return super().delete_view(request, object_id, extra_context)
+        except OwnershipRequired:
+            self.message_user(
+                request,
+                _(
+                    "Can't delete this organization user because "
+                    'it belongs to an organization owner.'
+                ),
+                messages.ERROR,
+            )
+            redirect_url = reverse(
+                f'admin:{self.model._meta.app_label}_organizationuser_change',
+                args=[object_id],
+            )
+            return HttpResponseRedirect(redirect_url)
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.POST.get('post') and 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+
+    def delete_selected_overridden(self, request, queryset):
+        count = 0
+        pks = []
+        for obj in queryset:
+            if obj.user.is_owner(obj.organization_id):
+                pks.append(obj.pk)
+                count += 1
+        # if trying to delete only org users which belong to owners, stop here
+        if count and count == queryset.count():
+            self.message_user(
+                request,
+                _("Can't delete organization users which belong to owners."),
+                messages.ERROR,
+            )
+            redirect_url = reverse(
+                f'admin:{self.model._meta.app_label}_organizationuser_changelist'
+            )
+            return HttpResponseRedirect(redirect_url)
+        # if some org owners' org users were selected
+        if count and count != queryset.count():
+            queryset = queryset.exclude(pk__in=pks)
+            single_msg = (
+                f"Can't delete {count} organization user because it "
+                'belongs to an organization owner.'
+            )
+            multiple_msg = (
+                f"Can't delete {count} organization users because they "
+                'belong to some organization owners.'
+            )
+            self.message_user(
+                request, ngettext(single_msg, multiple_msg, count,), messages.ERROR,
+            )
+        # otherwise proceed but remove org users from the delete queryset
+        return delete_selected(self, request, queryset)
+
+    delete_selected_overridden.short_description = delete_selected.short_description
 
 
 class OrganizationOwnerAdmin(
