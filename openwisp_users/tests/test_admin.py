@@ -2,6 +2,7 @@ import os
 import smtplib
 from unittest.mock import patch
 
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
@@ -10,7 +11,9 @@ from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
+from ..admin import OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
+from ..multitenancy import MultitenantAdminMixin
 from .utils import (
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
@@ -1472,3 +1475,17 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             hidden=[user1.username],
             visible=[staff.username],
         )
+
+    def test_class_attr_regression(self):
+        class TestAdmin(MultitenantAdminMixin):
+            multitenant_parent = 'test'
+
+        owner_admin = OrganizationOwnerAdmin(Organization, admin.site)
+
+        test_admin = TestAdmin()
+        with self.subTest('multitenant_parent added to multitenant_shared_relations'):
+            self.assertIn('test', test_admin.multitenant_shared_relations)
+        with self.subTest('mutable data structure of sibling class unaffected'):
+            self.assertNotIn('test', owner_admin.multitenant_shared_relations)
+        with self.subTest('original attribute unaffected'):
+            self.assertIsNone(MultitenantAdminMixin.multitenant_shared_relations)

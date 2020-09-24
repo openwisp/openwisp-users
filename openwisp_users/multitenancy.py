@@ -15,15 +15,19 @@ class MultitenantAdminMixin(object):
     they are associated with.
     """
 
-    multitenant_shared_relations = []
+    multitenant_shared_relations = None
     multitenant_parent = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         parent = self.multitenant_parent
-        shared_relations = self.multitenant_shared_relations
+        shared_relations = self.multitenant_shared_relations or []
+        # copy to avoid modifying class attribute
+        shared_relations = list(shared_relations)
+        # add multitenant_parent to multitenant_shared_relations if necessary
         if parent and parent not in shared_relations:
-            self.multitenant_shared_relations.append(parent)
+            shared_relations.append(parent)
+        self.multitenant_shared_relations = shared_relations
 
     def get_repr(self, obj):
         return str(obj)
