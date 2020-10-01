@@ -612,10 +612,10 @@ admin.site.register(User, UserAdmin)
 admin.site.register(Organization, OrganizationAdmin)
 
 # OrganizationUser items can be managed on the user page
-if app_settings.ORGANIZATON_USER_ADMIN:
+if app_settings.ORGANIZATION_USER_ADMIN:
     admin.site.register(OrganizationUser, OrganizationUserAdmin)
 # this item is not being used right now
-if app_settings.ORGANIZATON_OWNER_ADMIN:
+if app_settings.ORGANIZATION_OWNER_ADMIN:
     admin.site.register(OrganizationOwner, OrganizationOwnerAdmin)
 
 # unregister auth.Group

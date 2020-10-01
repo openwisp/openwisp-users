@@ -59,7 +59,7 @@ Features
 Changes
 ~~~~~~~
 
-- Enabled `organization owner admin <https://github.com/openwisp/openwisp-users#openwisp-organizaton-owner-admin>`_ by default
+- Enabled `organization owner admin <https://github.com/openwisp/openwisp-users#openwisp-organization-owner-admin>`_ by default
 - [dependencies] Upgraded ``django-allauth 0.42.0``, ``django-extensions 3.0.2``,
   ``openwisp-utils 0.5[rest]`` and ``phonenumbers 8.12.0``
 

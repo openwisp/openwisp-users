@@ -142,7 +142,7 @@ else:
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
-OPENWISP_ORGANIZATON_USER_ADMIN = True
+OPENWISP_ORGANIZATION_USER_ADMIN = True
 OPENWISP_USERS_AUTH_API = True
 
 if os.environ.get('SAMPLE_APP', False):
