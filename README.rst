@@ -317,6 +317,8 @@ Organization Owners
 An organization owner is a user who is designated as the owner
 of a particular organization and this owner can not be deleted
 or edited by other administrators. Only the superuser has the permissions to do this.
+Also, an error is returned if we try to delete the OrganizationUser instance of an owner
+or flag its ``is_admin`` field as False.
 
 By default, the first manager of an organization is designated as the owner of that organization.
 
