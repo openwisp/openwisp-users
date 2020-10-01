@@ -624,7 +624,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                     'is_staff': True,
                 },
                 'is_owner': True,
-            },
+            }
         }
         self._test_change(options)
 
@@ -637,7 +637,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                     'is_staff': True,
                 },
                 'is_owner': False,
-            },
+            }
         }
         self._test_change(options)
 
@@ -1494,7 +1494,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         user23 = self._create_user(
             username='user23', email='user23j@something.com', is_superuser=True
         )
-        user3 = self._create_user(username='user3', email='user3@something.com',)
+        user3 = self._create_user(username='user3', email='user3@something.com')
         organization_user1 = self._create_org_user(
             organization=org1, user=user1, is_admin=True
         )

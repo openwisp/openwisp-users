@@ -20,9 +20,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('auth', '0011_update_proxy_permissions'),
-    ]
+    dependencies = [('auth', '0011_update_proxy_permissions')]
 
     operations = [
         migrations.CreateModel(
@@ -172,7 +170,7 @@ class Migration(migrations.Migration):
                 'abstract': False,
                 'index_together': {('id', 'email')},
             },
-            managers=[('objects', openwisp_users.base.models.UserManager()),],
+            managers=[('objects', openwisp_users.base.models.UserManager())],
         ),
         migrations.CreateModel(
             name='Group',
@@ -190,9 +188,9 @@ class Migration(migrations.Migration):
                 ),
                 ('details', models.CharField(blank=True, max_length=64, null=True)),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
             bases=(openwisp_users.base.models.BaseGroup, 'auth.group', models.Model),
-            managers=[('objects', django.contrib.auth.models.GroupManager()),],
+            managers=[('objects', django.contrib.auth.models.GroupManager())],
         ),
         migrations.CreateModel(
             name='Organization',
@@ -247,7 +245,7 @@ class Migration(migrations.Migration):
                 ),
                 ('details', models.CharField(blank=True, max_length=64, null=True)),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
             bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
@@ -271,7 +269,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
         ),
         migrations.CreateModel(
             name='OrganizationUser',
@@ -316,7 +314,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
             bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
@@ -360,7 +358,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
             bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
@@ -384,7 +382,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
         ),
         migrations.AddField(
             model_name='organization',

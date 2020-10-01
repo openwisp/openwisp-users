@@ -10,7 +10,7 @@ SHELL = 'shell' in sys.argv or 'shell_plus' in sys.argv
 ALLOWED_HOSTS = ['*']
 
 DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'openwisp-users.db',}
+    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'openwisp-users.db'}
 }
 
 SECRET_KEY = 'fn)t*+$)ugeyip6-#txyy$5wf2ervc0d2n#h)qb)y5@ly$t*@w'
@@ -96,7 +96,7 @@ if not TESTING and SHELL:
                 # logging handler that outputs log messages to terminal
                 'class': 'logging.StreamHandler',
                 'level': 'DEBUG',  # message level to be written to console
-            },
+            }
         },
         'loggers': {
             '': {
