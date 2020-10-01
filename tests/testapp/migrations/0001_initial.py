@@ -10,9 +10,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        swapper.dependency('openwisp_users', 'Organization'),
-    ]
+    dependencies = [swapper.dependency('openwisp_users', 'Organization')]
 
     operations = [
         migrations.CreateModel(
@@ -37,7 +35,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
         ),
         migrations.CreateModel(
             name='Template',
@@ -63,6 +61,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={'abstract': False,},
+            options={'abstract': False},
         ),
     ]

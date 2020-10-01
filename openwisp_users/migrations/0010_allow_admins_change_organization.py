@@ -7,9 +7,7 @@ from . import allow_admins_change_organization
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('openwisp_users', '0009_create_organization_owners'),
-    ]
+    dependencies = [('openwisp_users', '0009_create_organization_owners')]
 
     operations = [
         migrations.RunPython(

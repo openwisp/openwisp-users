@@ -37,10 +37,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             u.full_clean()
 
     def test_create_user_without_email(self):
-        options = {
-            'username': 'testuser',
-            'password': 'test1',
-        }
+        options = {'username': 'testuser', 'password': 'test1'}
         u = self.user_model(**options)
         u.full_clean()
         u.save()
@@ -189,10 +186,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             org_owner.full_clean()
 
     def test_create_users_without_email(self):
-        options = {
-            'username': 'testuser',
-            'password': 'test1',
-        }
+        options = {'username': 'testuser', 'password': 'test1'}
         u = self.user_model(**options)
         u.full_clean()
         u.save()

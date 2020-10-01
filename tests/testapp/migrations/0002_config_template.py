@@ -7,9 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('testapp', '0001_initial'),
-    ]
+    dependencies = [('testapp', '0001_initial')]
 
     operations = [
         migrations.AddField(
@@ -21,5 +19,5 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE,
                 to='testapp.Template',
             ),
-        ),
+        )
     ]

@@ -6,9 +6,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('openwisp_users', '0004_default_groups'),
-    ]
+    dependencies = [('openwisp_users', '0004_default_groups')]
 
     operations = [
         migrations.AddField(
@@ -17,5 +15,5 @@ class Migration(migrations.Migration):
             field=phonenumber_field.modelfields.PhoneNumberField(
                 blank=True, unique=True, max_length=128, null=True, region=None
             ),
-        ),
+        )
     ]

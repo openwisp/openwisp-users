@@ -157,12 +157,7 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
     phone_number = PhoneNumberField(widget=forms.TextInput(), required=False)
 
     class Meta(BaseUserCreationForm.Meta):
-        fields = [
-            'username',
-            'email',
-            'password1',
-            'password2',
-        ]
+        fields = ['username', 'email', 'password1', 'password2']
         personal_fields = ['first_name', 'last_name', 'phone_number']
         fieldsets = (
             (None, {'classes': ('wide',), 'fields': fields}),
@@ -185,10 +180,7 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
         )
 
     class Media:
-        js = (
-            'admin/js/jquery.init.js',
-            'openwisp-users/js/addform.js',
-        )
+        js = ('admin/js/jquery.init.js', 'openwisp-users/js/addform.js')
 
 
 class UserChangeForm(UserFormMixin, BaseUserChangeForm):
@@ -512,7 +504,7 @@ class OrganizationUserAdmin(
 
 
 class OrganizationOwnerAdmin(
-    MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin,
+    MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin
 ):
     list_display = ('get_user', 'organization')
 

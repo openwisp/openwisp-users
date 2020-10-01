@@ -19,9 +19,7 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-        ('auth', '0008_alter_user_username_max_length'),
-    ]
+    dependencies = [('auth', '0008_alter_user_username_max_length')]
 
     operations = [
         migrations.CreateModel(
@@ -124,7 +122,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'user',
                 'abstract': False,
             },
-            managers=[('objects', openwisp_users.base.models.UserManager()),],
+            managers=[('objects', openwisp_users.base.models.UserManager())],
         ),
         migrations.CreateModel(
             name='Organization',
@@ -285,7 +283,7 @@ class Migration(migrations.Migration):
                 'proxy': True,
             },
             bases=('auth.group',),
-            managers=[('objects', django.contrib.auth.models.GroupManager()),],
+            managers=[('objects', django.contrib.auth.models.GroupManager())],
         ),
         migrations.AddField(
             model_name='organizationowner',
@@ -329,6 +327,6 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name='organizationuser', unique_together=set([('user', 'organization')]),
+            name='organizationuser', unique_together=set([('user', 'organization')])
         ),
     ]

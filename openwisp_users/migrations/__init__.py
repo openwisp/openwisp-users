@@ -65,8 +65,7 @@ def create_default_groups(apps, schema_editor):
                 codename='delete_organizationuser',
             ).pk,
             Permission.objects.get(
-                content_type__app_label=model_app_label,
-                codename='add_organizationuser',
+                content_type__app_label=model_app_label, codename='add_organizationuser'
             ).pk,
         ]
         try:

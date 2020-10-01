@@ -8,7 +8,7 @@ from openwisp_users.utils import (
 # Fields to be added in the UserAdmin
 additional_fields = [
     #   [position-of-field-in-form, name-of-field]
-    [2, 'social_security_number'],
+    [2, 'social_security_number']
 ]
 
 # Add field to the User sign up form

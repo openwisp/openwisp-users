@@ -173,7 +173,7 @@ Settings
 --------
 
 ``OPENWISP_ORGANIZATION_USER_ADMIN``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +--------------+------------------+
 | **type**:    | ``boolean``      |
@@ -188,7 +188,7 @@ It is disabled by default because these items can be managed via inline items
 in the user administration section.
 
 ``OPENWISP_ORGANIZATION_OWNER_ADMIN``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +--------------+------------------+
 | **type**:    | ``boolean``      |

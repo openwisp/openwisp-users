@@ -13,9 +13,7 @@ def set_blank_emails_to_none(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('openwisp_users', '0006_id_email_index_together'),
-    ]
+    dependencies = [('openwisp_users', '0006_id_email_index_together')]
 
     operations = [
         # allow NULL
