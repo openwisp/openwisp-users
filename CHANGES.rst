@@ -1,10 +1,16 @@
 Changelog
 =========
 
-Version 0.4.1 [unreleased]
+Version 0.4.1 [2020-10-08]
 --------------------------
 
-WIP
+- [chores] Allow passing a string or uuid to the
+  `Organization membership helpers <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
+- [fix] The ``OrganizationUser`` instance of an ``OrganizationOwner``
+  won't be allowed to be ``is_admin=False``
+- [fix] Fixed mutable class attribute in MultitenantAdminMixin
+- [fix] Fixed exception when deleting ``OrganizationUser`` of an owner
+- [fix] Fixed typographical error in organization name
 
 Version 0.4.0 [2020-08-23]
 --------------------------
