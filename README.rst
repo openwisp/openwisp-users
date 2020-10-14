@@ -81,16 +81,20 @@ Setup (integrate in an existing django project)
         'django.contrib.messages',
         'django.contrib.staticfiles',
         'openwisp_utils.admin_theme',
-        'django.contrib.admin',
-        'django.contrib.sites',
+        # overrides some templates in django-allauth
+        'openwisp_users.accounts',
         'django_extensions',
         'allauth',
         'allauth.account',
         'allauth.socialaccount',
+        # must come before the django admin
+        # to override the admin login page
+        'openwisp_users',
+        'django.contrib.admin',
+        'django.contrib.sites',
         'rest_framework',
         'rest_framework.authtoken',
         'drf_yasg',
-        'openwisp_users',
     ]
 
 also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::

@@ -22,17 +22,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'openwisp_utils.admin_theme',
+    # overrides some templates in django-allauth
     'openwisp_users.accounts',
-    'django.contrib.admin',
-    'django.contrib.sites',
     'django_extensions',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    # must come before the django admin
+    # to override the admin login page
+    'openwisp_users',
+    'django.contrib.admin',
+    'django.contrib.sites',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_yasg',
-    'openwisp_users',
     'testapp',
 ]
 
