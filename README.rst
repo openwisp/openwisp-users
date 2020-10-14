@@ -119,7 +119,9 @@ also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::
     urlpatterns += staticfiles_urlpatterns()
 
 
-For additional steps to properly configure ``allauth`` in your project, please refer to their documentation: `allauth documentation installation section <http://django-allauth.readthedocs.io/en/latest/installation.html>`_.
+For additional steps to properly configure ``allauth`` in your project,
+please refer to their documentation:
+`allauth documentation installation section <http://django-allauth.readthedocs.io/en/latest/installation.html>`_.
 
 Installing for development
 --------------------------
