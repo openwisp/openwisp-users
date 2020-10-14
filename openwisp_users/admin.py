@@ -223,6 +223,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             if request.POST.get('confirmation') is None:
                 request.current_app = modeladmin.admin_site.name
                 context = {
+                    **modeladmin.admin_site.each_context(request),
+                    'title': _('Are you sure?'),
                     'action': request.POST['action'],
                     'queryset': queryset,
                     'opts': opts,
