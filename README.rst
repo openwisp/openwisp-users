@@ -571,7 +571,7 @@ In order to implement your custom version of *openwisp-users*,
 you need to perform the steps described in this section.
 
 When in doubt, the code in the `test project <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/>`_ and
-the `sample app <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/>`_
+the `sample app <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/>`_
 will serve you as source of truth:
 just replicate and adapt that code to get a basic derivative of
 *openwisp-users* working.
@@ -674,8 +674,8 @@ Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` in your ``setti
 
 Please refer to the following files in the sample app of the test project:
 
-- `openwisp_users/__init__.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/__init__.py>`_
-- `openwisp_users/apps.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/apps.py>`_
+- `openwisp_users/__init__.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/__init__.py>`_
+- `openwisp_users/apps.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/apps.py>`_
 
 You have to replicate and adapt that code in your project.
 
@@ -686,7 +686,7 @@ the `"Applications" section in the django documentation <https://docs.djangoproj
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the purpose of showing an example, we added a simple ``social_security_number`` field in User model to the
-`models of the sample app in the test project <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/models.py>`_.
+`models of the sample app in the test project <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/models.py>`_.
 
 You can add fields in a similar way in your ``models.py`` file.
 
@@ -725,7 +725,7 @@ Apply database migrations::
 10. Create the admin
 ~~~~~~~~~~~~~~~~~~~~
 
-Refer to the `admin.py file of the sample app <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/admin.py>`_.
+Refer to the `admin.py file of the sample app <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/admin.py>`_.
 
 To introduce changes to the admin, you can do it in two main ways which are described below.
 
@@ -857,7 +857,7 @@ you're introducing are not breaking some of the existing features of *openwisp-u
 In case you need to add breaking changes, you can overwrite the tests defined
 in the base classes to test your own behavior.
 
-See the `tests of the sample app <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/tests.py>`_
+See the `tests of the sample app <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/tests.py>`_
 to find out how to do this.
 
 You can then run tests with::
@@ -879,7 +879,7 @@ The API view classes can be extended into other django applications as well. Not
 that it is not required for extending *openwisp-users* to your app and this change
 is required only if you plan to make changes to the API views.
 
-Create a view file as done in `API views.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/openwisp_users/views.py>`_.
+Create a view file as done in `API views.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/views.py>`_.
 
 Remember to use these views in root URL configurations in point 11.
 
