@@ -751,7 +751,7 @@ For example:
 
     # OrganizationAdmin.field += ['example_field'] <-- Monkey patching changes example
 
-For your convience of adding fields in User forms, we provide the following functions:
+For your convenience of adding fields in User forms, we provide the following functions:
 
 usermodel_add_form
 """"""""""""""""""
