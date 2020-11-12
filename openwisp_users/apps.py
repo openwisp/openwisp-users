@@ -54,6 +54,7 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        Organization = load_model('openwisp_users', 'Organization')
         Group = load_model('openwisp_users', 'Group')
         User = get_user_model()
         signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
@@ -67,6 +68,12 @@ class OpenwispUsersConfig(AppConfig):
                         name, model.__name__
                     ),
                 )
+        for signal, name in signal_tuples:
+            signal.connect(
+                self.update_selected_org,
+                sender=Organization,
+                dispatch_uid='update_selected_org',
+            )
         post_save.connect(
             self.create_organization_owner,
             sender=OrganizationUser,
@@ -82,6 +89,15 @@ class OpenwispUsersConfig(AppConfig):
                 sender=model,
                 dispatch_uid='update_user_permissions',
             )
+
+    def update_selected_org(cls, user=None, **kwargs):
+        if user:
+            cache_key = 'selected_{}_org'.format(user.pk)
+            cache.delete(cache_key)
+
+        # also delete for superuser
+        cache_key = 'selected_{}_org'.format('superuser')
+        cache.delete(cache_key)
 
     def update_organizations_dict(cls, instance, **kwargs):
         if hasattr(instance, 'user'):
@@ -100,6 +116,7 @@ class OpenwispUsersConfig(AppConfig):
             del user.organizations_owned
         except AttributeError:
             pass
+        cls.update_selected_org(user, **kwargs)
 
     def create_organization_owner(cls, instance, created, **kwargs):
         if not created or not instance.is_admin:

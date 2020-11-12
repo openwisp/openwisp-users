@@ -33,7 +33,7 @@ from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
 from . import settings as app_settings
-from .multitenancy import MultitenantAdminMixin
+from .multitenancy import MultitenantAdminMixin, SelectOrgMixin
 from .utils import BaseAdmin
 
 Group = load_model('openwisp_users', 'Group')
@@ -92,7 +92,7 @@ class OrganizationOwnerInline(admin.StackedInline):
         return super().has_change_permission(request, obj)
 
 
-class OrganizationUserInline(admin.StackedInline):
+class OrganizationUserInline(admin.StackedInline, SelectOrgMixin):
     model = OrganizationUser
     formset = RequiredInlineFormSet
     view_on_site = False
@@ -106,6 +106,7 @@ class OrganizationUserInline(admin.StackedInline):
         """
         formset = super().get_formset(request, obj=obj, **kwargs)
         if request.user.is_superuser:
+            self.select_organization(request, formset.form)
             return formset
         if not request.user.is_superuser:
             formset.form.base_fields[
@@ -113,6 +114,7 @@ class OrganizationUserInline(admin.StackedInline):
             ].queryset = Organization.objects.filter(
                 pk__in=request.user.organizations_managed
             )
+        self.select_organization(request, formset.form)
         return formset
 
     def get_extra(self, request, obj=None, **kwargs):

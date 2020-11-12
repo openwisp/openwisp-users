@@ -8,7 +8,21 @@ User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
-class MultitenantAdminMixin(object):
+class SelectOrgMixin(object):
+    def select_organization(self, request, form):
+        '''
+        When the user has access to only one organization
+        automatically set that org as the default value
+        '''
+        if request.method == 'POST':
+            return
+        fields = form.base_fields
+        if 'organization' in fields:
+            org_field = fields['organization']
+            org_field.initial = request.user.selected_org(org_field)
+
+
+class MultitenantAdminMixin(SelectOrgMixin):
     """
     Mixin that makes a ModelAdmin class multitenant:
     users will see only the objects related to the organizations
@@ -89,6 +103,7 @@ class MultitenantAdminMixin(object):
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
         self._edit_form(request, form)
+        self.select_organization(request, form)
         return form
 
     def get_formset(self, request, obj=None, **kwargs):

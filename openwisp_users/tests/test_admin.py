@@ -1680,3 +1680,23 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             response = self.client.get(url)
             for pk in user.organizations_managed:
                 self.assertNotContains(response, f'<a href="?organization={pk}"')
+    def test_select_organization(self):
+        # test for superuser
+        self._login()
+        url = reverse(f'admin:{self.app_label}_user_add')
+        html = 'selected>default</option>'
+        response = self.client.get(url)
+        self.assertContains(response, html)
+        self._logout()
+        # test for non-superuser
+        org1 = self._create_org(name='organization1')
+        user1 = self._create_user(
+            username='user1', email='user1j@something.com', is_staff=True
+        )
+        admin_group = Group.objects.get(name='Administrator')
+        user1.groups.add(admin_group)
+        self._create_org_user(user=user1, is_admin=True, organization=org1)
+        self._login(username=user1.username)
+        html = 'selected>{}</option>'.format(org1.name)
+        response = self.client.get(url)
+        self.assertContains(response, html)

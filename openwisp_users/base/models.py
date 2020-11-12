@@ -97,6 +97,23 @@ class AbstractUser(BaseUser):
                 return True
         return False
 
+    def selected_org(self, org_field):
+        if self.is_superuser:
+            cache_key = 'selected_{}_org'.format('superuser')
+        else:
+            cache_key = 'selected_{}_org'.format(self.pk)
+        selected_org = cache.get(cache_key)
+        if selected_org is not None:  # If cache is not deleted
+            if selected_org is False:
+                return None
+            return selected_org
+        org_queryset = org_field._queryset
+        if org_queryset.count() == 1:
+            selected_org = org_queryset[0]
+        else:
+            selected_org = False  # Tells selected org is None
+        cache.set(cache_key, selected_org, 86400 * 2)  # Cache for two days
+
     @property
     def organizations_dict(self):
         """
