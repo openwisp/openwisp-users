@@ -9,6 +9,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
+from openwisp_utils.utils import register_menu_items
 from swapper import get_model_name, load_model
 
 from . import settings as app_settings
@@ -22,21 +23,17 @@ class OpenwispUsersConfig(AppConfig):
     verbose_name = _('Users and Organizations')
 
     def ready(self):
-        self.add_default_menu_items()
+        self.register_default_menu_items()
         self.set_default_settings()
         self.connect_receivers()
 
-    def add_default_menu_items(self):
-        menu_setting = 'OPENWISP_DEFAULT_ADMIN_MENU_ITEMS'
-        items = [
-            {'model': settings.AUTH_USER_MODEL},
-            {'model': get_model_name('openwisp_users', 'Organization')},
-        ]
-        if not hasattr(settings, menu_setting):
-            setattr(settings, menu_setting, items)
-        else:
-            current_menu = getattr(settings, menu_setting)
-            current_menu += items
+    def register_default_menu_items(self):
+        register_menu_items(
+            [
+                {'model': settings.AUTH_USER_MODEL},
+                {'model': get_model_name('openwisp_users', 'Organization')},
+            ]
+        )
 
     def set_default_settings(self):
         LOGIN_URL = getattr(settings, 'LOGIN_URL', None)
