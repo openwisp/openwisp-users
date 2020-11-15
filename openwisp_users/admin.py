@@ -451,9 +451,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 'belong to some organization owners.'
             )
             self.message_user(
-                request,
-                ngettext(single_msg, multiple_msg, not_deleted,),
-                messages.ERROR,
+                request, ngettext(single_msg, multiple_msg, not_deleted), messages.ERROR
             )
         for instance in instances:
             instance.save()
@@ -621,7 +619,7 @@ class OrganizationUserAdmin(
                 'belong to some organization owners.'
             )
             self.message_user(
-                request, ngettext(single_msg, multiple_msg, count,), messages.ERROR,
+                request, ngettext(single_msg, multiple_msg, count), messages.ERROR
             )
         # otherwise proceed but remove org users from the delete queryset
         return delete_selected(self, request, queryset)
