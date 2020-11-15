@@ -60,24 +60,6 @@ class AbstractUser(BaseUser):
         abstract = True
         index_together = ('id', 'email')
 
-    @cached_property
-    def organizations_pk(self):
-        """
-        returns primary keys of organizations the user is associated to
-        """
-        logger.warn(
-            "User.organizations_pk is deprecated in favor of User.organizations_dict"
-            " and will be removed in a future version"
-        )
-        manager = load_model('openwisp_users', 'OrganizationUser').objects
-        qs = (
-            manager.filter(user=self, organization__is_active=True)
-            .select_related()
-            .only('organization_id')
-            .values_list('organization_id')
-        )
-        return qs
-
     @staticmethod
     def _get_pk(obj):
         """ meant for internal usage only """
