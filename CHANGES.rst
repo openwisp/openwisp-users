@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 0.5.0 [2020-11-18]
+--------------------------
+
+Features
+~~~~~~~~
+
+N/A.
+
+Changes
+~~~~~~~
+
+- [change] Extend ``admin/base_site.html`` in ``confirm_email.html``
+- [change] Updated to openwisp-utils 0.1 and switched to new ``register_menu_items``
+- [change] Removed typographic error in settings which was maintained
+  for backward compatibility
+- [change] Removed deprecated ``organizations_pk``
+
+Bugfixes
+~~~~~~~~
+
+- [fix] Fix email confirmation when link is invalid
+- [docs] Fixed several broken links in "Extend openwisp-users" section
+- [fix] Allow swagger to show parameters of obtain token view
+
 Version 0.4.1 [2020-10-08]
 --------------------------
 
