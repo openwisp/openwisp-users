@@ -13,7 +13,7 @@ Changes
 ~~~~~~~
 
 - [change] Extend ``admin/base_site.html`` in ``confirm_email.html``
-- [change] Updated to openwisp-utils 0.1 and switched to new ``register_menu_items``
+- [change] Updated to openwisp-utils 0.7 and switched to new ``register_menu_items``
 - [change] Removed typographic error in settings which was maintained
   for backward compatibility
 - [change] Removed deprecated ``organizations_pk``
