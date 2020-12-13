@@ -1,6 +1,24 @@
 Changelog
 =========
 
+Version 0.5.1 [2020-12-13]
+--------------------------
+
+Changes
+~~~~~~~
+
+- Updated django-allauth to 0.44.x
+- Copied the template ``account/login.html`` from django-allauth
+  in order to remove the sign up link, which we do not support
+- Updated django-extensions to 3.1
+
+Bugfixes
+~~~~~~~~
+
+- Updating django-allauth to 0.44.x also fixes an `issue affecting
+  OpenWISP Users in production deployment (experienced in ansible-openwisp2)
+  <https://github.com/openwisp/ansible-openwisp2/issues/233>`_
+
 Version 0.5.0 [2020-11-18]
 --------------------------
 
