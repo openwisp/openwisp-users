@@ -90,6 +90,11 @@ TEMPLATES = [
     }
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'openwisp_users.backends.UserAuthenticationBackend',
+]
+
 if not TESTING and SHELL:
     LOGGING = {
         'disable_existing_loggers': False,
