@@ -91,7 +91,6 @@ TEMPLATES = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
     'openwisp_users.backends.UserAuthenticationBackend',
 ]
 

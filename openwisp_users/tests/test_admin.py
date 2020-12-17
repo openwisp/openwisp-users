@@ -1585,7 +1585,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         staff.groups.add(admin_group)
         self._create_org_user(organization=other_org, user=staff, is_admin=False)
         self._create_org_user(organization=staff_org, user=staff, is_admin=True)
-        self._login(staff)
+        self._login(staff.username)
         user1 = self._create_user(username='user1__otherorg', email='user1@user1.org')
         self._create_org_user(organization=other_org, user=user1, is_admin=False)
         self._test_multitenant_admin(
