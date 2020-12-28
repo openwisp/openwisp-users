@@ -1381,6 +1381,15 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
             mocked.assert_called_once()
 
+    def test_organization_default_label(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        url = reverse(f'admin:testapp_book_add')
+        r = self.client.get(url)
+        self.assertContains(
+            r, '<option value="" selected>Shared systemwide (no organization)</option>'
+        )
+
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
