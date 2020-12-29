@@ -491,6 +491,20 @@ to avoid generating database queries each time is called.
     >>> user.has_permission('openwisp_users.add_user')
     ... True
 
+Authentication Backend
+----------------------
+The custom authentication backend: ``UserAuthenticationBackend`` allow a user to authenticate
+using an ``email`` or ``phone_number`` or ``username`` and a ``password`` as credentials.
+It can be used as follows:
+
+.. code-block:: python
+
+    from openwisp_users.backends import UserAuthenticationBackend
+
+    backend = UserAuthenticationBackend()
+    backend.authenticate(request, phone_number, password)
+
+
 Django REST Framework Permission Classes
 ----------------------------------------
 

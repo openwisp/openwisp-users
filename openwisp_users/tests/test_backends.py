@@ -88,21 +88,19 @@ class TestBackends(TestOrganizationMixin, TestCase):
             phone_number='+237675579232',
             password='tester1',
         )
-        with self.subTest('get user with primary key'):
-            self.assertEqual(auth_backend.get_user(user.pk), user)
 
         with self.subTest('get user with invalid identifier'):
-            self.assertIsNone(auth_backend.get_user('invalid'))
+            self.assertEqual(len(auth_backend.get_users('invalid')), 0)
 
         with self.subTest('get user with email'):
             user1.username = user.email
             user1.save()
-            self.assertEqual(auth_backend.get_user(user.email), user)
+            self.assertEqual(auth_backend.get_users(user.email)[0], user)
 
         with self.subTest('get user with phone_number'):
             user1.username = user.phone_number
             user1.save()
-            self.assertEqual(auth_backend.get_user(user.phone_number), user)
+            self.assertEqual(auth_backend.get_users(user.phone_number)[0], user)
 
         with self.subTest('get user with username'):
-            self.assertEqual(auth_backend.get_user(user.username), user)
+            self.assertEqual(auth_backend.get_users(user.username)[0], user)
