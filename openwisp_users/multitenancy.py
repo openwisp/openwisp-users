@@ -65,8 +65,10 @@ class MultitenantAdminMixin(object):
         else show everything
         """
         fields = form.base_fields
-        if 'organization' in fields:
-            fields['organization'].empty_label = 'Shared systemwide (no organization)'
+        if 'organization' in fields and not fields['organization'].required:
+            fields['organization'].empty_label = _(
+                'Shared systemwide (no organization)'
+            )
         if not request.user.is_superuser:
             orgs_pk = request.user.organizations_managed
             # organizations relation;
