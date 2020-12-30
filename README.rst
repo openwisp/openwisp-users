@@ -97,10 +97,14 @@ Setup (integrate in an existing django project)
         'drf_yasg',
     ]
 
-also add ``AUTH_USER_MODEL`` and ``SITE_ID`` to your ``settings.py``::
+also add ``AUTH_USER_MODEL``, ``SITE_ID`` and ``AUTHENTICATION_BACKENDS``
+to your ``settings.py``::
 
     AUTH_USER_MODEL = 'openwisp_users.User'
     SITE_ID = 1
+    AUTHENTICATION_BACKENDS = [
+        'openwisp_users.backends.UsersAuthenticationBackend',
+    ]
 
 ``urls.py``:
 
@@ -490,6 +494,24 @@ to avoid generating database queries each time is called.
 
     >>> user.has_permission('openwisp_users.add_user')
     ... True
+
+Authentication Backend
+----------------------
+
+The authentication backend in ``openwisp_users.backends.UsersAuthenticationBackend``
+allows users to authenticate using their
+``email`` or ``phone_number`` instead of their ``username``.
+Authenticating with the ``username`` is still allowed,
+but ``email`` and ``phone_number`` have precedence.
+
+It can be used as follows:
+
+.. code-block:: python
+
+    from openwisp_users.backends import UsersAuthenticationBackend
+
+    backend = UsersAuthenticationBackend()
+    backend.authenticate(request, phone_number, password)
 
 Django REST Framework Permission Classes
 ----------------------------------------

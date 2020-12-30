@@ -14,6 +14,7 @@ from openwisp_users.tests.test_api.test_throttling import (
 from openwisp_users.tests.test_api.test_views import (
     TestRestFrameworkViews as BaseTestRestFrameworkViews,
 )
+from openwisp_users.tests.test_backends import TestBackends as BaseTestBackends
 from openwisp_users.tests.test_models import TestUsers as BaseTestUsers
 
 additional_fields = [
@@ -98,6 +99,10 @@ class RatelimitTests(BaseRatelimitTests):
     pass
 
 
+class TestBackends(BaseTestBackends):
+    pass
+
+
 del BaseTestUsersAdmin
 del BaseTestBasicUsersIntegration
 del BaseTestMultitenantAdmin
@@ -105,3 +110,4 @@ del BaseTestUsers
 del BaseAuthenticationTests
 del BaseRatelimitTests
 del BaseTestRestFrameworkViews
+del BaseTestBackends

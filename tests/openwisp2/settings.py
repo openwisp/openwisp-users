@@ -90,6 +90,10 @@ TEMPLATES = [
     }
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'openwisp_users.backends.UsersAuthenticationBackend',
+]
+
 if not TESTING and SHELL:
     LOGGING = {
         'disable_existing_loggers': False,
