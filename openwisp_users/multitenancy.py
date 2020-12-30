@@ -76,6 +76,7 @@ class MultitenantAdminMixin(object):
             if 'organization' in fields:
                 org_field = fields['organization']
                 org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
+                org_field.empty_label = None
             # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:

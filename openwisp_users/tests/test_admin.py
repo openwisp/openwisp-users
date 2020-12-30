@@ -1387,10 +1387,21 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         with self.subTest('Test required organization label'):
             r = self.client.get(reverse('admin:testapp_book_add'))
             self.assertContains(r, '<option value="" selected>---------</option>')
-        with self.subTest('Test optional organization label'):
+
+        with self.subTest('Test optional organization label for superuser'):
             r = self.client.get(reverse('admin:testapp_template_add'))
             self.assertContains(
                 r, '<option value="" selected>Shared systemwide (no organization)',
+            )
+
+        with self.subTest('Test optional organization label for non-superuser'):
+            operator = self._create_operator()
+            template_permissions = Permission.objects.filter(codename='add_template')
+            operator.user_permissions.add(*template_permissions)
+            self.client.force_login(operator)
+            r = self.client.get(reverse('admin:testapp_template_add'))
+            self.assertNotContains(
+                r, 'Shared systemwide (no organization)',
             )
 
     @classmethod
