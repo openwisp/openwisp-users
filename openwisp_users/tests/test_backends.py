@@ -3,11 +3,11 @@ from uuid import UUID
 from django.test import TestCase
 from django.test.utils import override_settings
 
-from openwisp_users.backends import UserAuthenticationBackend
+from openwisp_users.backends import UsersAuthenticationBackend
 
 from .utils import TestOrganizationMixin
 
-auth_backend = UserAuthenticationBackend()
+auth_backend = UsersAuthenticationBackend()
 
 
 class TestBackends(TestOrganizationMixin, TestCase):
@@ -21,7 +21,7 @@ class TestBackends(TestOrganizationMixin, TestCase):
         self.assertNotIn('_auth_user_id', self.client.session)
 
     @override_settings(
-        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UserAuthenticationBackend',)
+        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UsersAuthenticationBackend',)
     )
     def test_user_auth_backend(self):
         user = self._create_user(
@@ -40,7 +40,7 @@ class TestBackends(TestOrganizationMixin, TestCase):
             self._test_user_auth_backend_helper('+237675579231', 'tester', user.pk)
 
     @override_settings(
-        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UserAuthenticationBackend',)
+        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UsersAuthenticationBackend',)
     )
     def test_user_with_email_as_username_auth_backend(self):
         user = self._create_user(
@@ -58,7 +58,7 @@ class TestBackends(TestOrganizationMixin, TestCase):
         self._test_user_auth_backend_helper(user.email, 'tester', user.pk)
 
     @override_settings(
-        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UserAuthenticationBackend',)
+        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UsersAuthenticationBackend',)
     )
     def test_user_with_phone_number_as_username_auth_backend(self):
         user = self._create_user(

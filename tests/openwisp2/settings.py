@@ -91,7 +91,7 @@ TEMPLATES = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    'openwisp_users.backends.UserAuthenticationBackend',
+    'openwisp_users.backends.UsersAuthenticationBackend',
 ]
 
 if not TESTING and SHELL:
