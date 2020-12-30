@@ -1381,6 +1381,29 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
             mocked.assert_called_once()
 
+    def test_organization_default_label(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        with self.subTest('Test required organization label'):
+            r = self.client.get(reverse('admin:testapp_book_add'))
+            self.assertContains(r, '<option value="" selected>---------</option>')
+
+        with self.subTest('Test optional organization label for superuser'):
+            r = self.client.get(reverse('admin:testapp_template_add'))
+            self.assertContains(
+                r, '<option value="" selected>Shared systemwide (no organization)',
+            )
+
+        with self.subTest('Test optional organization label for non-superuser'):
+            operator = self._create_operator()
+            template_permissions = Permission.objects.filter(codename='add_template')
+            operator.user_permissions.add(*template_permissions)
+            self.client.force_login(operator)
+            r = self.client.get(reverse('admin:testapp_template_add'))
+            self.assertNotContains(
+                r, 'Shared systemwide (no organization)',
+            )
+
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()

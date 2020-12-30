@@ -65,13 +65,17 @@ class MultitenantAdminMixin(object):
         else show everything
         """
         fields = form.base_fields
-        if not request.user.is_superuser:
-            orgs_pk = request.user.organizations_managed
+        user = request.user
+        org_field = fields.get('organization')
+        if user.is_superuser and org_field and not org_field.required:
+            org_field.empty_label = _('Shared systemwide (no organization)')
+        elif not user.is_superuser:
+            orgs_pk = user.organizations_managed
             # organizations relation;
             # may be readonly and not present in field list
-            if 'organization' in fields:
-                org_field = fields['organization']
+            if org_field:
                 org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
+                org_field.empty_label = None
             # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:
@@ -98,8 +102,8 @@ class MultitenantAdminMixin(object):
         from same organization and hide superusers
         if superuser is logged in - show all users
         """
-        if not request.user.is_superuser:
-            user = request.user
+        user = request.user
+        if not user.is_superuser:
             org_users = OrganizationUser.objects.filter(user=user).select_related(
                 'organization'
             )

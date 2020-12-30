@@ -9,6 +9,9 @@ from openwisp_users.mixins import OrgMixin, ShareableOrgMixin
 class Template(ShareableOrgMixin):
     name = models.CharField(max_length=16)
 
+    def __str__(self):
+        return self.name
+
     def clean(self):
         self._validate_org_reverse_relation('config_set')
 
