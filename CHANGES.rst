@@ -1,6 +1,25 @@
 Changelog
 =========
 
+Version 0.6.0 [unreleased]
+--------------------------
+
+Features
+~~~~~~~~
+
+- Allowed authentication with email or phone number,
+  see `Authentication Backend <https://github.com/openwisp/openwisp-users#authentication-backend>`_
+
+Changes
+~~~~~~~
+
+- Improved or removed empty label for organization field
+
+Bugfixes
+~~~~~~~~
+
+N/A
+
 Version 0.5.1 [2020-12-13]
 --------------------------
 
