@@ -1,4 +1,5 @@
 {% extends "admin/login.html" %}
+{% load i18n %}
 {% block content %}
 {% if form.errors and not form.non_field_errors %}
 <p class="errornote">
@@ -28,7 +29,10 @@
 <form action="{{ app_path }}" method="post" id="login-form">{% csrf_token %}
   <div class="form-row">
     {{ form.username.errors }}
-    {{ form.username.label_tag }} {{ form.username }}
+    <label class="required" for="id_username">
+      {% trans 'Email, phone number or username' %}:
+    </label>
+    {{ form.username }}
   </div>
   <div class="form-row">
     {{ form.password.errors }}

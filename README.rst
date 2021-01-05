@@ -668,7 +668,8 @@ Add ``openwisp_utils.staticfiles.DependencyFinder`` to
 5. Add ``openwisp_utils.loaders.DependencyLoader``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` in your ``settings.py``:
+Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES``
+before ``django.template.loaders.app_directories.Loader`` in your ``settings.py``:
 
 .. code-block:: python
 
@@ -678,8 +679,8 @@ Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` in your ``setti
             'OPTIONS': {
                 'loaders': [
                     'django.template.loaders.filesystem.Loader',
-                    'django.template.loaders.app_directories.Loader',
                     'openwisp_utils.loaders.DependencyLoader',
+                    'django.template.loaders.app_directories.Loader',
                 ],
                 'context_processors': [
                     'django.template.context_processors.debug',

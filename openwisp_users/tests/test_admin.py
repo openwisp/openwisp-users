@@ -1479,6 +1479,18 @@ class TestBasicUsersIntegration(
     def test_delete_inline_owner_org_user(self):
         self._delete_inline_org_user(is_admin=True)
 
+    def test_login_page(self):
+        r = self.client.get(reverse('admin:login'))
+
+        with self.subTest('Test forgot password link'):
+            self.assertContains(
+                r, '<a href="/accounts/password/reset/">Forgot Password?</a>'
+            )
+
+        with self.subTest('Test username label'):
+            self.assertContains(r, '<label class="required" for="id_username">')
+            self.assertContains(r, 'Email, phone number or username:')
+
 
 class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, TestCase):
     app_label = 'openwisp_users'
