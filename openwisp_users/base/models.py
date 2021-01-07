@@ -113,6 +113,7 @@ class AbstractUser(BaseUser):
         else:
             selected_org = False  # Tells selected org is None
         cache.set(cache_key, selected_org, 86400 * 2)  # Cache for two days
+        return selected_org
 
     @property
     def organizations_dict(self):

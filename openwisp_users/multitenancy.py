@@ -20,6 +20,19 @@ class SelectOrgMixin(object):
         if 'organization' in fields:
             org_field = fields['organization']
             org_field.initial = request.user.selected_org(org_field)
+            org_field.empty_label = self._get_empty_level(
+                request.user.is_superuser, org_field
+            )
+
+    def _get_empty_level(self, superuser, org_field):
+        if superuser:
+            if not org_field.required:
+                org_field.initial = None
+                return _('Shared systemwide (no organization)')
+            elif org_field._queryset.count() == 1:
+                return None
+            return org_field.empty_label
+        return None
 
 
 class MultitenantAdminMixin(SelectOrgMixin):
@@ -81,15 +94,12 @@ class MultitenantAdminMixin(SelectOrgMixin):
         fields = form.base_fields
         user = request.user
         org_field = fields.get('organization')
-        if user.is_superuser and org_field and not org_field.required:
-            org_field.empty_label = _('Shared systemwide (no organization)')
-        elif not user.is_superuser:
+        if not user.is_superuser:
             orgs_pk = user.organizations_managed
             # organizations relation;
             # may be readonly and not present in field list
             if org_field:
                 org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
-                org_field.empty_label = None
             # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:
