@@ -72,8 +72,10 @@ class OpenwispUsersConfig(AppConfig):
             for signal, name in signal_tuples:
                 signal.connect(
                     self.update_selected_org,
-                    sender=Organization,
-                    dispatch_uid='update_selected_org',
+                    sender=model,
+                    dispatch_uid='{}_{}_update_selected_org'.format(
+                        name, model.__name__
+                    ),
                 )
         post_save.connect(
             self.create_organization_owner,
