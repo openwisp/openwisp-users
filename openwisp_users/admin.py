@@ -470,7 +470,10 @@ UserAdmin.search_fields += ('phone_number',)
 
 
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
-    pass
+    if 'reversion' in settings.INSTALLED_APPS:
+        # Correctly register the proxy model
+        def reversion_register(self, model, **kwargs):
+            return super().reversion_register(model, for_concrete_model=False, **kwargs)
 
 
 class OrganizationAdmin(
