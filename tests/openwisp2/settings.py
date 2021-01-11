@@ -150,7 +150,6 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
 OPENWISP_ORGANIZATION_USER_ADMIN = True
-OPENWISP_USERS_AUTH_API = True
 
 if os.environ.get('SAMPLE_APP', False):
     users_index = INSTALLED_APPS.index('openwisp_users')

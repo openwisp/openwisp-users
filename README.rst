@@ -217,7 +217,7 @@ Find out more information about `organization owners <#organization-owners>`_.
 +--------------+--------------+
 | **type**:    | ``boolean``  |
 +--------------+--------------+
-| **default**: | ``False``    |
+| **default**: | ``True``     |
 +--------------+--------------+
 
 Indicates whether the `REST API <#rest-api>`_ is enabled or not.
