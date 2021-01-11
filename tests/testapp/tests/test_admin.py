@@ -36,3 +36,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.assertNotContains(
                 r, 'Shared systemwide (no organization)',
             )
+
+    def test_accounts_login(self):
+        r = self.client.get(reverse('account_login'), follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, '<button class="primaryAction" type="submit">')
