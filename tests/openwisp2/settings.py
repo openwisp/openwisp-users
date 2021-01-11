@@ -21,9 +21,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'openwisp_utils.admin_theme',
     # overrides some templates in django-allauth
     'openwisp_users.accounts',
+    'openwisp_utils.admin_theme',
     'django_extensions',
     'allauth',
     'allauth.account',
@@ -161,6 +161,9 @@ if os.environ.get('SAMPLE_APP', False):
     OPENWISP_USERS_ORGANIZATION_MODEL = 'sample_users.Organization'
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'sample_users.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'sample_users.OrganizationOwner'
+
+if os.environ.get('NO_SOCIAL_APP', False):
+    INSTALLED_APPS.remove('allauth.socialaccount')
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
