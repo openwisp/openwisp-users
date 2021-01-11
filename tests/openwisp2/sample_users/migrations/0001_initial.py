@@ -118,7 +118,7 @@ class Migration(migrations.Migration):
                 (
                     'location',
                     models.CharField(
-                        blank=True, max_length=128, verbose_name='location'
+                        blank=True, max_length=256, verbose_name='location'
                     ),
                 ),
                 (

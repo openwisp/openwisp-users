@@ -51,7 +51,7 @@ class AbstractUser(BaseUser):
     bio = models.TextField(_('bio'), blank=True)
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
-    location = models.CharField(_('location'), max_length=128, blank=True)
+    location = models.CharField(_('location'), max_length=256, blank=True)
     phone_number = PhoneNumberField(unique=True, blank=True, null=True)
 
     objects = UserManager()
