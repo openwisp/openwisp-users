@@ -1,7 +1,6 @@
 import swapper
-from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
@@ -107,14 +106,31 @@ class FilterSerializerByOrganization:
     Filter the options in browsable API for serializers
     """
 
+    @property
+    def _user_attr(self):
+        raise NotImplementedError()
+
+    def filter_fields(self):
+        user = self.context['request'].user
+        organization_filter = getattr(user, self._user_attr)
+        for field in self.fields:
+            if field == 'organization':
+                self.fields[field].queryset = self.fields[field].queryset.filter(
+                    pk__in=organization_filter
+                )
+                continue
+            try:
+                self.fields[field].queryset = self.fields[field].queryset.filter(
+                    organization__in=organization_filter
+                )
+            except AttributeError:
+                pass
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.context['request'].user.is_superuser:
             return
         self.filter_fields()
-
-    def filter_fields(self):
-        raise NotImplementedError()
 
 
 class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
@@ -122,21 +138,7 @@ class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
     Filter serializer by organizations the user is member of
     """
 
-    def filter_fields(self):
-        user = self.context['request'].user
-        organization_filter = user.organizations_dict
-        for field in self.fields:
-            if field == 'organization':
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    organization__in=organization_filter
-                )
-            except AttributeError:
-                pass
+    _user_attr = 'organizations_dict'
 
 
 class FilterSerializerByOrgManaged(FilterSerializerByOrganization):
@@ -144,21 +146,7 @@ class FilterSerializerByOrgManaged(FilterSerializerByOrganization):
     Filter serializer by organizations managed by user
     """
 
-    def filter_fields(self):
-        user = self.context['request'].user
-        organization_filter = user.organizations_managed
-        for field in self.fields:
-            if field == 'organization':
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    organization__in=organization_filter
-                )
-            except AttributeError:
-                pass
+    _user_attr = 'organizations_managed'
 
 
 class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
@@ -166,18 +154,4 @@ class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
     Filter serializer by organizations owned by user
     """
 
-    def filter_fields(self):
-        user = self.context['request'].user
-        organization_filter = user.organizations_owned
-        for field in self.fields:
-            if field == 'organization':
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    organization__in=organization_filter
-                )
-            except AttributeError:
-                pass
+    _user_attr = 'organizations_owned'

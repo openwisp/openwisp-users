@@ -567,8 +567,9 @@ in these cases to avoid generating too many queries.
 
 Django REST Framework API Mixins
 --------------------------------
+
 The custom `Django REST Framework <https://www.django-rest-framework.org/>`_ mixins ``FilterByOrganizationMembership``,
-``FilterByOrganizationManaged`` and ``FilterByOrganizationOwned`` can be used in the API to ensure that the request
+``FilterByOrganizationManaged`` and ``FilterByOrganizationOwned`` can be used in the API to ensure that the current
 user is able to see only the relevant data on an API view by filtering out the queryset related
 to organizations the user is member, manager or owner of, respectively. Usage example:
 
@@ -577,14 +578,14 @@ to organizations the user is member, manager or owner of, respectively. Usage ex
     from openwisp_users.api.filters import FilterByOrganizationManaged
     from rest_framework import generics
 
-    class MyApiView(FilterByOrganizationManaged, generics.ListAPIView):
+    class UsersListView(FilterByOrganizationManaged, generics.ListAPIView):
         """
-        ListAPIView will show only content from organizations managed
-        by request user in the list.
+        UsersListView will show only users from organizations managed
+        by current user in the list.
         """
         pass
 
-Sometimes, the `Organization` might exist on a parent class. In such cases, ``FilterByParentMembership``,
+Sometimes, the ``Organization`` might exist on a parent class. In such cases, ``FilterByParentMembership``,
 ``FilterByParentManaged`` and ``FilterByParentOwned`` can be used to get similar results. Usage example:
 
 .. code-block:: python
@@ -593,7 +594,7 @@ Sometimes, the `Organization` might exist on a parent class. In such cases, ``Fi
     from rest_framework.generics import ListAPIView
     from .models import MyModel
 
-    class MyApiView(FilterByParentManaged, ListAPIView):
+    class DeviceListView(FilterByParentManaged, ListAPIView):
         # `Organization` field exists in `MyModel` in this case
         def get_parent_queryset(self):
             qs = MyModel.objects.filter(pk=self.kwargs['mymodel_id'])
@@ -608,11 +609,11 @@ be filtered separately. The ``FilterSerializerByOrgMembership``, ``FilterSeriali
 
     from openwisp_users.api.filters import FilterSerializerByOrgOwned
     from rest_framework.serializers import ModelSerializer
-    from .models import MyModel
+    from .models import Device
 
-    class MySerializer(FilterSerializerByOrgOwned, ModelSerializer):
+    class DeviceSerializer(FilterSerializerByOrgOwned, ModelSerializer):
         Meta:
-            model = MyModel
+            model = Device
             fields = '__all__'
 
 Multitenancy mixins
