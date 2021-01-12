@@ -124,7 +124,12 @@ class Migration(migrations.Migration):
                 (
                     'phone_number',
                     phonenumber_field.modelfields.PhoneNumberField(
-                        blank=True, max_length=128, null=True, region=None, unique=True
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        region=None,
+                        unique=True,
+                        verbose_name='phone number',
                     ),
                 ),
                 ('details', models.CharField(blank=True, max_length=64, null=True)),

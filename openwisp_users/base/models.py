@@ -52,7 +52,9 @@ class AbstractUser(BaseUser):
     url = models.URLField(_('URL'), blank=True)
     company = models.CharField(_('company'), max_length=30, blank=True)
     location = models.CharField(_('location'), max_length=256, blank=True)
-    phone_number = PhoneNumberField(unique=True, blank=True, null=True)
+    phone_number = PhoneNumberField(
+        _('phone number'), unique=True, blank=True, null=True
+    )
 
     objects = UserManager()
 
