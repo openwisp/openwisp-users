@@ -132,6 +132,10 @@ class Migration(migrations.Migration):
                         verbose_name='phone number',
                     ),
                 ),
+                (
+                    'birth_date',
+                    models.DateField(blank=True, null=True, verbose_name='birth date'),
+                ),
                 ('details', models.CharField(blank=True, max_length=64, null=True)),
                 (
                     'social_security_number',

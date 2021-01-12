@@ -55,6 +55,7 @@ class AbstractUser(BaseUser):
     phone_number = PhoneNumberField(
         _('phone number'), unique=True, blank=True, null=True
     )
+    birth_date = models.DateField(_('birth date'), blank=True, null=True)
 
     objects = UserManager()
 

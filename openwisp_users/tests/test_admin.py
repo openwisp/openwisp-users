@@ -1434,6 +1434,7 @@ class TestBasicUsersIntegration(
         params.pop('phone_number')
         params.pop('_password')
         params.pop('last_login')
+        params['birth_date'] = user.date_joined.date()
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
         response = self.client.post(
@@ -1444,6 +1445,7 @@ class TestBasicUsersIntegration(
         self.assertNotContains(response, 'Please correct the error below.')
         user.refresh_from_db()
         self.assertEqual(user.bio, params['bio'])
+        self.assertEqual(user.birth_date, params['birth_date'])
 
     def _delete_inline_org_user(self, is_admin=False):
         admin = self._create_admin()

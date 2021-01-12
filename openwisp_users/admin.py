@@ -159,7 +159,7 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
 
     class Meta(BaseUserCreationForm.Meta):
         fields = ['username', 'email', 'password1', 'password2']
-        personal_fields = ['first_name', 'last_name', 'phone_number']
+        personal_fields = ['first_name', 'last_name', 'phone_number', 'birth_date']
         fieldsets = (
             (None, {'classes': ('wide',), 'fields': fields}),
             ('Personal Info', {'classes': ('wide',), 'fields': personal_fields}),
@@ -458,7 +458,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
 
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
-additional_fields = ['bio', 'url', 'company', 'location', 'phone_number']
+additional_fields = ['bio', 'url', 'company', 'location', 'phone_number', 'birth_date']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
 UserAdmin.add_fieldsets[0][1]['fields'] = (
     'username',
