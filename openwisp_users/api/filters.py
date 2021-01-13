@@ -11,14 +11,18 @@ class FilterByOrganization:
     of the associated model. Use on of the sub-classes
     """
 
+    @property
+    def _user_attr(self):
+        raise NotImplementedError()
+
     def get_queryset(self):
         qs = super().get_queryset()
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
 
-    def get_organization_queryset(self):
-        raise NotImplementedError()
+    def get_organization_queryset(self, qs):
+        return qs.filter(organization__in=getattr(self.request.user, self._user_attr))
 
 
 class FilterByOrganizationMembership(FilterByOrganization):
@@ -26,8 +30,7 @@ class FilterByOrganizationMembership(FilterByOrganization):
     Filter queryset by organizations the user is a member of
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_dict)
+    _user_attr = 'organizations_dict'
 
 
 class FilterByOrganizationManaged(FilterByOrganization):
@@ -35,8 +38,7 @@ class FilterByOrganizationManaged(FilterByOrganization):
     Filter queryset by organizations managed by user
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_managed)
+    _user_attr = 'organizations_managed'
 
 
 class FilterByOrganizationOwned(FilterByOrganization):
@@ -44,14 +46,17 @@ class FilterByOrganizationOwned(FilterByOrganization):
     Filter queryset by organizations owned by user
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_owned)
+    _user_attr = 'organizations_owned'
 
 
 class FilterByParent:
     """
     Filter queryset based on one of the parent objects
     """
+
+    @property
+    def _user_attr(self):
+        raise NotImplementedError()
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -67,10 +72,10 @@ class FilterByParent:
         except (AssertionError, ValidationError):
             raise NotFound(detail='No relevant data found.')
 
-    def get_parent_queryset(self):
-        raise NotImplementedError()
+    def get_organization_queryset(self, qs):
+        return qs.filter(organization__in=getattr(self.request.user, self._user_attr))
 
-    def get_organization_queryset(self):
+    def get_parent_queryset(self):
         raise NotImplementedError()
 
 
@@ -79,8 +84,7 @@ class FilterByParentMembership(FilterByParent):
     Filter queryset based on parent organization membership
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_dict)
+    _user_attr = 'organizations_dict'
 
 
 class FilterByParentManaged(FilterByParent):
@@ -88,8 +92,7 @@ class FilterByParentManaged(FilterByParent):
     Filter queryset based on parent organizations managed by user
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_managed)
+    _user_attr = 'organizations_managed'
 
 
 class FilterByParentOwned(FilterByParent):
@@ -97,8 +100,7 @@ class FilterByParentOwned(FilterByParent):
     Filter queryset based on parent organizations owned by user
     """
 
-    def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=self.request.user.organizations_owned)
+    _user_attr = 'organizations_owned'
 
 
 class FilterSerializerByOrganization:
@@ -112,6 +114,8 @@ class FilterSerializerByOrganization:
 
     def filter_fields(self):
         user = self.context['request'].user
+        if user.is_superuser:
+            return
         organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
             if field == 'organization':
@@ -128,8 +132,6 @@ class FilterSerializerByOrganization:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context['request'].user.is_superuser:
-            return
         self.filter_fields()
 
 
