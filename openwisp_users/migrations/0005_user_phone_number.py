@@ -13,7 +13,12 @@ class Migration(migrations.Migration):
             model_name='user',
             name='phone_number',
             field=phonenumber_field.modelfields.PhoneNumberField(
-                blank=True, unique=True, max_length=128, null=True, region=None
+                blank=True,
+                unique=True,
+                max_length=128,
+                null=True,
+                region=None,
+                verbose_name='phone number',
             ),
         )
     ]

@@ -38,7 +38,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.assertNotContains(
                 r, 'Shared systemwide (no organization)',
             )
-
+            
     def test_group_reversion(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -53,3 +53,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, '<h1>Revert test_group_v1</h1>')
+        
+    def test_accounts_login(self):
+        r = self.client.get(reverse('account_login'), follow=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, '<button class="primaryAction" type="submit">')

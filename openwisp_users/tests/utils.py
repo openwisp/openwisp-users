@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db.models import Q
@@ -131,6 +133,7 @@ class TestOrganizationMixin(object):
             first_name='Tester',
             last_name='Tester',
             email='test@tester.com',
+            birth_date=date(1987, 3, 23),
         )
         opts.update(kwargs)
         user = User.objects.create_user(**opts)
@@ -155,6 +158,7 @@ class TestOrganizationMixin(object):
             password='tester',
             email='operator@test.com',
             is_staff=True,
+            birth_date=date(1987, 3, 23),
         )
         user_permissions = Permission.objects.filter(codename__endswith='user')
         operator.user_permissions.add(*user_permissions)

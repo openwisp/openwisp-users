@@ -118,14 +118,23 @@ class Migration(migrations.Migration):
                 (
                     'location',
                     models.CharField(
-                        blank=True, max_length=128, verbose_name='location'
+                        blank=True, max_length=256, verbose_name='location'
                     ),
                 ),
                 (
                     'phone_number',
                     phonenumber_field.modelfields.PhoneNumberField(
-                        blank=True, max_length=128, null=True, region=None, unique=True
+                        blank=True,
+                        max_length=128,
+                        null=True,
+                        region=None,
+                        unique=True,
+                        verbose_name='phone number',
                     ),
+                ),
+                (
+                    'birth_date',
+                    models.DateField(blank=True, null=True, verbose_name='birth date'),
                 ),
                 ('details', models.CharField(blank=True, max_length=64, null=True)),
                 (
