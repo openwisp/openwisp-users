@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_yasg',
     'testapp',
+    'reversion',
 ]
 
 AUTH_USER_MODEL = 'openwisp_users.User'
@@ -95,6 +96,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 if not TESTING and SHELL:
+    INSTALLED_APPS.remove('reversion')
     LOGGING = {
         'disable_existing_loggers': False,
         'version': 1,
