@@ -282,7 +282,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertContains(response, 'selected>operator-org1</option>')
         self.assertNotContains(response, 'selected>operator-org2</option>')
 
-    def test_operator_can_see_organization_add_user(self):
+    # the autocomplete fields are removed only in this
+    # test to make testing multitenancy simpler
+    @patch('openwisp_users.admin.OrganizationUserInline.autocomplete_fields', [])
+    def test_operator_can_see_organization_add_user(self, *args):
         org1 = self._create_org(name='operator-org1')
         org2 = self._create_org(name='operator-org2')
         operator = self._create_operator()

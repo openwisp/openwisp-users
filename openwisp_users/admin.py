@@ -84,6 +84,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
 class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
+    raw_id_fields = ('organization_user',)
 
     def has_change_permission(self, request, obj=None):
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
@@ -95,6 +96,7 @@ class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
     view_on_site = False
+    autocomplete_fields = ('organization',)
 
     def get_formset(self, request, obj=None, **kwargs):
         """
