@@ -1624,3 +1624,34 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             self.assertNotIn('test', owner_admin.multitenant_shared_relations)
         with self.subTest('original attribute unaffected'):
             self.assertIsNone(MultitenantAdminMixin.multitenant_shared_relations)
+
+    def test_organization_user_filter(self):
+        data = self._create_multitenancy_test_env()
+        self._make_org_manager(data['operator'], data['org1'])
+        url = reverse(f'admin:{self.app_label}_user_changelist')
+
+        with self.subTest('test superadmin'):
+            user = User.objects.filter(is_superuser=True, is_staff=True).first()
+            self.client.force_login(user)
+            response = self.client.get(url)
+            for org in Organization.objects.all():
+                self.assertContains(response, f'<a href="?organization={org.pk}"')
+
+        with self.subTest('test non superadmin'):
+            user = User.objects.get(username='operator')
+            self.client.force_login(user)
+            response = self.client.get(url)
+            for pk in user.organizations_managed:
+                self.assertContains(response, f'<a href="?organization={pk}"')
+            for org in Organization.objects.exclude(pk__in=user.organizations_managed):
+                self.assertNotContains(response, f'<a href="?organization={org.pk}"')
+
+        with self.subTest('test only 1 org'):
+            OrganizationUser.objects.filter(
+                organization__slug__in=['organization2', 'organization3']
+            ).delete()
+            del user.organizations_managed
+            self.assertEqual(len(user.organizations_managed), 1)
+            response = self.client.get(url)
+            for pk in user.organizations_managed:
+                self.assertNotContains(response, f'<a href="?organization={pk}"')

@@ -9,6 +9,8 @@ Features
 
 - Allowed authentication with email or phone number,
   see `Authentication Backend <https://github.com/openwisp/openwisp-users#authentication-backend>`_
+- Added possibility to filter users by their organization in
+  the user administration section
 
 Changes
 ~~~~~~~

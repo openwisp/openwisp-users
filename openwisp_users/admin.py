@@ -459,6 +459,36 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             instance.save()
 
 
+class OrganizationUserFilter(admin.SimpleListFilter):
+    """
+    Allows filtering users by the organization they're related to
+    """
+
+    title = _('organization')
+    parameter_name = 'organization'
+
+    def lookups(self, request, model_admin):
+        organizations = Organization.objects.all()
+        if not request.user.is_superuser:
+            organizations = organizations.filter(
+                pk__in=request.user.organizations_managed
+            )
+        lookups = []
+        for org in organizations:
+            lookups.append((str(org.pk), org.name))
+        # show filter only if multiple orgs are accessible
+        if len(lookups) > 1:
+            return lookups
+        return tuple()
+
+    def queryset(self, request, queryset):
+        if self.value():
+            queryset = queryset.filter(
+                openwisp_users_organizationuser__organization=self.value()
+            )
+        return queryset
+
+
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
 additional_fields = ['bio', 'url', 'company', 'location', 'phone_number', 'birth_date']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
@@ -469,6 +499,7 @@ UserAdmin.add_fieldsets[0][1]['fields'] = (
     'password2',
 )
 UserAdmin.search_fields += ('phone_number',)
+UserAdmin.list_filter = (OrganizationUserFilter,) + UserAdmin.list_filter
 
 
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
