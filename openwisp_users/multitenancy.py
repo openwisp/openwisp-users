@@ -20,11 +20,11 @@ class SelectOrgMixin(object):
         if 'organization' in fields:
             org_field = fields['organization']
             org_field.initial = request.user.selected_org(org_field)
-            org_field.empty_label = self._get_empty_level(
+            org_field.empty_label = self._get_empty_label(
                 request.user.is_superuser, org_field
             )
 
-    def _get_empty_level(self, superuser, org_field):
+    def _get_empty_label(self, superuser, org_field):
         if superuser:
             if not org_field.required:
                 org_field.initial = None
