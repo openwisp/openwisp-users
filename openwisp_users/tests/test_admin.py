@@ -1333,7 +1333,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
                 'post': 'yes',
             }
             url = reverse(f'admin:{self.app_label}_organizationuser_changelist')
-            with self.assertNumQueries(8):
+            # django-reversion adds ~4 queries
+            with self.assertNumQueries(12):
                 r = self.client.post(url, post_data, follow=True)
             qs = OrganizationUser.objects.filter(user=user1, organization=org1)
             self.assertEqual(r.status_code, 200)
@@ -1356,7 +1357,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             )
             self.assertContains(r, msg)
             post_data.update({'post': 'yes'})
-            with self.assertNumQueries(17):
+            # django-reversion adds ~4 queries
+            with self.assertNumQueries(21):
                 r = self.client.post(url, post_data, follow=True)
             qs = OrganizationUser.objects.filter(pk__in=[org_user.pk, org_user2.pk])
             self.assertEqual(r.status_code, 200)

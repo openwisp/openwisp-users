@@ -14,6 +14,8 @@ Group = load_model('openwisp_users', 'Group')
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
+    app_label = 'openwisp_users'
+
     def test_organization_default_label(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -36,7 +38,22 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.assertNotContains(
                 r, 'Shared systemwide (no organization)',
             )
-
+            
+    def test_group_reversion(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        test_group = Group.objects.create()
+        self.client.post(
+            reverse(f'admin:{self.app_label}_group_change', args=(test_group.id,)),
+            {'name': 'test_group_v1'},
+            follow=True,
+        )
+        r = self.client.get(
+            reverse(f'admin:{self.app_label}_group_revision', args=(test_group.id, 1))
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, '<h1>Revert test_group_v1</h1>')
+        
     def test_accounts_login(self):
         r = self.client.get(reverse('account_login'), follow=True)
         self.assertEqual(r.status_code, 200)
