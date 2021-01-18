@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
@@ -14,7 +16,9 @@ Group = load_model('openwisp_users', 'Group')
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
-    app_label = 'openwisp_users'
+    app_label = (
+        'openwisp_users' if not os.environ.get('SAMPLE_APP', False) else 'sample_users'
+    )
 
     def test_organization_default_label(self):
         admin = self._create_admin()
@@ -38,7 +42,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.assertNotContains(
                 r, 'Shared systemwide (no organization)',
             )
-            
+
     def test_group_reversion(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -53,7 +57,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, '<h1>Revert test_group_v1</h1>')
-        
+
     def test_accounts_login(self):
         r = self.client.get(reverse('account_login'), follow=True)
         self.assertEqual(r.status_code, 200)
