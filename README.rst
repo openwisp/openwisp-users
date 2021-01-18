@@ -584,7 +584,7 @@ Usage example:
 
 .. code-block:: python
 
-    from openwisp_users.api.filters import FilterByOrganizationManaged
+    from openwisp_users.api.mixins import FilterByOrganizationManaged
     from rest_framework import generics
 
     class UsersListView(FilterByOrganizationManaged, generics.ListAPIView):
@@ -610,7 +610,7 @@ has access to it, here's how to do it:
 .. code-block:: python
 
     from rest_framework import generics
-    from openwisp_users.api.filters import FilterByParentManaged
+    from openwisp_users.api.mixins import FilterByParentManaged
     from openwisp_controller.config.models import Device, Config
 
     # URL is:
@@ -641,7 +641,7 @@ Usage example:
 
 .. code-block:: python
 
-    from openwisp_users.api.filters import FilterSerializerByOrgOwned
+    from openwisp_users.api.mixins import FilterSerializerByOrgOwned
     from rest_framework.serializers import ModelSerializer
     from .models import Device
 

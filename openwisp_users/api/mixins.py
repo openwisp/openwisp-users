@@ -15,6 +15,8 @@ class FilterByOrganization:
     def _user_attr(self):
         raise NotImplementedError()
 
+    organization_lookup = 'organization__in'
+
     def get_queryset(self):
         qs = super().get_queryset()
         if self.request.user.is_superuser:
@@ -22,7 +24,9 @@ class FilterByOrganization:
         return self.get_organization_queryset(qs)
 
     def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=getattr(self.request.user, self._user_attr))
+        return qs.filter(
+            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
+        )
 
 
 class FilterByOrganizationMembership(FilterByOrganization):
@@ -70,7 +74,7 @@ class FilterByParent:
         try:
             assert parent_queryset.exists()
         except (AssertionError, ValidationError):
-            raise NotFound(detail='No relevant data found.')
+            raise NotFound()
 
     def get_organization_queryset(self, qs):
         return qs.filter(organization__in=getattr(self.request.user, self._user_attr))
@@ -112,6 +116,8 @@ class FilterSerializerByOrganization:
     def _user_attr(self):
         raise NotImplementedError()
 
+    organization_lookup = 'organization__in'
+
     def filter_fields(self):
         user = self.context['request'].user
         if user.is_superuser:
@@ -125,7 +131,7 @@ class FilterSerializerByOrganization:
                 continue
             try:
                 self.fields[field].queryset = self.fields[field].queryset.filter(
-                    organization__in=organization_filter
+                    **{self.organization_lookup: organization_filter}
                 )
             except AttributeError:
                 pass

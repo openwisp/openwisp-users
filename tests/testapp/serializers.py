@@ -1,6 +1,6 @@
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 
-from openwisp_users.api.filters import (
+from openwisp_users.api.mixins import (
     FilterSerializerByOrgManaged,
     FilterSerializerByOrgMembership,
     FilterSerializerByOrgOwned,

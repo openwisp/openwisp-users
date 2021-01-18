@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from openwisp_users.api.authentication import BearerAuthentication
-from openwisp_users.api.filters import (
+from openwisp_users.api.mixins import (
     FilterByOrganizationManaged,
     FilterByOrganizationMembership,
     FilterByOrganizationOwned,
