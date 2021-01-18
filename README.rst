@@ -565,13 +565,22 @@ Ensure the queryset of your views make use of
 `select_related <https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
 in these cases to avoid generating too many queries.
 
-Django REST Framework API Mixins
---------------------------------
+Django REST Framework Mixins
+----------------------------
 
-The custom `Django REST Framework <https://www.django-rest-framework.org/>`_ mixins ``FilterByOrganizationMembership``,
-``FilterByOrganizationManaged`` and ``FilterByOrganizationOwned`` can be used in the API to ensure that the current
-user is able to see only the relevant data on an API view by filtering out the queryset related
-to organizations the user is member, manager or owner of, respectively. Usage example:
+Filtering items by organization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The custom `Django REST Framework <https://www.django-rest-framework.org/>`_
+mixins ``FilterByOrganizationMembership``, ``FilterByOrganizationManaged``
+and ``FilterByOrganizationOwned`` can be used in the API views to ensure
+that the current user is able to see only the data related to their
+organization when accessing the API view.
+
+They work by filtering the queryset so that only items related
+to organizations the user is member, manager or owner of, respectively.
+
+Usage example:
 
 .. code-block:: python
 
@@ -585,25 +594,50 @@ to organizations the user is member, manager or owner of, respectively. Usage ex
         """
         pass
 
-Sometimes, the ``Organization`` might exist on a parent class. In such cases, ``FilterByParentMembership``,
-``FilterByParentManaged`` and ``FilterByParentOwned`` can be used to get similar results. Usage example:
+Checking parent objects
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Sometimes, the API view needs to check the existence and the
+``organization`` field of a parent object.
+
+In such cases, ``FilterByParentMembership``,
+``FilterByParentManaged`` and ``FilterByParentOwned`` can be used.
+
+For example, given a hypotetical URL ``/api/v1/device/{device_id}/config/``,
+the view must check that ``{device_id}`` exists and that the user
+has access to it, here's how to do it:
 
 .. code-block:: python
 
+    from rest_framework import generics
     from openwisp_users.api.filters import FilterByParentManaged
-    from rest_framework.generics import ListAPIView
-    from .models import MyModel
+    from openwisp_controller.config.models import Device, Config
 
-    class DeviceListView(FilterByParentManaged, ListAPIView):
-        # `Organization` field exists in `MyModel` in this case
+    # URL is:
+    # /api/v1/device/{device_id}/config/
+
+    class ConfigListView(FilterByParentManaged, generics.DetailAPIView):
+        model = Config
+
         def get_parent_queryset(self):
-            qs = MyModel.objects.filter(pk=self.kwargs['mymodel_id'])
+            qs = Device.objects.filter(pk=self.kwargs['device_id'])
             return qs
 
-`Django REST Framework <https://www.django-rest-framework.org/>`_ provides a browsable API which can be used
-to create HTTP requests right from the browser. The fields in this interface are provided by Serializers that need to
-be filtered separately. The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged`` and
-``FilterSerializerByOrgOwned`` can be used for this purpose by filtering model serializers. Usage example:
+Multi-tenant serializers for the browsable web UI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+`Django REST Framework <https://www.django-rest-framework.org/>`_
+provides a browsable API which can be used to create HTTP requests right
+from the browser.
+
+The relationship fields in this interface show all the relationships,
+without filtering by the organization the user has access to, which
+breaks multi-tenancy.
+
+The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
+and ``FilterSerializerByOrgOwned`` can be used to solve this issue.
+
+Usage example:
 
 .. code-block:: python
 
@@ -612,12 +646,12 @@ be filtered separately. The ``FilterSerializerByOrgMembership``, ``FilterSeriali
     from .models import Device
 
     class DeviceSerializer(FilterSerializerByOrgOwned, ModelSerializer):
-        Meta:
+        class Meta:
             model = Device
             fields = '__all__'
 
-Multitenancy mixins
--------------------
+Admin Multitenancy mixins
+-------------------------
 
 * **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class will make it multitenant
   (users will only be able to see items of the organizations they manage or own).
