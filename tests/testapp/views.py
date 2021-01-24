@@ -1,8 +1,17 @@
 import swapper
+from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from openwisp_users.api.authentication import BearerAuthentication
+from openwisp_users.api.mixins import (
+    FilterByOrganizationManaged,
+    FilterByOrganizationMembership,
+    FilterByOrganizationOwned,
+    FilterByParentManaged,
+    FilterByParentMembership,
+    FilterByParentOwned,
+)
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
     IsOrganizationManager,
@@ -10,9 +19,23 @@ from openwisp_users.api.permissions import (
     IsOrganizationOwner,
 )
 
-from .models import Config, Template
+from .models import Book, Config, Shelf, Template
+from .serializers import (
+    BookManagerSerializer,
+    BookMemberSerializer,
+    BookOwnerSerializer,
+    ShelfSerializer,
+)
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
+
+
+class BookOrgMixin:
+    def get_parent_queryset(self):
+        shelf_org = Shelf.objects.get(pk=self.kwargs['shelf_id']).organization
+        qs = Book.objects.filter(organization=shelf_org.pk)
+        # qs = Shelf.objects.filter(pk=self.kwargs['shelf_id'])
+        return qs
 
 
 class BaseGetApiView(APIView):
@@ -67,9 +90,72 @@ class ErrorOrganizationFieldView(BaseGetApiView):
     organization_field = 'error__organization'
 
 
+class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationMember,)
+    serializer_class = ShelfSerializer
+    queryset = Shelf.objects.all()
+
+
+class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationManager,)
+    serializer_class = ShelfSerializer
+    queryset = Shelf.objects.all()
+
+
+class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationOwner,)
+    serializer_class = ShelfSerializer
+    queryset = Shelf.objects.all()
+
+
+class BooksListMemberView(BookOrgMixin, FilterByParentMembership, ListCreateAPIView):
+    queryset = Book.objects.none()
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationMember,)
+    serializer_class = BookMemberSerializer
+
+    def get_queryset(self):
+        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        super().get_queryset()
+        return shelf.book_set.all()
+
+
+class BooksListManagerView(BookOrgMixin, FilterByParentManaged, ListCreateAPIView):
+    queryset = Book.objects.none()
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationManager,)
+    serializer_class = BookManagerSerializer
+
+    def get_queryset(self):
+        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        super().get_queryset()
+        return shelf.book_set.all()
+
+
+class BooksListOwnerView(BookOrgMixin, FilterByParentOwned, ListCreateAPIView):
+    queryset = Book.objects.none()
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationOwner,)
+    serializer_class = BookOwnerSerializer
+
+    def get_queryset(self):
+        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        super().get_queryset()
+        return shelf.book_set.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
 base_org_view = BaseOrganizationPermissionView.as_view()
 org_field_view = OrganizationFieldView.as_view()
 error_field_view = ErrorOrganizationFieldView.as_view()
+books_list_member_view = BooksListMemberView.as_view()
+books_list_manager_view = BooksListManagerView.as_view()
+books_list_owner_view = BooksListOwnerView.as_view()
+shelf_list_member_view = ShelfListMemberView.as_view()
+shelf_list_manager_view = ShelfListManagerView.as_view()
+shelf_list_owner_view = ShelfListOwnerView.as_view()
