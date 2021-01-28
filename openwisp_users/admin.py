@@ -514,7 +514,7 @@ class OrganizationAdmin(
 ):
     view_on_site = False
     inlines = [OrganizationOwnerInline]
-    readonly_fields = ['uuid']
+    readonly_fields = ['uuid', 'created', 'modified']
     ordering = ['name']
 
     def get_inline_instances(self, request, obj=None):
