@@ -609,9 +609,12 @@ has access to it, here's how to do it:
 
 .. code-block:: python
 
+    import swapper
     from rest_framework import generics
     from openwisp_users.api.mixins import FilterByParentManaged
-    from openwisp_controller.config.models import Device, Config
+
+    Device = swapper.load_model('config', 'Device')
+    Config = swapper.load_model('config', 'Config')
 
     # URL is:
     # /api/v1/device/{device_id}/config/
