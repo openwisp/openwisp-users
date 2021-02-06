@@ -1,6 +1,7 @@
 import swapper
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
@@ -16,6 +17,9 @@ class FilterByOrganization:
         raise NotImplementedError()
 
     organization_lookup = 'organization__in'
+
+    def get_permissions(self):
+        return super().get_permissions() + [IsAuthenticated()]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -61,6 +65,9 @@ class FilterByParent:
     @property
     def _user_attr(self):
         raise NotImplementedError()
+
+    def get_permissions(self):
+        return super().get_permissions() + [IsAuthenticated()]
 
     def get_queryset(self):
         qs = super().get_queryset()
