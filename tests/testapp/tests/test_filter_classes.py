@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
+from openwisp_users.api.mixins import FilterByOrganization, FilterByParent
 from openwisp_users.api.throttling import AuthRateThrottle
 
 from ..models import Book, Shelf
@@ -182,6 +183,18 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         r = self.client.get(reverse("test_shelf_list_unauthorized_view"))
         self.assertEqual(r.status_code, 401)
         r = self.client.get(
-            reverse("test_books_list_owner_view", args=(self.shelf_a.id,))
+            reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
         )
         self.assertEqual(r.status_code, 401)
+
+    def test_unauthorized_user_failing(self):
+        del FilterByOrganization.permission_classes
+        del FilterByParent.permission_classes
+        with self.assertRaises(AttributeError):
+            r = self.client.get(reverse("test_shelf_list_unauthorized_view"))
+            self.assertContains(r, 'has no attribute \'organizations_dict\'')
+        with self.assertRaises(AttributeError):
+            r = self.client.get(
+                reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
+            )
+            self.assertContains(r, 'has no attribute \'organizations_dict\'')

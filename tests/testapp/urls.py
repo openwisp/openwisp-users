@@ -38,7 +38,7 @@ urlpatterns = [
         'owner/shelf', views.shelf_list_owner_view, name='test_shelf_list_owner_view',
     ),
     path(
-        'owner/shelf/<str:shelf_id>/books',
+        'user/shelf/<str:shelf_id>/books',
         views.book_list_unauthorized_view,
         name='test_book_list_unauthorized_view',
     ),
