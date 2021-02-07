@@ -18,8 +18,7 @@ class FilterByOrganization:
 
     organization_lookup = 'organization__in'
 
-    def get_permissions(self):
-        return super().get_permissions() + [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -66,8 +65,7 @@ class FilterByParent:
     def _user_attr(self):
         raise NotImplementedError()
 
-    def get_permissions(self):
-        return super().get_permissions() + [IsAuthenticated()]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         qs = super().get_queryset()

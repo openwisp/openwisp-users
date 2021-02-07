@@ -43,7 +43,7 @@ urlpatterns = [
         name='test_book_list_unauthorized_view',
     ),
     path(
-        'user/shelf/',
+        'user/shelf',
         views.shelf_list_unauthorized_view,
         name='test_shelf_list_unauthorized_view',
     ),
