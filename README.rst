@@ -581,7 +581,7 @@ They work by filtering the queryset so that only items related
 to organizations the user is member, manager or owner of, respectively.
 
 These classes ship with Django REST Framework's
-`<IsAuthenticated https://www.django-rest-framework.org/api-guide/permissions/#isauthenticated>`_
+`IsAuthenticated <https://www.django-rest-framework.org/api-guide/permissions/#isauthenticated>`_
 permission class by default as these classes need the user to be authenticated in order to work.
 Always remember to include this class when overriding ``permission_classes`` in a view.
 
