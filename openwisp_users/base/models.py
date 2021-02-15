@@ -56,6 +56,9 @@ class AbstractUser(BaseUser):
         _('phone number'), unique=True, blank=True, null=True
     )
     birth_date = models.DateField(_('birth date'), blank=True, null=True)
+    notes = models.TextField(
+        _('notes'), help_text=_('notes for internal usage'), blank=True
+    )
 
     objects = UserManager()
 

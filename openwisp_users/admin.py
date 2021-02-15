@@ -207,6 +207,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
     actions = ['delete_selected_overridden', 'make_inactive', 'make_active']
+    fieldsets = list(BaseUserAdmin.fieldsets)
 
     # To ensure extended apps use this template.
     change_form_template = 'admin/openwisp_users/user/change_form.html'
@@ -492,6 +493,7 @@ class OrganizationUserFilter(admin.SimpleListFilter):
 base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
 additional_fields = ['bio', 'url', 'company', 'location', 'phone_number', 'birth_date']
 UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
+UserAdmin.fieldsets.insert(2, ('Internal', {'fields': ('notes',)}))
 UserAdmin.add_fieldsets[0][1]['fields'] = (
     'username',
     'email',
