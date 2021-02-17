@@ -3,7 +3,6 @@ from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
-from openwisp_users.api.mixins import FilterByOrganization, FilterByParent
 from openwisp_users.api.throttling import AuthRateThrottle
 
 from ..models import Book, Shelf
