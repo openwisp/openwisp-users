@@ -11,6 +11,7 @@ class FilterByOrganization:
     Filter queryset based on the access to the organization
     of the associated model. Use on of the sub-classes
     """
+
     permission_classes = [IsAuthenticated]
     organization_lookup = 'organization__in'
 
@@ -58,6 +59,7 @@ class FilterByParent:
     """
     Filter queryset based on one of the parent objects
     """
+
     permission_classes = [IsAuthenticated]
 
     @property
@@ -113,6 +115,7 @@ class FilterSerializerByOrganization:
     """
     Filter the options in browsable API for serializers
     """
+
     organization_lookup = 'organization__in'
 
     @property
