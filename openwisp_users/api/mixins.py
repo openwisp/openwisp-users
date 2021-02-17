@@ -1,6 +1,7 @@
 import swapper
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
@@ -11,11 +12,12 @@ class FilterByOrganization:
     of the associated model. Use on of the sub-classes
     """
 
+    permission_classes = [IsAuthenticated]
+    organization_lookup = 'organization__in'
+
     @property
     def _user_attr(self):
         raise NotImplementedError()
-
-    organization_lookup = 'organization__in'
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -57,6 +59,8 @@ class FilterByParent:
     """
     Filter queryset based on one of the parent objects
     """
+
+    permission_classes = [IsAuthenticated]
 
     @property
     def _user_attr(self):
@@ -112,11 +116,11 @@ class FilterSerializerByOrganization:
     Filter the options in browsable API for serializers
     """
 
+    organization_lookup = 'organization__in'
+
     @property
     def _user_attr(self):
         raise NotImplementedError()
-
-    organization_lookup = 'organization__in'
 
     def filter_fields(self):
         user = self.context['request'].user

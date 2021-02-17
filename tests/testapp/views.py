@@ -24,6 +24,7 @@ from .serializers import (
     BookManagerSerializer,
     BookMemberSerializer,
     BookOwnerSerializer,
+    BookSerializer,
     ShelfSerializer,
 )
 
@@ -34,7 +35,6 @@ class BookOrgMixin:
     def get_parent_queryset(self):
         shelf_org = Shelf.objects.get(pk=self.kwargs['shelf_id']).organization
         qs = Book.objects.filter(organization=shelf_org.pk)
-        # qs = Shelf.objects.filter(pk=self.kwargs['shelf_id'])
         return qs
 
 
@@ -147,6 +147,24 @@ class BooksListOwnerView(BookOrgMixin, FilterByParentOwned, ListCreateAPIView):
         return shelf.book_set.all()
 
 
+# some views may not contain `permission_classes` and have to be tested separately
+class ShelfListUnauthorizedView(FilterByOrganizationMembership, ListAPIView):
+    authentication_classes = (BearerAuthentication,)
+    serializer_class = ShelfSerializer
+    queryset = Shelf.objects.all()
+
+
+class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
+    queryset = Book.objects.none()
+    authentication_classes = (BearerAuthentication,)
+    serializer_class = BookSerializer
+
+    def get_queryset(self):
+        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        super().get_queryset()
+        return shelf.book_set.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
@@ -156,6 +174,8 @@ error_field_view = ErrorOrganizationFieldView.as_view()
 books_list_member_view = BooksListMemberView.as_view()
 books_list_manager_view = BooksListManagerView.as_view()
 books_list_owner_view = BooksListOwnerView.as_view()
+book_list_unauthorized_view = BooksListUnauthorizedView.as_view()
+shelf_list_unauthorized_view = ShelfListUnauthorizedView.as_view()
 shelf_list_member_view = ShelfListMemberView.as_view()
 shelf_list_manager_view = ShelfListManagerView.as_view()
 shelf_list_owner_view = ShelfListOwnerView.as_view()

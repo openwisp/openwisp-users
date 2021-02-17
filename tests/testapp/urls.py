@@ -37,4 +37,14 @@ urlpatterns = [
     path(
         'owner/shelf', views.shelf_list_owner_view, name='test_shelf_list_owner_view',
     ),
+    path(
+        'user/shelf/<str:shelf_id>/books',
+        views.book_list_unauthorized_view,
+        name='test_book_list_unauthorized_view',
+    ),
+    path(
+        'user/shelf',
+        views.shelf_list_unauthorized_view,
+        name='test_shelf_list_unauthorized_view',
+    ),
 ]

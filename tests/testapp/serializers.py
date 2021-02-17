@@ -30,6 +30,13 @@ class BookOwnerSerializer(FilterSerializerByOrgOwned, ValidatedModelSerializer):
         read_only_fields = ('created', 'modified')
 
 
+class BookSerializer(ValidatedModelSerializer):
+    class Meta:
+        model = Book
+        fields = '__all__'
+        read_only_fields = ('created', 'modified')
+
+
 class ShelfSerializer(ValidatedModelSerializer):
     class Meta:
         model = Shelf

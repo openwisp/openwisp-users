@@ -177,3 +177,11 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
         self.assertNotContains(response, 'test-shelf-b</option>')
+
+    def test_unauthorized_user(self):
+        r = self.client.get(reverse("test_shelf_list_unauthorized_view"))
+        self.assertEqual(r.status_code, 401)
+        r = self.client.get(
+            reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
+        )
+        self.assertEqual(r.status_code, 401)
