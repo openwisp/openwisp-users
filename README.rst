@@ -580,10 +580,12 @@ organization when accessing the API view.
 They work by filtering the queryset so that only items related
 to organizations the user is member, manager or owner of, respectively.
 
-These classes ship with Django REST Framework's
+These mixins ship the Django REST Framework's
 `IsAuthenticated <https://www.django-rest-framework.org/api-guide/permissions/#isauthenticated>`_
-permission class by default as these classes need the user to be authenticated in order to work.
-Always remember to include this class when overriding ``permission_classes`` in a view.
+permission class by default because the organization filtering
+works only on authenticated users.
+Always remember to include this class when
+overriding ``permission_classes`` in a view.
 
 Usage example:
 
@@ -598,6 +600,14 @@ Usage example:
         by current user in the list.
         """
         pass
+
+    class ExampleListView(FilterByOrganizationManaged, generics.ListAPIView):
+        """
+        Example showing how to extend ``permission_classes``.
+        """
+        permission_classes = FilterByOrganizationManaged.permission_classes + [
+            # additional permission classes here
+        ]
 
 Checking parent objects
 ~~~~~~~~~~~~~~~~~~~~~~~
