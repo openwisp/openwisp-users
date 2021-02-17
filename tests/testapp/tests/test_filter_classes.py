@@ -186,15 +186,3 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
         )
         self.assertEqual(r.status_code, 401)
-
-    def test_unauthorized_user_failing(self):
-        del FilterByOrganization.permission_classes
-        del FilterByParent.permission_classes
-        with self.assertRaises(AttributeError):
-            r = self.client.get(reverse("test_shelf_list_unauthorized_view"))
-            self.assertContains(r, 'has no attribute \'organizations_dict\'')
-        with self.assertRaises(AttributeError):
-            r = self.client.get(
-                reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
-            )
-            self.assertContains(r, 'has no attribute \'organizations_dict\'')
