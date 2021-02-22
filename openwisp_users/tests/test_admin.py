@@ -1680,6 +1680,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             response = self.client.get(url)
             for pk in user.organizations_managed:
                 self.assertNotContains(response, f'<a href="?organization={pk}"')
+
     def test_select_organization(self):
         # test for superuser
         self._login()
