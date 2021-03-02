@@ -236,6 +236,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         with self.subTest('User Permissions'):
+            # regex to check if `<div class="readonly"> ... app_label </div>`
+            # exists in the response
             html = f'<div class="readonly">((?!</div>).)*({self.app_label})'
             self.assertTrue(re.search(html, str(response.content),))
         with self.subTest('Organization User Inline'):
