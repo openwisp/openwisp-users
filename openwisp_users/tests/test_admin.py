@@ -1,5 +1,6 @@
 import contextlib
 import os
+import re
 import smtplib
 from unittest.mock import patch
 
@@ -235,8 +236,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
         )
         with self.subTest('User Permissions'):
-            html = f'<div class="readonly">{self.app_label}'
-            self.assertContains(response, html)
+            # regex to check if `<div class="readonly"> ... app_label </div>`
+            # exists in the response
+            html = f'<div class="readonly">((?!</div>).)*({self.app_label})'
+            self.assertTrue(re.search(html, str(response.content),))
         with self.subTest('Organization User Inline'):
             html = 'class="readonly"><img src="/static/admin/img/icon'
             self.assertContains(response, html)
