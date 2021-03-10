@@ -2,6 +2,7 @@ import contextlib
 import os
 import re
 import smtplib
+import uuid
 from unittest.mock import patch
 
 from django.contrib import admin
@@ -168,6 +169,24 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(queryset.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
         self.assertContains(response, 'errors field-email')
+
+    def test_admin_change_user_page_get_invalid_UUID(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        with self.subTest('Test for wrong identifier'):
+            response = self.client.get(
+                reverse(f'admin:{self.app_label}_user_change', args=['WRONG']),
+                follow=True,
+            )
+            content = 'User with ID “WRONG” doesn’t exist. Perhaps it was deleted?'
+            self.assertContains(response, content, status_code=200)
+        with self.subTest('Test for non-existing user'):
+            id = uuid.uuid4()
+            response = self.client.get(
+                reverse(f'admin:{self.app_label}_user_change', args=[id],), follow=True
+            )
+            content = f'User with ID “{id}” doesn’t exist. Perhaps it was deleted?'
+            self.assertContains(response, content, status_code=200)
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()
