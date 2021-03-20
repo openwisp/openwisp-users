@@ -409,8 +409,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
-        obj = self.model.objects.get(pk=object_id)
-        if user_not_allowed_to_change_owner(request.user, obj):
+        obj = self.get_object(request, object_id)
+        if obj is not None and user_not_allowed_to_change_owner(request.user, obj):
             show_owner_warning = True
             extra_context.update({'show_owner_warning': show_owner_warning})
         return super().change_view(request, object_id, form_url, extra_context)
