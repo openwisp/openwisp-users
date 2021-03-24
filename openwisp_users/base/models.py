@@ -3,6 +3,7 @@ import uuid
 
 import django
 from allauth.account.models import EmailAddress
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
@@ -141,10 +142,21 @@ class AbstractUser(BaseUser):
         return self.__get_orgs('is_owner')
 
     def clean(self):
-        if self.email == '':
+        email = self.email
+        if email == '':
             self.email = None
         if self.phone_number == '':
             self.phone_number = None
+        if (
+            email
+            and get_user_model()
+            .objects.filter(email__iexact=email)
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            raise ValidationError(
+                {'email': _('User with this Email address already exists.')}
+            )
 
     @property
     def permissions(self):

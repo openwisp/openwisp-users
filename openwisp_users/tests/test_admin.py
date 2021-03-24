@@ -460,6 +460,55 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             res, '<li>User with this Email address already exists.</li>'
         )
 
+    def test_create_user_existing_mail_different_case(self):
+        self._create_user(username='user1', email='user@example.com')
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        params = dict(
+            username='testadd',
+            email='USER@example.com',
+            password1='tester',
+            password2='tester',
+        )
+        params.update(self.add_user_inline_params)
+        res = self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
+        content = '<li>User with this Email address already exists.</li>'
+        self.assertContains(res, content, status_code=200)
+
+    def test_update_user_no_validation_error(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        user = self._create_user(email='user@example.com', username='user1')
+        params = user.__dict__
+        params['username'] = 'user2'
+        params.pop('last_login')
+        params.pop('phone_number')
+        params.pop('_password')
+        params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
+        params.update(
+            {
+                'emailaddress_set-TOTAL_FORMS': 1,
+                'emailaddress_set-INITIAL_FORMS': 1,
+                'emailaddress_set-0-verified': True,
+                'emailaddress_set-0-primary': True,
+                'emailaddress_set-0-id': user.emailaddress_set.first().id,
+                'emailaddress_set-0-user': user.id,
+            }
+        )
+        params.update(self._get_user_edit_form_inline_params(user, self._get_org()))
+        res = self.client.post(
+            reverse(f'admin:{self.app_label}_user_change', args=[user.pk]),
+            params,
+            follow=True,
+        )
+        user.refresh_from_db()
+        self.assertNotIn(
+            '<li>User with this Email address already exists.</li>',
+            res.content.decode(),
+        )
+        self.assertEqual(user.username, 'user2')
+
     def test_edit_user_email_exists(self):
         admin = self._create_admin()
         self.client.force_login(admin)
