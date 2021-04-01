@@ -105,9 +105,6 @@ class OrganizationUserInline(admin.StackedInline, SelectOrgMixin):
         display all organizations
         """
         formset = super().get_formset(request, obj=obj, **kwargs)
-        if request.user.is_superuser:
-            self.select_organization(request, formset.form)
-            return formset
         if not request.user.is_superuser:
             formset.form.base_fields[
                 'organization'
