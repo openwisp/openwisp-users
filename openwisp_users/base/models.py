@@ -3,7 +3,6 @@ import uuid
 
 import django
 from allauth.account.models import EmailAddress
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
@@ -142,15 +141,13 @@ class AbstractUser(BaseUser):
         return self.__get_orgs('is_owner')
 
     def clean(self):
-        email = self.email
-        if email == '':
+        if self.email == '':
             self.email = None
         if self.phone_number == '':
             self.phone_number = None
         if (
-            email
-            and get_user_model()
-            .objects.filter(email__iexact=email)
+            self.email
+            and self._meta.model.objects.filter(email__iexact=self.email)
             .exclude(pk=self.pk)
             .exists()
         ):
