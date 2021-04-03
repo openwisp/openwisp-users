@@ -1,5 +1,4 @@
 import contextlib
-import os
 import re
 import smtplib
 import uuid
@@ -13,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.test import TestCase
 from django.urls import reverse
+from openwisp_utils.tests import capture_any_output
 from swapper import load_model
 
 from ..admin import OrganizationOwnerAdmin
@@ -29,8 +29,6 @@ OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 User = get_user_model()
 Group = load_model('openwisp_users', 'Group')
-
-devnull = open(os.devnull, 'w')
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase):
@@ -1388,8 +1386,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.assertEqual(qs.count(), 1)
             self.assertEqual(qs.first().organization, org1)
 
-    @patch('sys.stdout', devnull)
-    @patch('sys.stderr', devnull)
+    @capture_any_output()
     def test_admin_add_user_with_invalid_email(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -1407,11 +1404,6 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             )
             self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
             mocked.assert_called_once()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        devnull.close()
 
 
 class TestBasicUsersIntegration(
