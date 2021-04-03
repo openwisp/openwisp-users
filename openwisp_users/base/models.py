@@ -145,6 +145,15 @@ class AbstractUser(BaseUser):
             self.email = None
         if self.phone_number == '':
             self.phone_number = None
+        if (
+            self.email
+            and self._meta.model.objects.filter(email__iexact=self.email)
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            raise ValidationError(
+                {'email': _('User with this Email address already exists.')}
+            )
 
     @property
     def permissions(self):
