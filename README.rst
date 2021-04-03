@@ -98,7 +98,9 @@ Setup (integrate in an existing django project)
     ]
 
 also add ``AUTH_USER_MODEL``, ``SITE_ID`` and ``AUTHENTICATION_BACKENDS``
-to your ``settings.py``::
+to your ``settings.py``:
+
+.. code-block:: python
 
     AUTH_USER_MODEL = 'openwisp_users.User'
     SITE_ID = 1
@@ -142,7 +144,7 @@ Install your forked repo:
 
     git clone git://github.com/<your_fork>/openwisp-users
     cd openwisp-users/
-    python setup.py develop
+    pip install -e .
 
 Install test requirements:
 
