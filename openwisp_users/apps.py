@@ -95,11 +95,11 @@ class OpenwispUsersConfig(AppConfig):
 
     def update_selected_org(cls, user=None, **kwargs):
         if user:
-            cache_key = 'selected_{}_org'.format(user.pk)
+            cache_key = f'selected_{user.pk}_org'
             cache.delete(cache_key)
 
         # also delete for superuser
-        cache_key = 'selected_{}_org'.format('superuser')
+        cache_key = 'selected_superuser_org'
         cache.delete(cache_key)
 
     def update_organizations_dict(cls, instance, **kwargs):
@@ -107,7 +107,7 @@ class OpenwispUsersConfig(AppConfig):
             user = instance.user
         else:
             user = instance.organization_user.user
-        cache_key = 'user_{}_organizations'.format(user.pk)
+        cache_key = f'user_{user.pk}_organizations'
         cache.delete(cache_key)
         # forces caching
         user.organizations_dict

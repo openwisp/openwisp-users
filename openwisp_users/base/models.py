@@ -99,9 +99,9 @@ class AbstractUser(BaseUser):
 
     def selected_org(self, org_field):
         if self.is_superuser:
-            cache_key = 'selected_{}_org'.format('superuser')
+            cache_key = 'selected_superuser_org'
         else:
-            cache_key = 'selected_{}_org'.format(self.pk)
+            cache_key = f'selected_{self.pk}_org'
         selected_org = cache.get(cache_key)
         if selected_org is not None:  # If cache is not deleted
             if selected_org is False:
@@ -113,6 +113,8 @@ class AbstractUser(BaseUser):
         else:
             selected_org = False  # Tells selected org is None
         cache.set(cache_key, selected_org, 86400 * 2)  # Cache for two days
+        if selected_org is False:
+            return None
         return selected_org
 
     @property
