@@ -26,6 +26,7 @@ from .serializers import (
     BookOwnerSerializer,
     BookSerializer,
     ShelfSerializer,
+    TemplateSerializer,
 )
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
@@ -165,6 +166,13 @@ class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
         return shelf.book_set.all()
 
 
+class TemplateListCreateView(ListCreateAPIView):
+    serializer_class = TemplateSerializer
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationMember,)
+    queryset = Template.objects.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
@@ -179,3 +187,4 @@ shelf_list_unauthorized_view = ShelfListUnauthorizedView.as_view()
 shelf_list_member_view = ShelfListMemberView.as_view()
 shelf_list_manager_view = ShelfListManagerView.as_view()
 shelf_list_owner_view = ShelfListOwnerView.as_view()
+template_list = TemplateListCreateView.as_view()
