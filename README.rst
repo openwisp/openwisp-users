@@ -655,8 +655,9 @@ without filtering by the organization the user has access to, which
 breaks multi-tenancy.
 
 The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
-and ``FilterSerializerByOrgOwned`` can be used to solve this issue. These
-serializers obstructs non super-users from creating shared objects.
+and ``FilterSerializerByOrgOwned`` can be used to solve this issue.
+
+These serializers do not allow non-superusers to create shared objects.
 
 Usage example:
 
