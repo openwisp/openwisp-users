@@ -185,3 +185,15 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
         )
         self.assertEqual(r.status_code, 401)
+
+    def test_presence_of_null_org_field(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_template_list')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertNotContains(response, '--------</option>')

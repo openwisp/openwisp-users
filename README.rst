@@ -657,6 +657,8 @@ breaks multi-tenancy.
 The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
 and ``FilterSerializerByOrgOwned`` can be used to solve this issue.
 
+These serializers do not allow non-superusers to create shared objects.
+
 Usage example:
 
 .. code-block:: python

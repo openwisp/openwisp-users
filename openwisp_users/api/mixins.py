@@ -129,6 +129,7 @@ class FilterSerializerByOrganization:
         organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
             if field == 'organization':
+                self.fields[field].allow_null = False
                 self.fields[field].queryset = self.fields[field].queryset.filter(
                     pk__in=organization_filter
                 )
