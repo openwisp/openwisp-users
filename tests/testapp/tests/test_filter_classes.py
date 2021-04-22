@@ -192,7 +192,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        path = reverse('test_template_list') + '?format=api'
-        response = self.client.get(path, **auth)
+        url = reverse('test_template_list')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertNotContains(response, '--------</option>')
