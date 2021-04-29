@@ -665,14 +665,11 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
     ]:
         admin.site.unregister(apps.get_model(*model))
 
-
-if (
-    'rest_framework.authtoken' in settings.INSTALLED_APPS and not settings.DEBUG
-):  # pragma: no cover
-    Token = apps.get_model('authtoken', 'Token')
+if 'rest_framework.authtoken' in settings.INSTALLED_APPS:  # pragma: no cover
+    TokenProxy = apps.get_model('authtoken', 'TokenProxy')
 
     try:
-        admin.site.unregister(Token)
+        admin.site.unregister(TokenProxy)
     except NotRegistered:
         pass
 

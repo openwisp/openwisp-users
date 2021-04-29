@@ -87,13 +87,13 @@ Setup (integrate in an existing django project)
         'allauth',
         'allauth.account',
         'allauth.socialaccount',
+        'rest_framework',
+        'rest_framework.authtoken',
         # must come before the django admin
         # to override the admin login page
         'openwisp_users',
         'django.contrib.admin',
         'django.contrib.sites',
-        'rest_framework',
-        'rest_framework.authtoken',
         'drf_yasg',
     ]
 

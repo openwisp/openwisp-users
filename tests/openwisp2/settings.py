@@ -30,11 +30,11 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     # must come before the django admin
     # to override the admin login page
+    'rest_framework',
+    'rest_framework.authtoken',
     'openwisp_users',
     'django.contrib.admin',
     'django.contrib.sites',
-    'rest_framework',
-    'rest_framework.authtoken',
     'drf_yasg',
     'testapp',
     'reversion',
