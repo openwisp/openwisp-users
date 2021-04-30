@@ -75,7 +75,7 @@ class TestBackends(TestOrganizationMixin, TestCase):
         )
         self._test_user_auth_backend_helper(user.phone_number, 'tester', user.pk)
 
-    def test_auth_backend_get_user(self):
+    def test_auth_backend_get_users(self):
         user = self._create_user(
             username='tester',
             email='tester@gmail.com',

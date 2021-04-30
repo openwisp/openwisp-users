@@ -136,8 +136,9 @@ class TestOrganizationMixin(object):
             birth_date=date(1987, 3, 23),
         )
         opts.update(kwargs)
-        user = User.objects.create_user(**opts)
-        return user
+        user = User(**opts)
+        user.full_clean()
+        return User.objects.create_user(**opts)
 
     def _create_admin(self, **kwargs):
         opts = dict(

@@ -1184,7 +1184,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_can_change_org(self):
         org = self._get_org()
         user = self._create_user(
-            username='change', password='change', email='email@email', is_staff=True
+            username='change', password='change', email='email@email.com', is_staff=True
         )
         group = Group.objects.filter(name='Administrator')
         user.groups.set(group)
@@ -1214,7 +1214,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_only_superuser_has_add_delete_org_perm(self):
         user = self._create_user(
-            username='change', password='change', email='email@email', is_staff=True
+            username='change', password='change', email='email@email.com', is_staff=True
         )
         group = Group.objects.filter(name='Administrator')
         user.groups.set(group)
@@ -1267,10 +1267,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_can_change_inline_org_owner(self):
         user1 = self._create_user(
-            username='user1', password='user1', email='email1@email', is_staff=True
+            username='user1', password='user1', email='email1@email.com', is_staff=True
         )
         user2 = self._create_user(
-            username='user2', password='user2', email='email2@email', is_staff=True
+            username='user2', password='user2', email='email2@email.com', is_staff=True
         )
         group = Group.objects.filter(name='Administrator')
         user1.groups.set(group)
@@ -1313,7 +1313,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             params.update(self._get_org_edit_form_inline_params(self._get_admin(), org))
             self.client.force_login(self._get_admin())
             user3 = self._create_user(
-                username='user3', password='user3', email='email3@email', is_staff=True
+                username='user3', password='user3', email='email3@email.com', is_staff=True
             )
             user3.groups.set(group)
             org_user3 = self._create_org_user(
@@ -1328,7 +1328,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_only_superuser_can_delete_inline_org_owner(self):
         org = self._get_org()
         user = self._create_user(
-            username='change', password='change', email='email@email', is_staff=True
+            username='change', password='change', email='email@email.com', is_staff=True
         )
         group = Group.objects.filter(name='Administrator')
         user.groups.set(group)
@@ -1345,7 +1345,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             user1 = self._create_user(
                 username='change1',
                 password='change1',
-                email='email1@email',
+                email='email1@email.com',
                 is_staff=True,
             )
             user1.groups.set(group)
