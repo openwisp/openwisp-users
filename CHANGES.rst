@@ -11,6 +11,16 @@ Features
   see `Authentication Backend <https://github.com/openwisp/openwisp-users#authentication-backend>`_
 - Added possibility to filter users by their organization in
   the user administration section
+- Added phone number parsing to the authentication backend.
+  The value inserted by users as their identifier is parsed with the ``phonenumbers``
+  library to understand if it's a phone number, in which case the phone number
+  lookup is given priority.
+  This also allows recognizing the phone number if it contains additional
+  characters like spaces, dashes or dots.
+- If any international prefix is specified in the setting
+  ``OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES``, the authentication backend
+  tries prepending the listed prefixes when parsing numbers, so that users
+  can authenticate by typing only their national phone number.
 
 Changes
 ~~~~~~~

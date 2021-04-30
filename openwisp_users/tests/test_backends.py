@@ -1,8 +1,10 @@
+from unittest import mock
 from uuid import UUID
 
 from django.test import TestCase
 from django.test.utils import override_settings
 
+from openwisp_users import settings as users_settings
 from openwisp_users.backends import UsersAuthenticationBackend
 
 from .utils import TestOrganizationMixin
@@ -104,3 +106,45 @@ class TestBackends(TestOrganizationMixin, TestCase):
 
         with self.subTest('get user with username'):
             self.assertEqual(auth_backend.get_users(user.username)[0], user)
+
+    @override_settings(
+        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UsersAuthenticationBackend',),
+    )
+    def test_accept_flexible_phone_number_format(self):
+        user1 = self._create_user(
+            username='tester1',
+            email='tester1@test.com',
+            phone_number='+393665243702',
+            password='tester1',
+        )
+        variants = (
+            '+39 3665243702',
+            '+39 366.52.43.702',
+            '+39 366.52 43-702',
+        )
+        for variant in variants:
+            self.assertEqual(auth_backend.get_users(variant).count(), 1)
+            self.assertEqual(auth_backend.get_users(variant).first(), user1)
+
+    @override_settings(
+        AUTHENTICATION_BACKENDS=('openwisp_users.backends.UsersAuthenticationBackend',),
+    )
+    @mock.patch.object(users_settings, 'AUTH_BACKEND_AUTO_PREFIXES', ('+39',))
+    def test_partial_phone_number(self):
+        user1 = self._create_user(
+            username='tester1',
+            email='tester1@test.com',
+            phone_number='+393665243702',
+            password='tester1',
+        )
+        self.assertEqual(auth_backend.get_users('3665243702').count(), 1)
+        self.assertEqual(auth_backend.get_users('3665243702').first(), user1)
+
+        with self.subTest('test different prefix which is not enabled'):
+            self._create_user(
+                username='tester2',
+                email='tester2@test.com',
+                phone_number='+51911524370',
+                password='tester2',
+            )
+            self.assertEqual(auth_backend.get_users('911524370').count(), 0)

@@ -1313,7 +1313,10 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             params.update(self._get_org_edit_form_inline_params(self._get_admin(), org))
             self.client.force_login(self._get_admin())
             user3 = self._create_user(
-                username='user3', password='user3', email='email3@email.com', is_staff=True
+                username='user3',
+                password='user3',
+                email='email3@email.com',
+                is_staff=True,
             )
             user3.groups.set(group)
             org_user3 = self._create_org_user(

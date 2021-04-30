@@ -9,3 +9,6 @@ USERS_AUTH_THROTTLE_RATE = getattr(
     'OPENWISP_USERS_AUTH_THROTTLE_RATE',
     default_or_test(value='20/day', test=None),
 )
+AUTH_BACKEND_AUTO_PREFIXES = getattr(
+    settings, 'OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES', tuple()
+)
