@@ -152,6 +152,19 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
         self.assertNotContains(response, str(self.shelf_b.id))
 
+    def test_filter_by_org_managed_shared_objects(self):
+        self._create_shelf(name='shared_shelf', organization=None)
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertContains(response, 'shared_shelf</option>')
+
     def test_filter_by_org_owned(self):
         operator = self._get_operator()
         self._create_org_user(

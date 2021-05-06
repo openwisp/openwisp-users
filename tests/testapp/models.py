@@ -26,7 +26,7 @@ class Config(OrgMixin):
         self._validate_org_relation('template')
 
 
-class Shelf(OrgMixin, TimeStampedEditableModel):
+class Shelf(ShareableOrgMixin, TimeStampedEditableModel):
     name = models.CharField(_('name'), max_length=64)
 
     def __str__(self):
