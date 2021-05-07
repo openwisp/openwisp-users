@@ -705,17 +705,12 @@ Usage example:
             model = Device
             fields = '__all__'
 
-``filter_shared``
-~~~~~~~~~~~~~~~~~
+The ``filter_shared`` boolean attribute can be used to include shared
+objects in the accepted values of the multi-tenant serializers.
 
-+--------------+------------------+
-| **type**:    | ``boolean``      |
-+--------------+------------------+
-| **default**: | ``False``        |
-+--------------+------------------+
-
-The ``filter_shared`` attribute can be used to include the shared objects 
-while filterig the relationship fields in the serializer classes.
+Shared objects have the ``organization`` field set to ``None`` and can
+be used by any organization. A common use case is `shared templates
+in OpenWISP Controller <https://openwisp.io/docs/user/templates.html#shared-templates-vs-organization-specific>`_.
 
 Usage example:
 
