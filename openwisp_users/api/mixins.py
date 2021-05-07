@@ -118,7 +118,7 @@ class FilterSerializerByOrganization:
     """
 
     organization_lookup = 'organization__in'
-    filter_shared = True
+    filter_shared = False
 
     @property
     def _user_attr(self):

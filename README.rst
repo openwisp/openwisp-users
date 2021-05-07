@@ -705,6 +705,33 @@ Usage example:
             model = Device
             fields = '__all__'
 
+``filter_shared``
+~~~~~~~~~~~~~~~~~
+
++--------------+------------------+
+| **type**:    | ``boolean``      |
++--------------+------------------+
+| **default**: | ``False``        |
++--------------+------------------+
+
+The ``filter_shared`` attribute can be used to include the shared objects 
+while filterig the relationship fields in the serializer classes.
+
+Usage example:
+
+.. code-block:: python
+
+    from openwisp_users.api.mixins import FilterSerializerByOrgOwned
+    from rest_framework.serializers import ModelSerializer
+    from .models import Book
+
+    class BookSerializer(FilterSerializerByOrgOwned, ModelSerializer):
+        filter_shared = True
+
+        class Meta:
+            model = Book
+            fields = '__all__'
+
 Admin Multitenancy mixins
 -------------------------
 
