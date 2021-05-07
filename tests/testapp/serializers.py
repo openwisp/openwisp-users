@@ -17,7 +17,7 @@ class BookMemberSerializer(FilterSerializerByOrgMembership, ValidatedModelSerial
 
 
 class BookManagerSerializer(FilterSerializerByOrgManaged, ValidatedModelSerializer):
-    filter_shared = True
+    include_shared = True
 
     class Meta:
         model = Book

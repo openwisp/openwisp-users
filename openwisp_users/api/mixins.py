@@ -118,7 +118,7 @@ class FilterSerializerByOrganization:
     """
 
     organization_lookup = 'organization__in'
-    filter_shared = False
+    include_shared = False
 
     @property
     def _user_attr(self):
@@ -138,7 +138,7 @@ class FilterSerializerByOrganization:
                 continue
             try:
                 conditions = Q(**{self.organization_lookup: organization_filter})
-                if self.filter_shared:
+                if self.include_shared:
                     conditions |= Q(organization__isnull=True)
                 self.fields[field].queryset = self.fields[field].queryset.filter(
                     conditions

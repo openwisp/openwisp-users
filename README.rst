@@ -705,7 +705,7 @@ Usage example:
             model = Device
             fields = '__all__'
 
-The ``filter_shared`` boolean attribute can be used to include shared
+The ``include_shared`` boolean attribute can be used to include shared
 objects in the accepted values of the multi-tenant serializers.
 
 Shared objects have the ``organization`` field set to ``None`` and can
@@ -721,7 +721,7 @@ Usage example:
     from .models import Book
 
     class BookSerializer(FilterSerializerByOrgOwned, ModelSerializer):
-        filter_shared = True
+        include_shared = True
 
         class Meta:
             model = Book
