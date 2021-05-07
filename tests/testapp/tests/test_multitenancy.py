@@ -8,10 +8,6 @@ from .mixins import TestMultitenancyMixin
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
     book_model = Book
     shelf_model = Shelf
-    operator_permission_filter = [
-        {'codename__endswith': 'book'},
-        {'codename__endswith': 'shelf'},
-    ]
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name='org1')
