@@ -705,6 +705,28 @@ Usage example:
             model = Device
             fields = '__all__'
 
+The ``filter_shared`` boolean attribute can be used to include shared
+objects in the accepted values of the multi-tenant serializers.
+
+Shared objects have the ``organization`` field set to ``None`` and can
+be used by any organization. A common use case is `shared templates
+in OpenWISP Controller <https://openwisp.io/docs/user/templates.html#shared-templates-vs-organization-specific>`_.
+
+Usage example:
+
+.. code-block:: python
+
+    from openwisp_users.api.mixins import FilterSerializerByOrgOwned
+    from rest_framework.serializers import ModelSerializer
+    from .models import Book
+
+    class BookSerializer(FilterSerializerByOrgOwned, ModelSerializer):
+        filter_shared = True
+
+        class Meta:
+            model = Book
+            fields = '__all__'
+
 Admin Multitenancy mixins
 -------------------------
 

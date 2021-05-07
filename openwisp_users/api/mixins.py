@@ -1,5 +1,6 @@
 import swapper
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 
@@ -117,6 +118,7 @@ class FilterSerializerByOrganization:
     """
 
     organization_lookup = 'organization__in'
+    filter_shared = False
 
     @property
     def _user_attr(self):
@@ -135,8 +137,11 @@ class FilterSerializerByOrganization:
                 )
                 continue
             try:
+                conditions = Q(**{self.organization_lookup: organization_filter})
+                if self.filter_shared:
+                    conditions |= Q(organization__isnull=True)
                 self.fields[field].queryset = self.fields[field].queryset.filter(
-                    **{self.organization_lookup: organization_filter}
+                    conditions
                 )
             except AttributeError:
                 pass
