@@ -54,6 +54,7 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        Organization = load_model('openwisp_users', 'Organization')
         Group = load_model('openwisp_users', 'Group')
         User = get_user_model()
         signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
@@ -64,6 +65,15 @@ class OpenwispUsersConfig(AppConfig):
                     self.update_organizations_dict,
                     sender=model,
                     dispatch_uid='{}_{}_update_organizations_dict'.format(
+                        name, model.__name__
+                    ),
+                )
+        for model in [Organization]:
+            for signal, name in signal_tuples:
+                signal.connect(
+                    self.update_selected_org,
+                    sender=model,
+                    dispatch_uid='{}_{}_update_selected_org'.format(
                         name, model.__name__
                     ),
                 )
@@ -83,12 +93,21 @@ class OpenwispUsersConfig(AppConfig):
                 dispatch_uid='update_user_permissions',
             )
 
+    def update_selected_org(cls, user=None, **kwargs):
+        if user:
+            cache_key = f'selected_{user.pk}_org'
+            cache.delete(cache_key)
+
+        # also delete for superuser
+        cache_key = 'selected_superuser_org'
+        cache.delete(cache_key)
+
     def update_organizations_dict(cls, instance, **kwargs):
         if hasattr(instance, 'user'):
             user = instance.user
         else:
             user = instance.organization_user.user
-        cache_key = 'user_{}_organizations'.format(user.pk)
+        cache_key = f'user_{user.pk}_organizations'
         cache.delete(cache_key)
         # forces caching
         user.organizations_dict
@@ -100,6 +119,7 @@ class OpenwispUsersConfig(AppConfig):
             del user.organizations_owned
         except AttributeError:
             pass
+        cls.update_selected_org(user, **kwargs)
 
     def create_organization_owner(cls, instance, created, **kwargs):
         if not created or not instance.is_admin:
