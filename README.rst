@@ -539,7 +539,7 @@ setting allows to specify a list of international prefixes that can
 be prepended to the username string automatically in order to allow
 users to log in without having to type the international prefix.
 
-The authentication backend can also be used as follows::
+The authentication backend can also be used as follows:
 
 .. code-block:: python
 
