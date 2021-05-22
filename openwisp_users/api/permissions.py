@@ -1,5 +1,7 @@
+import copy
+
 from django.utils.translation import gettext_lazy as _
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, DjangoModelPermissions
 from swapper import load_model
 
 Organization = load_model('openwisp_users', 'Organization')
@@ -66,3 +68,32 @@ class IsOrganizationOwner(BaseOrganizationPermission):
 
     def validate_membership(self, user, org):
         return org and (user.is_superuser or user.is_owner(org))
+
+
+class CustomDjangoModelPermissions(DjangoModelPermissions):
+    def __init__(self):
+        self.perms_map = copy.deepcopy(self.perms_map)
+        self.perms_map['GET'] = ['%(app_label)s.view_%(model_name)s']
+
+    def has_permission(self, request, view):
+        # Workaround to ensure DjangoModelPermissions are not applied
+        # to the root view when using DefaultRouter.
+        if getattr(view, '_ignore_model_permissions', False):
+            return True
+
+        if not request.user or (
+            not request.user.is_authenticated and self.authenticated_users_only
+        ):
+            return False
+
+        queryset = self._queryset(view)
+        perms = self.get_required_permissions(request.method, queryset.model)
+        change_perm = self.get_required_permissions('PUT', queryset.model)
+
+        if request.method == 'GET':
+            if request.user.has_perms(perms) or request.user.has_perms(change_perm):
+                return True
+            else:
+                return False
+
+        return request.user.has_perms(perms)

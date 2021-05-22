@@ -1,9 +1,13 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 
 from openwisp_users.api.throttling import AuthRateThrottle
 
 from .mixins import TestMultitenancyMixin
+
+User = get_user_model()
 
 
 class TestPermissionClasses(TestMultitenancyMixin, TestCase):
@@ -117,3 +121,29 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         with self.assertRaises(AttributeError) as error:
             self.client.get(reverse('test_error_field_view'), **auth)
         self.assertIn('Organization not found', str(error.exception))
+
+    def test_custom_django_model_permission_with_view_permission(self):
+        user = User.objects.create_user(
+            username='operator', password='tester', email='operator@test.com'
+        )
+        user_permissions = Permission.objects.filter(codename='view_template')
+        user.user_permissions.add(*user_permissions)
+        user.organizations_dict  # force caching
+        self.client.force_login(user)
+        token = self._obtain_auth_token()
+        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(reverse('test_template_list'), **auth)
+        self.assertEqual(response.status_code, 200)
+
+    def test_custom_django_model_permission_with_change_permission(self):
+        user = User.objects.create_user(
+            username='operator', password='tester', email='operator@test.com'
+        )
+        user_permissions = Permission.objects.filter(codename='change_template')
+        user.user_permissions.add(*user_permissions)
+        user.organizations_dict  # force caching
+        self.client.force_login(user)
+        token = self._obtain_auth_token()
+        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(reverse('test_template_list'), **auth)
+        self.assertEqual(response.status_code, 200)

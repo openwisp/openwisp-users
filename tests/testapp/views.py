@@ -14,6 +14,7 @@ from openwisp_users.api.mixins import (
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
+    CustomDjangoModelPermissions,
     IsOrganizationManager,
     IsOrganizationMember,
     IsOrganizationOwner,
@@ -169,7 +170,10 @@ class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
 class TemplateListCreateView(ListCreateAPIView):
     serializer_class = TemplateSerializer
     authentication_classes = (BearerAuthentication,)
-    permission_classes = (IsOrganizationMember,)
+    permission_classes = (
+        IsOrganizationMember,
+        CustomDjangoModelPermissions,
+    )
     queryset = Template.objects.all()
 
 
