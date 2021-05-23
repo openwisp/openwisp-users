@@ -48,4 +48,5 @@ urlpatterns = [
         name='test_shelf_list_unauthorized_view',
     ),
     path('template/', views.template_list, name='test_template_list',),
+    path('template/<int:pk>/', views.template_detail, name='test_template_detail',),
 ]

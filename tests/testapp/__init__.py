@@ -14,3 +14,11 @@ class CreateMixin(object):
         s.full_clean()
         s.save()
         return s
+
+    def _create_template(self, **kwargs):
+        options = dict(name='test-template')
+        options.update(kwargs)
+        t = self.template_model(**options)
+        t.full_clean()
+        t.save()
+        return t

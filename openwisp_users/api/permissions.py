@@ -70,7 +70,7 @@ class IsOrganizationOwner(BaseOrganizationPermission):
         return org and (user.is_superuser or user.is_owner(org))
 
 
-class CustomDjangoModelPermissions(DjangoModelPermissions):
+class ViewDjangoModelPermissions(DjangoModelPermissions):
     def __init__(self):
         self.perms_map = copy.deepcopy(self.perms_map)
         self.perms_map['GET'] = ['%(app_label)s.view_%(model_name)s']
@@ -81,9 +81,8 @@ class CustomDjangoModelPermissions(DjangoModelPermissions):
         if getattr(view, '_ignore_model_permissions', False):
             return True
 
-        if not request.user or (
-            not request.user.is_authenticated and self.authenticated_users_only
-        ):
+        user = request.user
+        if not user or (not user.is_authenticated and self.authenticated_users_only):
             return False
 
         queryset = self._queryset(view)
@@ -91,9 +90,9 @@ class CustomDjangoModelPermissions(DjangoModelPermissions):
         change_perm = self.get_required_permissions('PUT', queryset.model)
 
         if request.method == 'GET':
-            if request.user.has_perms(perms) or request.user.has_perms(change_perm):
+            if user.has_perms(perms) or user.has_perms(change_perm):
                 return True
             else:
                 return False
 
-        return request.user.has_perms(perms)
+        return user.has_perms(perms)
