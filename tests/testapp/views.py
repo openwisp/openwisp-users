@@ -171,7 +171,7 @@ class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
         return shelf.book_set.all()
 
 
-class TemplateListCreateView(ListCreateAPIView):
+class TemplateListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     serializer_class = TemplateSerializer
     authentication_classes = (BearerAuthentication,)
     permission_classes = (

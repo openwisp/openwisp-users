@@ -1,5 +1,3 @@
-import copy
-
 from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import BasePermission, DjangoModelPermissions
 from swapper import load_model
@@ -71,9 +69,15 @@ class IsOrganizationOwner(BaseOrganizationPermission):
 
 
 class ViewDjangoModelPermissions(DjangoModelPermissions):
-    def __init__(self):
-        self.perms_map = copy.deepcopy(self.perms_map)
-        self.perms_map['GET'] = ['%(app_label)s.view_%(model_name)s']
+    perms_map = {
+        'GET': ['%(app_label)s.view_%(model_name)s'],
+        'OPTIONS': [],
+        'HEAD': ['%(app_label)s.view_%(model_name)s'],
+        'POST': ['%(app_label)s.add_%(model_name)s'],
+        'PUT': ['%(app_label)s.change_%(model_name)s'],
+        'PATCH': ['%(app_label)s.change_%(model_name)s'],
+        'DELETE': ['%(app_label)s.delete_%(model_name)s'],
+    }
 
     def has_permission(self, request, view):
         # Workaround to ensure DjangoModelPermissions are not applied
