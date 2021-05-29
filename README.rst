@@ -144,7 +144,7 @@ Install your forked repo:
 
     git clone git://github.com/<your_fork>/openwisp-users
     cd openwisp-users/
-    pip install -e .
+    pip install -e .[rest]
 
 Install test requirements:
 

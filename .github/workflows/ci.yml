@@ -44,13 +44,15 @@ jobs:
       - name: Install python dependencies
         run: |
           pip install -U pip wheel
-          pip install ${{ matrix.django-version }}
           pip install -U -r requirements-test.txt
       - name: Install npm dependencies
         run: sudo npm install -g jshint
 
       - name: Install openwisp-users
         run: pip install -e .[rest]
+
+      - name: Change Django Version for test
+        run: pip install -U ${{ matrix.django-version }}
 
       - name: QA checks
         run: |
