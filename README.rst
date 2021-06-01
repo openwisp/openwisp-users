@@ -600,6 +600,27 @@ Ensure the queryset of your views make use of
 `select_related <https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
 in these cases to avoid generating too many queries.
 
+``DjangoModelPermissions``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The default ``DjangoModelPermissions`` class doesn't checks for the
+``view`` permission of any object for ``GET`` requests. The extended
+``DjangoModelPermissions`` class overcomes this problem. In order to
+allow ``GET`` requests on any object it checks for the availability 
+of either ``view`` or ``change`` permissions.
+
+Usage example:
+
+.. code-block:: python
+
+    from openwisp_users.api.permissions import DjangoModelPermissions
+    from rest_framework.generics import ListCreateAPIView
+
+    class TemplateListCreateView(ListCreateAPIView):
+        serializer_class = TemplateSerializer
+        permission_classes = (DjangoModelPermissions,)
+        queryset = Template.objects.all()
+
 Django REST Framework Mixins
 ----------------------------
 
