@@ -127,18 +127,20 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.client.get(reverse('test_error_field_view'), **auth)
         self.assertIn('Organization not found', str(error.exception))
 
+    def _get_auth_template(self, user, org1):
+        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
+        self.client.force_login(user)
+        token = self._obtain_auth_token(user)
+        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
+        t1 = self._create_template(organization=org1)
+        return (auth, t1)
+
     def test_view_permission_with_operator(self):
-        user = User.objects.create_user(
-            username='operator', password='tester', email='operator@test.com'
-        )
+        user = self._get_user()
         operator_group = Group.objects.filter(name='Operator')
         user.groups.set(operator_group)
         org1 = self._get_org()
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.client.force_login(user)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        t1 = self._create_template(organization=org1)
+        auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 403)
@@ -149,19 +151,13 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.assertEqual(response.status_code, 403)
 
     def test_view_permission_with_administrator(self):
-        user = User.objects.create_user(
-            username='operator', password='tester', email='operator@test.com'
-        )
+        user = self._get_user()
         administrator_group = Group.objects.get(name='Administrator')
         change_perm = Permission.objects.get(codename='change_template')
         administrator_group.permissions.add(change_perm)
         user.groups.add(administrator_group)
         org1 = self._get_org()
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.client.force_login(user)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        t1 = self._create_template(organization=org1)
+        auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 200)
@@ -175,19 +171,13 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         self.assertTrue('change_template' in permissions)
 
     def test_view_permission_with_operator_having_view_perm(self):
-        user = User.objects.create_user(
-            username='operator', password='tester', email='operator@test.com'
-        )
+        user = self._get_user()
         operator_group = Group.objects.get(name='Operator')
         view_perm = Permission.objects.get(codename='view_template')
         operator_group.permissions.add(view_perm)
         user.groups.add(operator_group)
         org1 = self._get_org()
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.client.force_login(user)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        t1 = self._create_template(organization=org1)
+        auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 200)
@@ -209,18 +199,12 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.assertEqual(response.status_code, 403)
 
     def test_view_django_model_permission_with_view_perm(self):
-        user = User.objects.create_user(
-            username='operator', password='tester', email='operator@test.com'
-        )
+        user = self._get_user()
         user_permissions = Permission.objects.filter(codename='view_template')
         user.user_permissions.add(*user_permissions)
         user.organizations_dict  # force caching
         org1 = self._get_org()
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.client.force_login(user)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        t1 = self._create_template(organization=org1)
+        auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 200)
@@ -231,18 +215,12 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.assertEqual(response.status_code, 200)
 
     def test_view_django_model_permission_with_change_perm(self):
-        user = User.objects.create_user(
-            username='operator', password='tester', email='operator@test.com'
-        )
+        user = self._get_user()
         user_permissions = Permission.objects.filter(codename='change_template')
         user.user_permissions.add(*user_permissions)
         user.organizations_dict  # force caching
         org1 = self._get_org()
-        OrganizationUser.objects.create(user=user, organization=org1, is_admin=True)
-        self.client.force_login(user)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        t1 = self._create_template(organization=org1)
+        auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 200)

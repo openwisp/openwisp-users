@@ -18,10 +18,10 @@ from openwisp_users.api.mixins import (
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
+    DjangoModelPermissions,
     IsOrganizationManager,
     IsOrganizationMember,
     IsOrganizationOwner,
-    ViewDjangoModelPermissions,
 )
 
 from .models import Book, Config, Shelf, Template
@@ -176,7 +176,7 @@ class TemplateListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (
         IsOrganizationMember,
-        ViewDjangoModelPermissions,
+        DjangoModelPermissions,
     )
     queryset = Template.objects.all()
 
@@ -186,7 +186,7 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
     authentication_classes = (BearerAuthentication,)
     permission_classes = (
         IsOrganizationMember,
-        ViewDjangoModelPermissions,
+        DjangoModelPermissions,
     )
     queryset = Template.objects.all()
 

@@ -1,5 +1,8 @@
 from django.utils.translation import gettext_lazy as _
-from rest_framework.permissions import BasePermission, DjangoModelPermissions
+from rest_framework.permissions import BasePermission
+from rest_framework.permissions import (
+    DjangoModelPermissions as BaseDjangoModelPermissions,
+)
 from swapper import load_model
 
 Organization = load_model('openwisp_users', 'Organization')
@@ -68,7 +71,7 @@ class IsOrganizationOwner(BaseOrganizationPermission):
         return org and (user.is_superuser or user.is_owner(org))
 
 
-class ViewDjangoModelPermissions(DjangoModelPermissions):
+class DjangoModelPermissions(BaseDjangoModelPermissions):
     perms_map = {
         'GET': ['%(app_label)s.view_%(model_name)s'],
         'OPTIONS': [],
@@ -94,9 +97,6 @@ class ViewDjangoModelPermissions(DjangoModelPermissions):
         change_perm = self.get_required_permissions('PUT', queryset.model)
 
         if request.method == 'GET':
-            if user.has_perms(perms) or user.has_perms(change_perm):
-                return True
-            else:
-                return False
+            return user.has_perms(perms) or user.has_perms(change_perm)
 
         return user.has_perms(perms)
