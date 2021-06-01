@@ -1,5 +1,9 @@
 import swapper
-from rest_framework.generics import ListAPIView, ListCreateAPIView
+from rest_framework.generics import (
+    ListAPIView,
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,6 +18,7 @@ from openwisp_users.api.mixins import (
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
+    DjangoModelPermissions,
     IsOrganizationManager,
     IsOrganizationMember,
     IsOrganizationOwner,
@@ -166,10 +171,23 @@ class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
         return shelf.book_set.all()
 
 
-class TemplateListCreateView(ListCreateAPIView):
+class TemplateListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     serializer_class = TemplateSerializer
     authentication_classes = (BearerAuthentication,)
-    permission_classes = (IsOrganizationMember,)
+    permission_classes = (
+        IsOrganizationMember,
+        DjangoModelPermissions,
+    )
+    queryset = Template.objects.all()
+
+
+class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView):
+    serializer_class = TemplateSerializer
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (
+        IsOrganizationMember,
+        DjangoModelPermissions,
+    )
     queryset = Template.objects.all()
 
 
@@ -188,3 +206,4 @@ shelf_list_member_view = ShelfListMemberView.as_view()
 shelf_list_manager_view = ShelfListManagerView.as_view()
 shelf_list_owner_view = ShelfListOwnerView.as_view()
 template_list = TemplateListCreateView.as_view()
+template_detail = TemplateDetailView.as_view()
