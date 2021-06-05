@@ -9,7 +9,7 @@ from django.db import IntegrityError, transaction
 from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.utils.translation import ugettext_lazy as _
 from openwisp_utils import settings as utils_settings
-from openwisp_utils.utils import register_menu_items
+from openwisp_utils.admin_theme.menu import register_menu_group
 from swapper import get_model_name, load_model
 
 from . import settings as app_settings
@@ -23,16 +23,26 @@ class OpenwispUsersConfig(AppConfig):
     verbose_name = _('Users and Organizations')
 
     def ready(self):
-        self.register_default_menu_items()
+        self.register_menu_group()
         self.set_default_settings()
         self.connect_receivers()
 
-    def register_default_menu_items(self):
-        register_menu_items(
-            [
-                {'model': settings.AUTH_USER_MODEL},
-                {'model': get_model_name('openwisp_users', 'Organization')},
-            ]
+    def register_menu_group(self):
+        register_menu_group(
+            position=4,
+            config={
+                'label': 'User',
+                'model': settings.AUTH_USER_MODEL,
+                'name': 'changelist',
+            },
+        )
+        register_menu_group(
+            position=5,
+            config={
+                'label': 'Organizations',
+                'model': get_model_name('openwisp_users', 'Organization'),
+                'name': 'changelist',
+            },
         )
 
     def set_default_settings(self):
