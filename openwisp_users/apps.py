@@ -31,7 +31,7 @@ class OpenwispUsersConfig(AppConfig):
         register_menu_group(
             position=4,
             config={
-                'label': 'User',
+                'label': _('User'),
                 'model': settings.AUTH_USER_MODEL,
                 'name': 'changelist',
             },
@@ -39,7 +39,7 @@ class OpenwispUsersConfig(AppConfig):
         register_menu_group(
             position=5,
             config={
-                'label': 'Organizations',
+                'label': _('Organizations'),
                 'model': get_model_name('openwisp_users', 'Organization'),
                 'name': 'changelist',
             },
