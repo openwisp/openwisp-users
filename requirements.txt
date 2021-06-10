@@ -4,7 +4,7 @@ django-allauth~=0.44.0
 django-phonenumber-field>=4.0,<5.2
 phonenumbers>=8.11.0,<8.13.0
 # TODO: change this when next point version of openwisp-utils is released
-openwisp-utils[rest] @ https://github.com/niteshsinha17/openwisp-utils/tarball/gsoc/new-navigation-menu-and-ux-improvements
+openwisp-utils[rest] @ https://github.com/openwisp/openwisp-utils/tarball/dev
 packaging
 swapper~=1.1.0
 django~=3.1.0
