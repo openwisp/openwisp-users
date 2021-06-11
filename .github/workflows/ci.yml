@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - master
+      - new-menu
   pull_request:
     branches:
       - master
+      - new-menu
 
 jobs:
   build:
