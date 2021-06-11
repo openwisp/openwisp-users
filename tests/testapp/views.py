@@ -24,12 +24,13 @@ from openwisp_users.api.permissions import (
     IsOrganizationOwner,
 )
 
-from .models import Book, Config, Shelf, Template
+from .models import Book, Config, Library, Shelf, Template
 from .serializers import (
     BookManagerSerializer,
     BookMemberSerializer,
     BookOwnerSerializer,
     BookSerializer,
+    LibrarySerializer,
     ShelfSerializer,
     TemplateSerializer,
 )
@@ -191,6 +192,22 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
     queryset = Template.objects.all()
 
 
+class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
+    serializer_class = LibrarySerializer
+    organization_field = 'book__organization'
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationMember,)
+    queryset = Library.objects.all()
+
+
+class LibraryDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView):
+    serializer_class = LibrarySerializer
+    organization_field = 'book__organization'
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (IsOrganizationMember,)
+    queryset = Library.objects.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
@@ -207,3 +224,5 @@ shelf_list_manager_view = ShelfListManagerView.as_view()
 shelf_list_owner_view = ShelfListOwnerView.as_view()
 template_list = TemplateListCreateView.as_view()
 template_detail = TemplateDetailView.as_view()
+library_list = LibraryListCreateView.as_view()
+library_detail = LibraryDetailView.as_view()

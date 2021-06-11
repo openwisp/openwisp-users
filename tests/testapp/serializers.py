@@ -6,7 +6,7 @@ from openwisp_users.api.mixins import (
     FilterSerializerByOrgOwned,
 )
 
-from .models import Book, Shelf, Template
+from .models import Book, Library, Shelf, Template
 
 
 class BookMemberSerializer(FilterSerializerByOrgMembership, ValidatedModelSerializer):
@@ -49,4 +49,10 @@ class ShelfSerializer(ValidatedModelSerializer):
 class TemplateSerializer(FilterSerializerByOrgManaged, ValidatedModelSerializer):
     class Meta:
         model = Template
+        fields = '__all__'
+
+
+class LibrarySerializer(FilterSerializerByOrgManaged, ValidatedModelSerializer):
+    class Meta:
+        model = Library
         fields = '__all__'

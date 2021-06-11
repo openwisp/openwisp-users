@@ -5,7 +5,7 @@ from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
 
-from ..models import Book, Shelf
+from ..models import Book, Library, Shelf
 from .mixins import TestMultitenancyMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -18,6 +18,7 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         AuthRateThrottle.rate = 0
         self.shelf_model = Shelf
         self.book_model = Book
+        self.library_model = Library
         self._create_org(name='org_a', slug='org_a')
         self._create_org(name='org_b', slug='org_b')
         self.shelf_a = self._create_shelf(
@@ -210,3 +211,36 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
         )
         self.assertNotContains(response, '--------</option>')
+
+    def test_filter_by_org_managed_with_org_field(self):
+        shared_shelf = self._create_shelf(name='shared_shelf', organization=None)
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        book_org1 = self._create_book(
+            name='book_org1', organization=org1, shelf=shared_shelf
+        )
+        book_org2 = self._create_book(
+            name='book_org2', organization=org2, shelf=shared_shelf
+        )
+        lib1 = self._create_library(name='lib1', book=book_org1)
+        lib2 = self._create_library(name='lib2', book=book_org2)
+        operator = self._get_operator()
+        self._create_org_user(user=operator, is_admin=True, organization=org1)
+        token = self._obtain_auth_token(operator)
+
+        url = reverse('test_library_list')
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        url = f'{reverse("test_library_detail", args=(lib1.id,))}'
+        response = self.client.get(
+            url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        url = f'{reverse("test_library_detail", args=(lib2.id,))}'
+        response = self.client.get(
+            url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertEqual(response.status_code, 404)

@@ -6,7 +6,7 @@ from openwisp_users.multitenancy import (
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Book, Shelf, Template
+from .models import Book, Library, Shelf, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -58,3 +58,4 @@ class TemplateAdmin(BaseAdmin):
 admin.site.register(Shelf, ShelfAdmin)
 admin.site.register(Book, BookAdmin)
 admin.site.register(Template, TemplateAdmin)
+admin.site.register(Library)
