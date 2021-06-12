@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
@@ -13,7 +14,7 @@ OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 User = get_user_model()
 
 
-class TestFilterClasses(TestMultitenancyMixin, TestCase):
+class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, TestCase):
     def setUp(self):
         AuthRateThrottle.rate = 0
         self.shelf_model = Shelf
@@ -244,3 +245,14 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}'
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_book_nested_shelf(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        with self.assertNumQueries(0):
+            url = reverse('test_book_nested_shelf')
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
+        self.assertEqual(response.status_code, 200)

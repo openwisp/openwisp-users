@@ -56,3 +56,20 @@ class LibrarySerializer(FilterSerializerByOrgManaged, ValidatedModelSerializer):
     class Meta:
         model = Library
         fields = '__all__'
+
+
+class ShelfSerializerForBook(FilterSerializerByOrgManaged, ValidatedModelSerializer):
+    class Meta:
+        model = Shelf
+        fields = ['name']
+
+
+class BookWithNestedShelfSerializer(
+    FilterSerializerByOrgManaged, ValidatedModelSerializer
+):
+    shelf = ShelfSerializerForBook(read_only=True)
+
+    class Meta:
+        model = Book
+        fields = '__all__'
+        read_only_fields = ('created', 'modified')

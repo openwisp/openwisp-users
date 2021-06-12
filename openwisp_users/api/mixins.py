@@ -131,26 +131,29 @@ class FilterSerializerByOrganization(OrgLookup):
         raise NotImplementedError()
 
     def filter_fields(self):
-        user = self.context['request'].user
-        if user.is_superuser:
-            return
-        organization_filter = getattr(user, self._user_attr)
-        for field in self.fields:
-            if field == 'organization':
-                self.fields[field].allow_null = False
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            try:
-                conditions = Q(**{self.organization_lookup: organization_filter})
-                if self.include_shared:
-                    conditions |= Q(organization__isnull=True)
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    conditions
-                )
-            except AttributeError:
-                pass
+        try:
+            user = self.context['request'].user
+            if user.is_superuser:
+                return
+            organization_filter = getattr(user, self._user_attr)
+            for field in self.fields:
+                if field == 'organization':
+                    self.fields[field].allow_null = False
+                    self.fields[field].queryset = self.fields[field].queryset.filter(
+                        pk__in=organization_filter
+                    )
+                    continue
+                try:
+                    conditions = Q(**{self.organization_lookup: organization_filter})
+                    if self.include_shared:
+                        conditions |= Q(organization__isnull=True)
+                    self.fields[field].queryset = self.fields[field].queryset.filter(
+                        conditions
+                    )
+                except AttributeError:
+                    pass
+        except KeyError:
+            pass
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
