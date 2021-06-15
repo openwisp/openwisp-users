@@ -146,10 +146,10 @@ class FilterSerializerByOrganization(OrgLookup):
                     pk__in=organization_filter
                 )
                 continue
+            conditions = Q(**{self.organization_lookup: organization_filter})
+            if self.include_shared:
+                conditions |= Q(organization__isnull=True)
             try:
-                conditions = Q(**{self.organization_lookup: organization_filter})
-                if self.include_shared:
-                    conditions |= Q(organization__isnull=True)
                 self.fields[field].queryset = self.fields[field].queryset.filter(
                     conditions
                 )
