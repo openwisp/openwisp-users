@@ -51,3 +51,12 @@ class Book(OrgMixin, TimeStampedEditableModel):
 
     class Meta:
         abstract = False
+
+
+class Library(models.Model):
+    name = models.CharField(_('name'), max_length=64)
+    address = models.TextField(null=True, blank=True)
+    book = models.ForeignKey('testapp.Book', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name

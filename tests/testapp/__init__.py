@@ -22,3 +22,11 @@ class CreateMixin(object):
         t.full_clean()
         t.save()
         return t
+
+    def _create_library(self, **kwargs):
+        options = dict(name='test-library', address='test-address')
+        options.update(kwargs)
+        lib = self.library_model(**options)
+        lib.full_clean()
+        lib.save()
+        return lib

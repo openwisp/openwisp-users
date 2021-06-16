@@ -7,14 +7,20 @@ from rest_framework.permissions import IsAuthenticated
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
 
-class FilterByOrganization:
+class OrgLookup:
+    @property
+    def organization_lookup(self):
+        org_field = getattr(self, 'organization_field', 'organization')
+        return f'{org_field}__in'
+
+
+class FilterByOrganization(OrgLookup):
     """
     Filter queryset based on the access to the organization
     of the associated model. Use on of the sub-classes
     """
 
-    permission_classes = [IsAuthenticated]
-    organization_lookup = 'organization__in'
+    permission_classes = (IsAuthenticated,)
 
     @property
     def _user_attr(self):
@@ -56,12 +62,12 @@ class FilterByOrganizationOwned(FilterByOrganization):
     _user_attr = 'organizations_owned'
 
 
-class FilterByParent:
+class FilterByParent(OrgLookup):
     """
     Filter queryset based on one of the parent objects
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
 
     @property
     def _user_attr(self):
@@ -82,7 +88,8 @@ class FilterByParent:
             raise NotFound()
 
     def get_organization_queryset(self, qs):
-        return qs.filter(organization__in=getattr(self.request.user, self._user_attr))
+        lookup = {self.organization_lookup: getattr(self.request.user, self._user_attr)}
+        return qs.filter(**lookup)
 
     def get_parent_queryset(self):
         raise NotImplementedError()
@@ -112,12 +119,11 @@ class FilterByParentOwned(FilterByParent):
     _user_attr = 'organizations_owned'
 
 
-class FilterSerializerByOrganization:
+class FilterSerializerByOrganization(OrgLookup):
     """
     Filter the options in browsable API for serializers
     """
 
-    organization_lookup = 'organization__in'
     include_shared = False
 
     @property

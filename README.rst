@@ -748,6 +748,12 @@ Usage example:
             model = Book
             fields = '__all__'
 
+To filter items based on the ``organization`` of their parent object,
+``organization_field`` attribute can be defined in the view function
+which is inheriting any of the mixin classes.
+
+Usage example: `organization_field <https://github.com/openwisp/openwisp-users#organization_field>`_.
+
 Admin Multitenancy mixins
 -------------------------
 
