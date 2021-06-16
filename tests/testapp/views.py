@@ -30,8 +30,8 @@ from .serializers import (
     BookMemberSerializer,
     BookOwnerSerializer,
     BookSerializer,
-    LibrarySerializer,
     BookWithNestedShelfSerializer,
+    LibrarySerializer,
     ShelfSerializer,
     TemplateSerializer,
 )
