@@ -252,7 +252,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token(operator)
-        with self.assertNumQueries(0):
-            url = reverse('test_book_nested_shelf')
-        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
+        url = reverse('test_book_nested_shelf')
+        with self.assertNumQueries(6):
+            response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.status_code, 200)
