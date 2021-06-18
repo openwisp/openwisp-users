@@ -131,9 +131,9 @@ class FilterSerializerByOrganization(OrgLookup):
         raise NotImplementedError()
 
     def filter_fields(self):
-        try:
+        if self.context:
             user = self.context['request'].user
-        except KeyError:
+        else:
             return
 
         if user.is_superuser:
