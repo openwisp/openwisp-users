@@ -45,12 +45,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-            '?format=api',
-            **auth,
-        )
+        url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -63,12 +59,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-            '?format=api',
-            **auth,
-        )
+        url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -78,12 +70,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         admin = self._get_admin()
         token = self._obtain_auth_token(username=admin)
         self.client.force_login(admin)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-            '?format=api',
-            **auth,
-        )
+        url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertContains(response, 'org_b</option>')
@@ -93,11 +81,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         operator = self._get_operator()
         self._create_org_user(user=operator, organization=self._get_org('org_a'))
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-
-        response = self.client.get(
-            reverse("test_books_list_member_view", args=(self.shelf_a.id,)), **auth,
-        )
+        url = reverse('test_books_list_member_view', args=(self.shelf_a.id,))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.data[0]['id'], str(self.book1.id))
         self.assertNotContains(response, str(self.book2.id))
 
@@ -110,10 +95,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            reverse("test_books_list_manager_view", args=(self.shelf_a.id,)), **auth,
-        )
+        url = reverse('test_books_list_manager_view', args=(self.shelf_a.id,))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.data[0]['id'], str(self.book1.id))
         self.assertNotContains(response, str(self.book2.id))
 
@@ -123,10 +106,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            reverse("test_books_list_owner_view", args=(self.shelf_a.id,)), **auth,
-        )
+        url = reverse('test_books_list_owner_view', args=(self.shelf_a.id,))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.data[0]['id'], str(self.book1.id))
         self.assertNotContains(response, str(self.book2.id))
 
@@ -134,8 +115,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         operator = self._get_operator()
         self._create_org_user(user=operator, organization=self._get_org('org_a'))
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(reverse("test_shelf_list_member_view"), **auth,)
+        url = reverse('test_shelf_list_member_view')
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
         self.assertNotContains(response, str(self.shelf_b.id))
 
@@ -148,8 +129,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(reverse("test_shelf_list_manager_view"), **auth,)
+        url = reverse('test_shelf_list_manager_view')
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
         self.assertNotContains(response, str(self.shelf_b.id))
 
@@ -161,9 +142,7 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token(operator)
         url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(
-            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertContains(response, 'shared_shelf</option>')
 
     def test_filter_by_org_owned(self):
@@ -172,8 +151,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
         token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(reverse("test_shelf_list_owner_view"), **auth,)
+        url = reverse('test_shelf_list_owner_view')
+        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}',)
         self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
         self.assertNotContains(response, str(self.shelf_b.id))
 
@@ -181,12 +160,8 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         operator = self._get_operator()
         self._create_org_user(user=operator, organization=self._get_org('org_a'))
         token = self._obtain_auth_token(operator)
-        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
-        response = self.client.get(
-            f'{reverse("test_books_list_member_view", args=(self.shelf_a.id,))}'
-            '?format=api',
-            **auth,
-        )
+        url = f'{reverse("test_books_list_member_view", args=(self.shelf_a.id,))}'
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -196,7 +171,7 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         r = self.client.get(reverse("test_shelf_list_unauthorized_view"))
         self.assertEqual(r.status_code, 401)
         r = self.client.get(
-            reverse("test_book_list_unauthorized_view", args=(self.shelf_a.id,))
+            reverse('test_book_list_unauthorized_view', args=(self.shelf_a.id,))
         )
         self.assertEqual(r.status_code, 401)
 
@@ -207,9 +182,7 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token(operator)
         url = reverse('test_template_list')
-        response = self.client.get(
-            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertNotContains(response, '--------</option>')
 
     def test_filter_by_org_managed_with_org_field(self):
@@ -240,7 +213,5 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         url = f'{reverse("test_library_detail", args=(lib2.id,))}'
-        response = self.client.get(
-            url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}'
-        )
+        response = self.client.get(url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.status_code, 404)
