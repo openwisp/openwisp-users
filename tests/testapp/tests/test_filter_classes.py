@@ -46,7 +46,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token(operator)
         url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -60,7 +62,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token()
         url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -71,7 +75,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         token = self._obtain_auth_token(username=admin)
         self.client.force_login(admin)
         url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertContains(response, 'org_b</option>')
@@ -142,7 +148,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token(operator)
         url = f'{reverse("test_books_list_manager_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertContains(response, 'shared_shelf</option>')
 
     def test_filter_by_org_owned(self):
@@ -161,7 +169,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         self._create_org_user(user=operator, organization=self._get_org('org_a'))
         token = self._obtain_auth_token(operator)
         url = f'{reverse("test_books_list_member_view", args=(self.shelf_a.id,))}'
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'org_b</option>')
@@ -182,7 +192,9 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         )
         token = self._obtain_auth_token(operator)
         url = reverse('test_template_list')
-        response = self.client.get(url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertNotContains(response, '--------</option>')
 
     def test_filter_by_org_managed_with_org_field(self):
@@ -213,5 +225,7 @@ class TestFilterClasses(TestMultitenancyMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
         url = f'{reverse("test_library_detail", args=(lib2.id,))}'
-        response = self.client.get(url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}')
+        response = self.client.get(
+            url, args=(lib1.id), HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
         self.assertEqual(response.status_code, 404)
