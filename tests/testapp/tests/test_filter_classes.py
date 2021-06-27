@@ -246,7 +246,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_book_nested_shelf(self):
+    def test_get_book_nested_shelf(self):
         operator = self._get_operator()
         self._create_org_user(
             user=operator, is_admin=True, organization=self._get_org('org_a')
@@ -256,3 +256,28 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         with self.assertNumQueries(6):
             response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.status_code, 200)
+
+    def test_post_book_nested_shelf(self):
+        org1 = self._get_org('org_a')
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_book_nested_shelf')
+        data = {
+            'shelf': {'name': 'test-shelf', 'organization': org1.pk},
+            'name': 'test-book',
+            'author': 'test-auther',
+            'organization': org1.pk,
+        }
+        with self.assertNumQueries(12):
+            response = self.client.post(
+                url,
+                data,
+                content_type='application/json',
+                HTTP_AUTHORIZATION=f'Bearer {token}',
+            )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Shelf.objects.count(), 3)
+        self.assertEqual(Book.objects.count(), 3)
