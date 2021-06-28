@@ -28,22 +28,38 @@ class OpenwispUsersConfig(AppConfig):
         self.connect_receivers()
 
     def register_menu_group(self):
-        register_menu_group(
-            position=4,
-            config={
-                'label': _('Users'),
-                'model': settings.AUTH_USER_MODEL,
-                'name': 'changelist',
-                'icon': 'user',
-            },
-        )
+
         register_menu_group(
             position=5,
             config={
-                'label': _('Organizations'),
-                'model': get_model_name('openwisp_users', 'Organization'),
-                'name': 'changelist',
-                'icon': 'organization',
+                'label': _('Users & Organizations'),
+                'items': {
+                    1: {
+                        'label': _('Users'),
+                        'model': settings.AUTH_USER_MODEL,
+                        'name': 'changelist',
+                        'icon': 'user',
+                    },
+                    2: {
+                        'label': _('Organizations'),
+                        'model': get_model_name('openwisp_users', 'Organization'),
+                        'name': 'changelist',
+                        'icon': 'organization',
+                    },
+                    3: {
+                        'label': _('Organization Owners'),
+                        'model': get_model_name('openwisp_users', 'OrganizationOwner'),
+                        'name': 'changelist',
+                        'icon': 'org-owner',
+                    },
+                    4: {
+                        'label': _('Organization Users'),
+                        'model': get_model_name('openwisp_users', 'OrganizationUser'),
+                        'name': 'changelist',
+                        'icon': 'org-user',
+                    },
+                },
+                'icon': 'user-and-org',
             },
         )
 
