@@ -42,19 +42,19 @@ class OpenwispUsersConfig(AppConfig):
                     },
                     2: {
                         'label': _('Organizations'),
-                        'model': get_model_name('openwisp_users', 'Organization'),
+                        'model': get_model_name(self.app_label, 'Organization'),
                         'name': 'changelist',
                         'icon': 'organization',
                     },
                     3: {
                         'label': _('Organization Owners'),
-                        'model': get_model_name('openwisp_users', 'OrganizationOwner'),
+                        'model': get_model_name(self.app_label, 'OrganizationOwner'),
                         'name': 'changelist',
                         'icon': 'org-owner',
                     },
                     4: {
                         'label': _('Organization Users'),
-                        'model': get_model_name('openwisp_users', 'OrganizationUser'),
+                        'model': get_model_name(self.app_label, 'OrganizationUser'),
                         'name': 'changelist',
                         'icon': 'org-user',
                     },
