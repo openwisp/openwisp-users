@@ -7,4 +7,14 @@ Organization = load_model('openwisp_users', 'Organization')
 class OrganizationSerializer(ValidatedModelSerializer):
     class Meta:
         model = Organization
-        fields = '__all__'
+        fields = (
+            'id',
+            'name',
+            'is_active',
+            'slug',
+            'description',
+            'email',
+            'url',
+            'created',
+            'modified',
+        )
