@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import pagination
 from rest_framework.authentication import SessionAuthentication
@@ -9,11 +10,12 @@ from swapper import load_model
 
 from openwisp_users.api.authentication import BearerAuthentication
 
-from .serializers import OrganizationSerializer
+from .serializers import OrganizationSerializer, UserSerializer
 from .swagger import ObtainTokenRequest, ObtainTokenResponse
 from .throttling import AuthRateThrottle
 
 Organization = load_model('openwisp_users', 'Organization')
+User = get_user_model()
 
 
 class ListViewPagination(pagination.PageNumberPagination):
@@ -55,6 +57,12 @@ class OrganizationDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
     serializer_class = OrganizationSerializer
 
 
+class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
+users_list = UsersListCreateView.as_view()

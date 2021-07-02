@@ -17,6 +17,7 @@ def get_api_urls(api_views=None):
             views.organization_detail,
             name='organization_detail',
         ),
+        path('user/users/', views.users_list, name='user_list',),
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
