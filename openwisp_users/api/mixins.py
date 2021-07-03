@@ -131,13 +131,11 @@ class FilterSerializerByOrganization(OrgLookup):
         raise NotImplementedError()
 
     def filter_fields(self):
-        if self.context:
-            user = self.context['request'].user
-        else:
-            return
-
+        user = self.context['request'].user
+        # superuser can see everything
         if user.is_superuser:
             return
+        # non superusers can see only items of organizations they're related to
         organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
             if field == 'organization':
@@ -158,7 +156,10 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.filter_fields()
+        # only filter related fields if the serializer
+        # is being initiated during an HTTP request
+        if 'request' in self.context:
+            self.filter_fields()
 
 
 class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
