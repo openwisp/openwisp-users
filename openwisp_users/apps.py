@@ -38,28 +38,28 @@ class OpenwispUsersConfig(AppConfig):
                         'label': _('Users'),
                         'model': settings.AUTH_USER_MODEL,
                         'name': 'changelist',
-                        'icon': 'user',
+                        'icon': 'ow-users',
                     },
                     2: {
                         'label': _('Organizations'),
                         'model': get_model_name(self.app_label, 'Organization'),
                         'name': 'changelist',
-                        'icon': 'organization',
+                        'icon': 'ow-org',
                     },
                     3: {
                         'label': _('Organization Owners'),
                         'model': get_model_name(self.app_label, 'OrganizationOwner'),
                         'name': 'changelist',
-                        'icon': 'org-owner',
+                        'icon': 'ow-org-owner',
                     },
                     4: {
                         'label': _('Organization Users'),
                         'model': get_model_name(self.app_label, 'OrganizationUser'),
                         'name': 'changelist',
-                        'icon': 'org-user',
+                        'icon': 'ow-org-user',
                     },
                 },
-                'icon': 'user-and-org',
+                'icon': 'ow-user-and-org',
             },
         )
 
