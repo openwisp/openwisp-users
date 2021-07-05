@@ -28,37 +28,39 @@ class OpenwispUsersConfig(AppConfig):
         self.connect_receivers()
 
     def register_menu_group(self):
-
+        items = {
+            1: {
+                'label': _('Users'),
+                'model': settings.AUTH_USER_MODEL,
+                'name': 'changelist',
+                'icon': 'ow-users',
+            },
+            2: {
+                'label': _('Organizations'),
+                'model': get_model_name(self.app_label, 'Organization'),
+                'name': 'changelist',
+                'icon': 'ow-org',
+            },
+        }
+        if app_settings.ORGANIZATION_OWNER_ADMIN:
+            items[3] = {
+                'label': _('Organization Owners'),
+                'model': get_model_name(self.app_label, 'OrganizationOwner'),
+                'name': 'changelist',
+                'icon': 'ow-org-owner',
+            }
+        if app_settings.ORGANIZATION_USER_ADMIN:
+            items[4] = {
+                'label': _('Organization Users'),
+                'model': get_model_name(self.app_label, 'OrganizationUser'),
+                'name': 'changelist',
+                'icon': 'ow-org-user',
+            }
         register_menu_group(
             position=5,
             config={
                 'label': _('Users & Organizations'),
-                'items': {
-                    1: {
-                        'label': _('Users'),
-                        'model': settings.AUTH_USER_MODEL,
-                        'name': 'changelist',
-                        'icon': 'ow-users',
-                    },
-                    2: {
-                        'label': _('Organizations'),
-                        'model': get_model_name(self.app_label, 'Organization'),
-                        'name': 'changelist',
-                        'icon': 'ow-org',
-                    },
-                    3: {
-                        'label': _('Organization Owners'),
-                        'model': get_model_name(self.app_label, 'OrganizationOwner'),
-                        'name': 'changelist',
-                        'icon': 'ow-org-owner',
-                    },
-                    4: {
-                        'label': _('Organization Users'),
-                        'model': get_model_name(self.app_label, 'OrganizationUser'),
-                        'name': 'changelist',
-                        'icon': 'ow-org-user',
-                    },
-                },
+                'items': items,
                 'icon': 'ow-user-and-org',
             },
         )
