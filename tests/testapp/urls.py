@@ -51,4 +51,5 @@ urlpatterns = [
     path('template/<int:pk>/', views.template_detail, name='test_template_detail',),
     path('library/', views.library_list, name='test_library_list',),
     path('library/<int:pk>/', views.library_detail, name='test_library_detail',),
+    path('booknestedshelf/', views.book_nested_shelf, name='test_book_nested_shelf',),
 ]

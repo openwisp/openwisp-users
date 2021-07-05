@@ -132,8 +132,10 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def filter_fields(self):
         user = self.context['request'].user
+        # superuser can see everything
         if user.is_superuser:
             return
+        # non superusers can see only items of organizations they're related to
         organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
             if field == 'organization':
@@ -142,10 +144,10 @@ class FilterSerializerByOrganization(OrgLookup):
                     pk__in=organization_filter
                 )
                 continue
+            conditions = Q(**{self.organization_lookup: organization_filter})
+            if self.include_shared:
+                conditions |= Q(organization__isnull=True)
             try:
-                conditions = Q(**{self.organization_lookup: organization_filter})
-                if self.include_shared:
-                    conditions |= Q(organization__isnull=True)
                 self.fields[field].queryset = self.fields[field].queryset.filter(
                     conditions
                 )
@@ -154,7 +156,10 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.filter_fields()
+        # only filter related fields if the serializer
+        # is being initiated during an HTTP request
+        if 'request' in self.context:
+            self.filter_fields()
 
 
 class FilterSerializerByOrgMembership(FilterSerializerByOrganization):

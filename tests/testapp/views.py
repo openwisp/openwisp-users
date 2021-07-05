@@ -30,6 +30,7 @@ from .serializers import (
     BookMemberSerializer,
     BookOwnerSerializer,
     BookSerializer,
+    BookWithNestedShelfSerializer,
     LibrarySerializer,
     ShelfSerializer,
     TemplateSerializer,
@@ -208,6 +209,16 @@ class LibraryDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVie
     queryset = Library.objects.all()
 
 
+class BookNestedShelfListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
+    serializer_class = BookWithNestedShelfSerializer
+    authentication_classes = (BearerAuthentication,)
+    permission_classes = (
+        IsOrganizationMember,
+        DjangoModelPermissions,
+    )
+    queryset = Book.objects.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
@@ -226,3 +237,4 @@ template_list = TemplateListCreateView.as_view()
 template_detail = TemplateDetailView.as_view()
 library_list = LibraryListCreateView.as_view()
 library_detail = LibraryDetailView.as_view()
+book_nested_shelf = BookNestedShelfListCreateView.as_view()
