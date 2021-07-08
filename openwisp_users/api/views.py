@@ -16,6 +16,7 @@ from .throttling import AuthRateThrottle
 
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class ListViewPagination(pagination.PageNumberPagination):
@@ -58,8 +59,23 @@ class OrganizationDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
 
 
 class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return User.objects.all()
+
+        if not user.is_superuser:
+            org_users = OrganizationUser.objects.filter(user=user).select_related(
+                'organization'
+            )
+            qs = User.objects.none()
+            for org_user in org_users:
+                if org_user.is_admin:
+                    qs = qs | org_user.organization.users.all().distinct()
+            qs = qs.filter(is_superuser=False)
+            return qs
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
