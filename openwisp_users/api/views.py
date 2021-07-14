@@ -86,7 +86,13 @@ class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
             return qs
 
 
+class UserDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
 users_list = UsersListCreateView.as_view()
+users_detail = UserDetailView.as_view()
