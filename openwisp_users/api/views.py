@@ -47,19 +47,27 @@ class ProtectedAPIMixin(object):
     ]
 
 
-class OrganizationListCreateView(ProtectedAPIMixin, ListCreateAPIView):
-    queryset = Organization.objects.order_by('-created')
+class BaseOrganizationView(ProtectedAPIMixin):
     serializer_class = OrganizationSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Organization.objects.order_by('-created')
+        return Organization.objects.none()
+
+
+class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):
     pagination_class = ListViewPagination
 
 
-class OrganizationDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
+class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView):
+    pass
 
 
 class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
     serializer_class = UserSerializer
+    pagination_class = ListViewPagination
 
     def get_queryset(self):
         user = self.request.user

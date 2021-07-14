@@ -331,6 +331,56 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+List of endpoints
+~~~~~~~~~~~~~~~~~
+
+Since the detailed explanation is contained in the `Live documentation <#live-documentation>`_
+and in the `Browsable web page <#browsable-web-interface>`_ of each point,
+here we'll provide just a list of the available endpoints,
+for further information please open the URL of the endpoint in your browser.
+
+List Organizations
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/user/organization/
+
+Create new Organization
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/user/organization/
+
+Get Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/user/organization/{id}/
+
+Change Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/user/organization/{id}/
+
+Patch Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/user/organization/{id}/
+
+Delete Organization
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/user/organization/{id}/
+
 Organization permissions
 ------------------------
 
