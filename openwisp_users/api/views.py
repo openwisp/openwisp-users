@@ -65,9 +65,8 @@ class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView)
     pass
 
 
-class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
+class BaseUserView(ProtectedAPIMixin):
     serializer_class = UserSerializer
-    pagination_class = ListViewPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -83,12 +82,15 @@ class UsersListCreateView(ProtectedAPIMixin, ListCreateAPIView):
                 if org_user.is_admin:
                     qs = qs | org_user.organization.users.all().distinct()
             qs = qs.filter(is_superuser=False)
-            return qs
+            return qs.order_by('-date_joined')
 
 
-class UserDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class UsersListCreateView(BaseUserView, ListCreateAPIView):
+    pagination_class = ListViewPagination
+
+
+class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
+    pass
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
