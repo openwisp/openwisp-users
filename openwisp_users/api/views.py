@@ -71,7 +71,7 @@ class BaseUserView(ProtectedAPIMixin):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return User.objects.all()
+            return User.objects.order_by('-date_joined')
 
         if not user.is_superuser:
             org_users = OrganizationUser.objects.filter(user=user).select_related(
