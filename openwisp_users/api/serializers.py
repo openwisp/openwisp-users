@@ -5,6 +5,7 @@ from swapper import load_model
 
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
@@ -23,7 +24,18 @@ class OrganizationSerializer(ValidatedModelSerializer):
         )
 
 
+class OrganizationUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrganizationUser
+        fields = (
+            'is_admin',
+            'organization',
+        )
+
+
 class UserSerializer(serializers.ModelSerializer):
+    organization_user = OrganizationUserSerializer(required=False)
+
     class Meta:
         model = User
         fields = (
@@ -39,17 +51,28 @@ class UserSerializer(serializers.ModelSerializer):
             'is_staff',
             'is_superuser',
             'groups',
+            'organization_user',
         )
         read_only_fields = ('last_login', 'date_joined')
         extra_kwargs = {'email': {'required': True}}
 
     def create(self, validated_data):
         group_data = validated_data.pop('groups', None)
+        org_user_data = validated_data.pop('organization_user', None)
+
         instance = self.instance or self.Meta.model(**validated_data)
         password = validated_data.pop('password')
         instance.set_password(password)
         instance.full_clean()
         instance.save()
+
         if group_data:
             instance.groups.add(*group_data)
+
+        if org_user_data:
+            org_user_data['user'] = instance
+            org_user_instance = OrganizationUser(**org_user_data)
+            org_user_instance.full_clean()
+            org_user_instance.save()
+
         return instance
