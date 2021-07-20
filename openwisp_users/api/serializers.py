@@ -1,3 +1,6 @@
+import logging
+
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
@@ -6,6 +9,7 @@ from swapper import load_model
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+logger = logging.getLogger(__name__)
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
@@ -54,7 +58,10 @@ class UserSerializer(serializers.ModelSerializer):
             'organization_user',
         )
         read_only_fields = ('last_login', 'date_joined')
-        extra_kwargs = {'email': {'required': True}}
+        extra_kwargs = {
+            'email': {'required': True},
+            'password': {'write_only': True, 'style': {'input_type': 'password'}},
+        }
 
     def create(self, validated_data):
         group_data = validated_data.pop('groups', None)
@@ -74,5 +81,22 @@ class UserSerializer(serializers.ModelSerializer):
             org_user_instance = OrganizationUser(**org_user_data)
             org_user_instance.full_clean()
             org_user_instance.save()
+
+        if instance.email:
+            try:
+                EmailAddress.objects.add_email(
+                    self.context['request'],
+                    user=instance,
+                    email=instance.email,
+                    confirm=True,
+                    signup=True,
+                )
+            except Exception as e:
+                logger.exception(
+                    'Got exception {} while sending '
+                    'verification email to user {}, email {}'.format(
+                        type(e), instance.username, instance.email
+                    )
+                )
 
         return instance
