@@ -54,7 +54,10 @@ class BaseOrganizationView(ProtectedAPIMixin):
         user = self.request.user
         if user.is_superuser:
             return Organization.objects.order_by('-created')
-        return Organization.objects.none()
+
+        return Organization.objects.filter(pk__in=user.organizations_managed).order_by(
+            '-created'
+        )
 
 
 class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):

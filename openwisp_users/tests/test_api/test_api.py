@@ -30,7 +30,7 @@ class TestUsersApi(
         user = self._create_user()
         self.client.force_login(user)
         path = reverse('users:organization_list')
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(2):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
@@ -56,7 +56,7 @@ class TestUsersApi(
         self.client.force_login(user)
         org1 = self._get_org()
         path = reverse('users:organization_detail', args=(org1.pk,))
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(2):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 404)
 
@@ -99,3 +99,22 @@ class TestUsersApi(
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(Organization.objects.count(), 1)
+
+    def test_get_organization_for_org_manager(self):
+        user1 = self._create_user(username='user1', email='user1@email.com')
+        org1 = self._create_org(name='org1')
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        self.client.force_login(user1)
+
+        with self.subTest('Organization List'):
+            path = reverse('users:organization_list')
+            with self.assertNumQueries(3):
+                response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['count'], 1)
+
+        with self.subTest('Organization Detail'):
+            path = reverse('users:organization_detail', args=(org1.pk,))
+            with self.assertNumQueries(2):
+                response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
