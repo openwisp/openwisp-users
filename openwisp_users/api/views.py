@@ -10,7 +10,11 @@ from swapper import load_model
 
 from openwisp_users.api.authentication import BearerAuthentication
 
-from .serializers import OrganizationSerializer, UserSerializer
+from .serializers import (
+    OrganizationSerializer,
+    SuperUserDetailSerializer,
+    SuperUserListSerializer,
+)
 from .swagger import ObtainTokenRequest, ObtainTokenResponse
 from .throttling import AuthRateThrottle
 
@@ -69,7 +73,7 @@ class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView)
 
 
 class BaseUserView(ProtectedAPIMixin):
-    serializer_class = UserSerializer
+    serializer_class = SuperUserListSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -93,7 +97,7 @@ class UsersListCreateView(BaseUserView, ListCreateAPIView):
 
 
 class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
-    pass
+    serializer_class = SuperUserDetailSerializer
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()

@@ -37,7 +37,7 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
         )
 
 
-class UserSerializer(serializers.ModelSerializer):
+class SuperUserListSerializer(serializers.ModelSerializer):
     organization_user = OrganizationUserSerializer(required=False)
 
     class Meta:
@@ -100,3 +100,37 @@ class UserSerializer(serializers.ModelSerializer):
                 )
 
         return instance
+
+
+class SuperUserDetailSerializer(serializers.ModelSerializer):
+    organization_users = OrganizationUserSerializer(required=False)
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'password',  # read_only
+            'first_name',
+            'last_name',
+            'email',
+            'bio',
+            'url',
+            'company',
+            'location',
+            'phone_number',
+            'birth_date',
+            'notes',
+            'is_active',
+            'is_staff',
+            'is_superuser',
+            'groups',
+            'user_permissions',
+            'last_login',
+            'date_joined',
+            'organization_users',  # Will have to nest this sepparately
+        )
+        extra_kwargs = {
+            'password': {'read_only': True},
+            'last_login': {'read_only': True},
+            'date_joined': {'read_only': True},
+        }
