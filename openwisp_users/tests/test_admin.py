@@ -1462,7 +1462,13 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         # Organization Owner and Organization User models
         admin = self._create_admin()
         self.client.force_login(admin)
-        models = ['user', 'organization', 'organizationowner', 'organizationuser']
+        models = [
+            'user',
+            'organization',
+            'organizationowner',
+            'organizationuser',
+            'group',
+        ]
         response = self.client.get(reverse('admin:index'))
         for model in models:
             with self.subTest(f'test_admin_group_for_{model}_model'):

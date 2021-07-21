@@ -33,13 +33,19 @@ class OpenwispUsersConfig(AppConfig):
                 'label': _('Users'),
                 'model': settings.AUTH_USER_MODEL,
                 'name': 'changelist',
-                'icon': 'ow-users',
+                'icon': 'user',
             },
             2: {
                 'label': _('Organizations'),
                 'model': get_model_name(self.app_label, 'Organization'),
                 'name': 'changelist',
                 'icon': 'ow-org',
+            },
+            5: {
+                'label': _('Permissions'),
+                'model': get_model_name(self.app_label, 'Group'),
+                'name': 'changelist',
+                'icon': 'ow-permission',
             },
         }
         if app_settings.ORGANIZATION_OWNER_ADMIN:
@@ -57,7 +63,7 @@ class OpenwispUsersConfig(AppConfig):
                 'icon': 'ow-org-user',
             }
         register_menu_group(
-            position=5,
+            position=40,
             config={
                 'label': _('Users & Organizations'),
                 'items': items,
