@@ -11,6 +11,7 @@ from swapper import load_model
 from openwisp_users.api.authentication import BearerAuthentication
 
 from .serializers import (
+    GroupSerializer,
     OrganizationSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
@@ -18,6 +19,7 @@ from .serializers import (
 from .swagger import ObtainTokenRequest, ObtainTokenResponse
 from .throttling import AuthRateThrottle
 
+Group = load_model('openwisp_users', 'Group')
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -100,8 +102,20 @@ class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
     serializer_class = SuperUserDetailSerializer
 
 
+class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+
+class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
 users_list = UsersListCreateView.as_view()
 users_detail = UserDetailView.as_view()
+group_list = GroupListCreateView.as_view()
+group_detail = GroupDetailView.as_view()

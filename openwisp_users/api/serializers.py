@@ -6,6 +6,7 @@ from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
 from swapper import load_model
 
+Group = load_model('openwisp_users', 'Group')
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -35,6 +36,12 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
             'is_admin',
             'organization',
         )
+
+
+class GroupSerializer(ValidatedModelSerializer):
+    class Meta:
+        model = Group
+        fields = '__all__'
 
 
 class SuperUserListSerializer(serializers.ModelSerializer):
