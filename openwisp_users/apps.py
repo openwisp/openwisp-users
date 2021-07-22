@@ -42,7 +42,7 @@ class OpenwispUsersConfig(AppConfig):
                 'icon': 'ow-org',
             },
             5: {
-                'label': _('Permissions'),
+                'label': _('Groups & Permissions'),
                 'model': get_model_name(self.app_label, 'Group'),
                 'name': 'changelist',
                 'icon': 'ow-permission',
