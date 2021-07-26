@@ -339,6 +339,48 @@ and in the `Browsable web page <#browsable-web-interface>`_ of each point,
 here we'll provide just a list of the available endpoints,
 for further information please open the URL of the endpoint in your browser.
 
+List Groups
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/user/group/
+
+Create new Group
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/user/group/
+
+Get Group detail
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/user/group/{id}/
+
+Change Group detail
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/user/group/{id}/
+
+Patch Group detail
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/user/group/{id}/
+
+Delete Group
+^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/user/group/{id}/
+
 List Organizations
 ^^^^^^^^^^^^^^^^^^
 
