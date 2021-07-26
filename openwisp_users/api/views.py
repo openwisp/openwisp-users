@@ -4,11 +4,12 @@ from rest_framework import pagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.authentication import BearerAuthentication
+from openwisp_users.api.permissions import DjangoModelPermissions
 
 from .serializers import (
     GroupSerializer,
@@ -103,12 +104,13 @@ class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
 
 
 class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
-    queryset = Group.objects.all()
+    queryset = Group.objects.prefetch_related('permissions').order_by('name')
     serializer_class = GroupSerializer
+    pagination_class = ListViewPagination
 
 
 class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
-    queryset = Group.objects.all()
+    queryset = Group.objects.order_by('name')
     serializer_class = GroupSerializer
 
 

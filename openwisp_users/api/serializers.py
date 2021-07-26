@@ -2,6 +2,7 @@ import logging
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
 from swapper import load_model
@@ -38,10 +39,40 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
         )
 
 
-class GroupSerializer(ValidatedModelSerializer):
+class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def to_representation(self, value):
+        return f'{value.pk}: {value.natural_key()[2]} | {value.name}'
+
+    def to_internal_value(self, value):
+        if type(value) is int:
+            return value
+        return int(value.partition(':')[0])
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    permissions = MyPrimaryKeyRelatedField(
+        many=True, queryset=Permission.objects.all(), required=False
+    )
+
     class Meta:
         model = Group
-        fields = '__all__'
+        fields = ('id', 'name', 'permissions')
+
+    def create(self, validated_data):
+        permissions = validated_data.pop('permissions')
+        instance = self.instance or self.Meta.model(**validated_data)
+        instance.full_clean()
+        instance.save()
+        instance.permissions.add(*permissions)
+        return instance
+
+    def update(self, instance, validated_data):
+        if 'permissions' in validated_data:
+            permissions = validated_data.pop('permissions')
+            instance.permissions.clear()
+            instance.permissions.add(*permissions)
+        instance.full_clean()
+        return super().update(instance, validated_data)
 
 
 class SuperUserListSerializer(serializers.ModelSerializer):
