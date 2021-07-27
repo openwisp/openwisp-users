@@ -19,6 +19,11 @@ def get_api_urls(api_views=None):
         ),
         path('user/users/', views.users_list, name='user_list',),
         path('user/users/<str:pk>/', views.users_detail, name='users_detail'),
+        path(
+            'user/users/<str:pk>/changepassword/',
+            views.change_password,
+            name='change_password',
+        ),
         path('user/group/', views.group_list, name='group_list'),
         path('user/group/<str:pk>/', views.group_detail, name='group_detail'),
     ]

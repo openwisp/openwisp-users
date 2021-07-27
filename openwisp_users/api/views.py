@@ -1,10 +1,16 @@
 from django.contrib.auth import get_user_model
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import pagination
+from rest_framework import pagination, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    get_object_or_404,
+)
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from swapper import load_model
 
@@ -12,6 +18,7 @@ from openwisp_users.api.authentication import BearerAuthentication
 from openwisp_users.api.permissions import DjangoModelPermissions
 
 from .serializers import (
+    ChangePasswordSerializer,
     GroupSerializer,
     OrganizationSerializer,
     SuperUserDetailSerializer,
@@ -114,6 +121,31 @@ class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
     serializer_class = GroupSerializer
 
 
+class ChangePasswordView(BaseUserView, RetrieveUpdateAPIView):
+    serializer_class = ChangePasswordSerializer
+
+    def get_object(self):
+        qs = self.get_queryset()
+        filter_kwargs = {
+            'id': self.kwargs['pk'],
+        }
+        obj = get_object_or_404(qs, **filter_kwargs)
+        return obj
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+
+        if not user.check_password(request.data.get('old_password')):
+            return Response(
+                {'old_password': ['You have entered a wrong password.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.set_password(request.data.get('new_password'))
+        user.save()
+        response = {'status': 'success', 'message': 'Password updated successfully'}
+        return Response(response)
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
@@ -121,3 +153,4 @@ users_list = UsersListCreateView.as_view()
 users_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
+change_password = ChangePasswordView.as_view()
