@@ -126,6 +126,8 @@ class ChangePasswordView(BaseUserView, RetrieveUpdateAPIView):
 
     def get_object(self):
         qs = self.get_queryset()
+        if self.request.user.is_staff is True:
+            qs = qs | User.objects.filter(id=self.kwargs['pk'])
         filter_kwargs = {
             'id': self.kwargs['pk'],
         }
