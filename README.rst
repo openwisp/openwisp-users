@@ -339,6 +339,13 @@ and in the `Browsable web page <#browsable-web-interface>`_ of each point,
 here we'll provide just a list of the available endpoints,
 for further information please open the URL of the endpoint in your browser.
 
+Change User password
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/user/users/{id}/changepassword/
+
 List Groups
 ^^^^^^^^^^^
 
