@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import pagination, status
 from rest_framework.authentication import SessionAuthentication
@@ -125,9 +126,13 @@ class ChangePasswordView(BaseUserView, RetrieveUpdateAPIView):
     serializer_class = ChangePasswordSerializer
 
     def get_object(self):
+        user = User.objects.filter(id=self.request.user.id)
         qs = self.get_queryset()
-        if self.request.user.is_staff is True:
-            qs = qs | User.objects.filter(id=self.kwargs['pk'])
+        if (
+            user.first().is_staff is True
+            and not qs.filter(pk=self.request.user.id).exists()
+        ):
+            qs = qs | user
         filter_kwargs = {
             'id': self.kwargs['pk'],
         }
@@ -139,12 +144,12 @@ class ChangePasswordView(BaseUserView, RetrieveUpdateAPIView):
 
         if not user.check_password(request.data.get('old_password')):
             return Response(
-                {'old_password': ['You have entered a wrong password.']},
+                {'old_password': [_('You have entered a wrong password.')]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user.set_password(request.data.get('new_password'))
         user.save()
-        response = {'status': 'success', 'message': 'Password updated successfully'}
+        response = {'status': 'success', 'message': _('Password updated successfully')}
         return Response(response)
 
 
