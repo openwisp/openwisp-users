@@ -1,3 +1,4 @@
+from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
@@ -8,6 +9,8 @@ from swapper import load_model
 from ..utils import TestOrganizationMixin
 
 Organization = load_model('openwisp_users', 'Organization')
+User = get_user_model()
+Group = load_model('openwisp_users', 'Group')
 
 
 class TestUsersApi(
@@ -185,3 +188,91 @@ class TestUsersApi(
             r = self.client.delete(path)
         self.assertEqual(r.status_code, 204)
         self.assertIsNone(r.data)
+
+    # Test Change Password endpoints
+    def test_get_change_password(self):
+        client = auth.get_user(self.client)
+        path = reverse('users:change_password', args=(client.pk,))
+        with self.assertNumQueries(4):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], str(client.pk))
+        self.assertEqual(response.data['username'], client.username)
+
+    def test_with_wrong_password(self):
+        client = auth.get_user(self.client)
+        path = reverse('users:change_password', args=(client.pk,))
+        data = {'old_password': 'wrong', 'new_password': 'super1234'}
+        with self.assertNumQueries(4):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['old_password'], ['You have entered a wrong password.']
+        )
+
+    def test_change_password_of_superuser_by_superuser(self):
+        client = auth.get_user(self.client)
+        path = reverse('users:change_password', args=(client.pk,))
+        data = {'old_password': 'admin', 'new_password': 'super1234'}
+        with self.assertNumQueries(5):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['message'], 'Password updated successfully')
+
+    def test_change_password_of_other_user_by_superuser(self):
+        org1 = self._create_org(name='org1')
+        org1_user = self._create_user(username='org1_user', email='org1_user@test.com')
+        self._create_org_user(organization=org1, user=org1_user)
+
+    def test_change_password_org_manager(self):
+        # Org managers should be able to update
+        # passwords of his org. users
+        org1 = self._create_org(name='org1')
+        org1_manager = self._create_user(
+            username='org1_manager', password='test123', email='org1_manager@test.com'
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name='Administrator')
+        org1_manager.groups.add(administrator)
+
+        org1_user = self._create_user(
+            username='org1_user',
+            password='test321',
+            email='org1_user@test.com',
+            is_staff=True,
+        )
+        self._create_org_user(organization=org1, user=org1_user)
+        org1_user.groups.add(administrator)
+
+        with self.subTest('Change password of org manager by manager'):
+            self.client.force_login(org1_manager)
+            path = reverse('users:change_password', args=(org1_manager.pk,))
+            data = {'old_password': 'test123', 'new_password': 'test1234'}
+            with self.assertNumQueries(8):
+                response = self.client.put(path, data, content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['status'], 'success')
+            self.assertEqual(response.data['message'], 'Password updated successfully')
+
+        with self.subTest('Change password of org user by org manager'):
+            org1_manager.refresh_from_db()
+            self.client.force_login(org1_manager)
+            path = reverse('users:change_password', args=(org1_user.pk,))
+            data = {'old_password': 'test321', 'new_password': 'test1234'}
+            with self.assertNumQueries(8):
+                response = self.client.put(path, data, content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['status'], 'success')
+            self.assertEqual(response.data['message'], 'Password updated successfully')
+
+        with self.subTest('change password of org user by itself'):
+            org1_user.refresh_from_db()
+            self.client.force_login(org1_user)
+            path = reverse('users:change_password', args=(org1_user.pk,))
+            data = {'old_password': 'test1234', 'new_password': 'test1342'}
+            with self.assertNumQueries(8):
+                response = self.client.put(path, data, content_type='application/json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['status'], 'success')
+            self.assertEqual(response.data['message'], 'Password updated successfully')
