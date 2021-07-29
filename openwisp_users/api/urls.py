@@ -11,21 +11,21 @@ def get_api_urls(api_views=None):
     if api_views is None:
         api_views = views
     urlpatterns += [
-        path('user/organization/', views.organization_list, name='organization_list',),
+        path('users/organization/', views.organization_list, name='organization_list',),
         path(
-            'user/organization/<str:pk>/',
+            'users/organization/<str:pk>/',
             views.organization_detail,
             name='organization_detail',
         ),
-        path('user/users/', views.users_list, name='user_list',),
-        path('user/users/<str:pk>/', views.users_detail, name='users_detail'),
+        path('users/user/', views.users_list, name='user_list',),
+        path('users/user/<str:pk>/', views.users_detail, name='users_detail'),
         path(
-            'user/users/<str:pk>/changepassword/',
+            'users/user/<str:pk>/password/',
             views.change_password,
             name='change_password',
         ),
-        path('user/group/', views.group_list, name='group_list'),
-        path('user/group/<str:pk>/', views.group_detail, name='group_detail'),
+        path('users/group/', views.group_list, name='group_list'),
+        path('users/group/<str:pk>/', views.group_detail, name='group_detail'),
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
