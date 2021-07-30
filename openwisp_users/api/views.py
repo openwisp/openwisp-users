@@ -1,3 +1,4 @@
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
@@ -21,6 +22,7 @@ from openwisp_users.api.permissions import DjangoModelPermissions
 
 from .serializers import (
     ChangePasswordSerializer,
+    EmailAddressSerializer,
     GroupSerializer,
     OrganizationSerializer,
     SuperUserDetailSerializer,
@@ -163,6 +165,50 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         return Response(response)
 
 
+class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
+    serializer_class = EmailAddressSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        user_instance = self.get_object()
+        try:
+            instance = EmailAddress.objects.get(user=user_instance)
+        except EmailAddress.DoesNotExist:
+            return Response({'email': _('Email not found')})
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        user_instance = self.get_object()
+        try:
+            instance = EmailAddress.objects.get(user=user_instance)
+        except EmailAddress.DoesNotExist:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance = EmailAddress.objects.create(
+                user=user_instance,
+                email=serializer.data['email'],
+                verified=serializer.data['verified'],
+                primary=serializer.data['primary'],
+            )
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        user_instance = self.get_object()
+        instance = EmailAddress.objects.get(user=user_instance)
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
@@ -171,3 +217,4 @@ users_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()
+email_update = EmailUpdateView.as_view()

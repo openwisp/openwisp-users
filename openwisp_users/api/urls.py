@@ -24,6 +24,7 @@ def get_api_urls(api_views=None):
             views.change_password,
             name='change_password',
         ),
+        path('users/user/<str:pk>/email/', views.email_update, name='email_update',),
         path('users/group/', views.group_list, name='group_list'),
         path('users/group/<str:pk>/', views.group_detail, name='group_detail'),
     ]

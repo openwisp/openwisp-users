@@ -185,3 +185,9 @@ class ChangePasswordSerializer(ValidatedModelSerializer):
     class Meta:
         model = User
         fields = ('old_password', 'new_password')
+
+
+class EmailAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailAddress
+        fields = ('email', 'verified', 'primary')
