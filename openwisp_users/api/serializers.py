@@ -147,7 +147,7 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'username',
-            'password',  # read_only
+            'password',
             'first_name',
             'last_name',
             'email',
@@ -165,7 +165,7 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
             'user_permissions',
             'last_login',
             'date_joined',
-            'organization_users',  # Will have to nest this sepparately
+            'organization_users',
         )
         extra_kwargs = {
             'password': {'read_only': True},
@@ -174,7 +174,7 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
         }
 
 
-class ChangePasswordSerializer(serializers.ModelSerializer):
+class ChangePasswordSerializer(ValidatedModelSerializer):
     old_password = serializers.CharField(
         required=True, write_only=True, style={'input_type': 'password'}
     )
@@ -184,5 +184,4 @@ class ChangePasswordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'old_password', 'new_password')
-        extra_kwargs = {'username': {'read_only': True}}
+        fields = ('old_password', 'new_password')
