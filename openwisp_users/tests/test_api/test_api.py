@@ -190,15 +190,6 @@ class TestUsersApi(
         self.assertIsNone(r.data)
 
     # Test Change Password endpoints
-    def test_get_change_password(self):
-        client = auth.get_user(self.client)
-        path = reverse('users:change_password', args=(client.pk,))
-        with self.assertNumQueries(4):
-            response = self.client.get(path)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id'], str(client.pk))
-        self.assertEqual(response.data['username'], client.username)
-
     def test_with_wrong_password(self):
         client = auth.get_user(self.client)
         path = reverse('users:change_password', args=(client.pk,))

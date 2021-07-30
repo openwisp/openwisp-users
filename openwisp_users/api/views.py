@@ -5,11 +5,12 @@ from rest_framework import pagination, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import (
+    GenericAPIView,
     ListCreateAPIView,
-    RetrieveUpdateAPIView,
     RetrieveUpdateDestroyAPIView,
     get_object_or_404,
 )
+from rest_framework.mixins import UpdateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -122,7 +123,16 @@ class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
     serializer_class = GroupSerializer
 
 
-class ChangePasswordView(BaseUserView, RetrieveUpdateAPIView):
+class UpdateAPIView(UpdateModelMixin, GenericAPIView):
+    """
+    Concrete view for updating a model instance.
+    """
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+
+class ChangePasswordView(BaseUserView, UpdateAPIView):
     serializer_class = ChangePasswordSerializer
 
     def get_object(self):
