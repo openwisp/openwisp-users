@@ -1457,6 +1457,30 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.client.post(reverse(f'admin:{self.app_label}_user_add'), params)
             mocked.assert_called_once()
 
+    def test_admin_menu_groups(self):
+        # Test menu group (openwisp-utils menu group) for User, Organization,
+        # Organization Owner and Organization User models
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        models = [
+            'user',
+            'organization',
+            'organizationowner',
+            'organizationuser',
+            'group',
+        ]
+        response = self.client.get(reverse('admin:index'))
+        for model in models:
+            with self.subTest(f'test_admin_group_for_{model}_model'):
+                url = reverse(f'admin:{self.app_label}_{model}_changelist')
+                self.assertContains(response, f'<a class="mg-link" href="{url}">')
+        with self.subTest('test_user_and_organization_group_is_registered'):
+            self.assertContains(
+                response,
+                '<div class="mg-dropdown-label">Users & Organizations </div>',
+                html=True,
+            )
+
 
 class TestBasicUsersIntegration(
     TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase
