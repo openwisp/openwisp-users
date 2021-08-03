@@ -5,6 +5,7 @@ from openwisp_users.tests.test_admin import (
     TestMultitenantAdmin as BaseTestMultitenantAdmin,
 )
 from openwisp_users.tests.test_admin import TestUsersAdmin as BaseTestUsersAdmin
+from openwisp_users.tests.test_api.test_api import TestUsersApi as BaseTestUsersApi
 from openwisp_users.tests.test_api.test_authentication import (
     AuthenticationTests as BaseAuthenticationTests,
 )
@@ -103,6 +104,10 @@ class TestBackends(BaseTestBackends):
     pass
 
 
+class TestUsersApi(BaseTestUsersApi):
+    pass
+
+
 del BaseTestUsersAdmin
 del BaseTestBasicUsersIntegration
 del BaseTestMultitenantAdmin
@@ -111,3 +116,4 @@ del BaseAuthenticationTests
 del BaseRatelimitTests
 del BaseTestRestFrameworkViews
 del BaseTestBackends
+del BaseTestUsersApi

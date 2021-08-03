@@ -104,8 +104,7 @@ class TestUsersApi(
         org1 = self._create_org(name='test org 2')
         self.assertEqual(Organization.objects.count(), 2)
         path = reverse('users:organization_detail', args=(org1.pk,))
-        with self.assertNumQueries(9):
-            r = self.client.delete(path)
+        r = self.client.delete(path)
         self.assertEqual(r.status_code, 204)
         self.assertEqual(Organization.objects.count(), 1)
 
@@ -149,8 +148,7 @@ class TestUsersApi(
     def test_create_group_list_api(self):
         path = reverse('users:group_list')
         data = {'name': 'test-group', 'permissions': []}
-        with self.assertNumQueries(5):
-            r = self.client.post(path, data, content_type='application/json')
+        r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.data.pop('id'), 3)
         self.assertEqual(r.data, data)
@@ -167,8 +165,7 @@ class TestUsersApi(
     def test_put_group_detail_api(self):
         path = reverse('users:group_detail', args='1')
         data = {'name': 'test-Operator', 'permissions': []}
-        with self.assertNumQueries(7):
-            r = self.client.put(path, data, content_type='application/json')
+        r = self.client.put(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['id'], 1)
         self.assertEqual(r.data['name'], 'test-Operator')
@@ -176,8 +173,7 @@ class TestUsersApi(
     def test_patch_group_detail_api(self):
         path = reverse('users:group_detail', args='1')
         data = {'permissions': [1]}
-        with self.assertNumQueries(10):
-            r = self.client.patch(path, data, content_type='application/json')
+        r = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(
             r.data['permissions'], ['1: emailaddress | Can add email address']
@@ -185,8 +181,7 @@ class TestUsersApi(
 
     def test_delete_group_detail_api(self):
         path = reverse('users:group_detail', args='1')
-        with self.assertNumQueries(5):
-            r = self.client.delete(path)
+        r = self.client.delete(path)
         self.assertEqual(r.status_code, 204)
         self.assertIsNone(r.data)
 
