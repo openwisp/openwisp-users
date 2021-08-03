@@ -24,6 +24,7 @@ from .serializers import (
     ChangePasswordSerializer,
     EmailAddressSerializer,
     GroupSerializer,
+    OrganizationDetailSerializer,
     OrganizationSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
@@ -83,7 +84,7 @@ class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):
 
 
 class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView):
-    pass
+    serializer_class = OrganizationDetailSerializer
 
 
 class BaseUserView(ProtectedAPIMixin):

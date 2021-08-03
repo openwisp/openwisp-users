@@ -3,6 +3,7 @@ import logging
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.db import transaction
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
 from swapper import load_model
@@ -12,6 +13,7 @@ Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 logger = logging.getLogger(__name__)
+OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
@@ -28,6 +30,74 @@ class OrganizationSerializer(ValidatedModelSerializer):
             'created',
             'modified',
         )
+
+
+class OrganizationOwnerSerializer(serializers.ModelSerializer):
+    organization_user = serializers.PrimaryKeyRelatedField(
+        allow_null=True, queryset=OrganizationUser.objects.all()
+    )
+
+    class Meta:
+        model = OrganizationOwner
+        fields = ('organization_user',)
+        extra_kwargs = {'organization_user': {'allow_null': True}}
+
+
+class OrganizationDetailSerializer(serializers.ModelSerializer):
+    owner = OrganizationOwnerSerializer(required=False)
+
+    class Meta:
+        model = Organization
+        fields = (
+            'id',
+            'name',
+            'is_active',
+            'slug',
+            'description',
+            'email',
+            'url',
+            'owner',
+            'created',
+            'modified',
+        )
+
+    def update(self, instance, validated_data):
+        if validated_data.get('owner'):
+            org_owner = validated_data.pop('owner')
+            existing_owner = OrganizationOwner.objects.filter(organization=instance)
+
+            if (
+                existing_owner.exists() is False
+                and org_owner['organization_user'] is not None
+            ):
+                org_user = org_owner.get('organization_user')
+                with transaction.atomic():
+                    org_owner = OrganizationOwner.objects.create(
+                        organization=instance, organization_user=org_user
+                    )
+                    org_owner.full_clean()
+                    org_owner.save()
+                return super().update(instance, validated_data)
+
+            if existing_owner.exists():
+                if org_owner['organization_user'] is None:
+                    existing_owner.first().delete()
+                    return super().update(instance, validated_data)
+
+                existing_owner_user = existing_owner[0].organization_user
+                if org_owner.get('organization_user') != existing_owner_user:
+                    org_user = org_owner.get('organization_user')
+                    with transaction.atomic():
+                        existing_owner.first().delete()
+                        org_owner = OrganizationOwner.objects.create(
+                            organization=instance, organization_user=org_user
+                        )
+                        org_owner.full_clean()
+                        org_owner.save()
+
+        instance = self.instance or self.Meta.model(**validated_data)
+        instance.full_clean()
+        return super().update(instance, validated_data)
 
 
 class OrganizationUserSerializer(serializers.ModelSerializer):

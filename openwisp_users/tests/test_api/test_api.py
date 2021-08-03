@@ -54,7 +54,7 @@ class TestUsersApi(
     def test_organization_detail_api(self):
         org1 = self._get_org()
         path = reverse('users:organization_detail', args=(org1.pk,))
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             r = self.client.get(path)
         self.assertEqual(r.status_code, 200)
 
@@ -82,7 +82,7 @@ class TestUsersApi(
             'email': 'testorg@test.com',
             'url': '',
         }
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(6):
             r = self.client.put(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['name'], 'test org change')
@@ -95,7 +95,7 @@ class TestUsersApi(
         data = {
             'name': 'test org change',
         }
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             r = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['name'], 'test org change')
@@ -125,7 +125,7 @@ class TestUsersApi(
 
         with self.subTest('Organization Detail'):
             path = reverse('users:organization_detail', args=(org1.pk,))
-            with self.assertNumQueries(4):
+            with self.assertNumQueries(5):
                 r = self.client.get(path)
             self.assertEqual(r.status_code, 200)
 
