@@ -1,3 +1,4 @@
+from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -267,3 +268,95 @@ class TestUsersApi(
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data['status'], 'success')
             self.assertEqual(response.data['message'], 'Password updated successfully')
+
+    # Tests for users email update endpoints
+    def test_get_email_api(self):
+        user = self._get_user()
+        path = reverse('users:email_update', args=(user.pk,))
+        with self.assertNumQueries(3):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['email'], 'test@tester.com')
+        self.assertEqual(response.data['verified'], True)
+        self.assertEqual(response.data['primary'], True)
+
+    def test_get_user_email_from_another_org_404(self):
+        org1 = self._get_org()
+        admin = self._create_admin(email='admin@test.com')
+        self._create_org_user(organization=org1, user=admin)
+        self.client.force_login(admin)
+        org2 = self._create_org(name='org2')
+        user2 = self._create_user(
+            username='user2', is_staff=True, email='user2@gmail.com'
+        )
+        org2user = self._create_org_user(organization=org2, user=user2)
+        path = reverse('users:email_update', args=(org2user.pk,))
+        with self.assertNumQueries(2):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_not_existing_email_200(self):
+        admin = self._create_admin(email='')
+        self.client.force_login(admin)
+        path = reverse('users:email_update', args=(admin.pk,))
+        with self.assertNumQueries(3):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['email'], 'Email not found')
+
+    def test_add_new_email_for_emailnotfound_user(self):
+        admin = self._create_admin(email='')
+        self.client.force_login(admin)
+        self.assertEqual(admin.email, '')
+        path = reverse('users:email_update', args=(admin.pk,))
+        data = {'email': 'admin@tester.com', 'verified': True, 'primary': True}
+        with self.assertNumQueries(7):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        email_obj = EmailAddress.objects.get(user=admin)
+        self.assertEqual(email_obj.email, 'admin@tester.com')
+
+    def test_put_email_api(self):
+        user = self._get_user()
+        path = reverse('users:email_update', args=(user.pk,))
+        email_obj = EmailAddress.objects.get(user=user)
+        self.assertTrue(email_obj.verified)
+        self.assertTrue(email_obj.primary)
+        self.assertEqual(email_obj.email, 'test@tester.com')
+        data = {'email': 'changetest@tester.com', 'verified': False, 'primary': False}
+        with self.assertNumQueries(5):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        email_obj.refresh_from_db()
+        self.assertEqual(email_obj.email, 'changetest@tester.com')
+        self.assertEqual(response.data['email'], 'changetest@tester.com')
+        self.assertFalse(response.data['primary'])
+        self.assertFalse(response.data['verified'])
+
+    def test_patch_email_api(self):
+        user = self._get_user()
+        self.assertEqual(user.email, 'test@tester.com')
+        path = reverse('users:email_update', args=(user.pk,))
+        data = {'email': 'newemail@test.com'}
+        with self.assertNumQueries(5):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['email'], 'newemail@test.com')
+        email_obj = EmailAddress.objects.get(user=user)
+        self.assertEqual(email_obj.email, 'newemail@test.com')
+
+    def test_with_wrong_email_format_api_400(self):
+        user = self._get_user()
+        path = reverse('users:email_update', args=(user.pk,))
+        data = {'email': 'email.com'}
+        with self.assertNumQueries(4):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Enter a valid email address.', str(response.content))
+
+    def test_delete_email_api(self):
+        user = self._get_user()
+        path = reverse('users:email_update', args=(user.pk,))
+        with self.assertNumQueries(5):
+            response = self.client.delete(path)
+        self.assertEqual(response.status_code, 204)

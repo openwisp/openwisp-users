@@ -388,6 +388,41 @@ Delete Group
 
     DELETE /api/v1/user/group/{id}/
 
+Add Email Address
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/email/
+
+Change Email Address
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/
+
+Make/Unmake Email Address Primary
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/
+
+Mark/Unmark Email Address as Verified
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/
+
+Remove Email Address
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/user/{id}/email/
+
 List Organizations
 ^^^^^^^^^^^^^^^^^^
 
