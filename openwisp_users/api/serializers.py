@@ -4,6 +4,7 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import transaction
+from django.db.models import Q
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
 from swapper import load_model
@@ -32,10 +33,23 @@ class OrganizationSerializer(ValidatedModelSerializer):
         )
 
 
+class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def display_value(self, instance):
+        return instance.user.username
+
+    def get_queryset(self):
+        user = self.context['request'].user
+        if user.is_superuser:
+            queryset = OrganizationUser.objects.all()
+        else:
+            queryset = OrganizationUser.objects.filter(
+                Q(organization__in=user.organizations_managed)
+            )
+        return queryset
+
+
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
-    organization_user = serializers.PrimaryKeyRelatedField(
-        allow_null=True, queryset=OrganizationUser.objects.all()
-    )
+    organization_user = CustomPrimaryKeyRelatedField(allow_null=True)
 
     class Meta:
         model = OrganizationOwner
@@ -107,6 +121,7 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
             'is_admin',
             'organization',
         )
+        extra_kwargs = {'organization': {'allow_null': True}}
 
 
 class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):

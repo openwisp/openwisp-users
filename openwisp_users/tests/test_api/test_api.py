@@ -129,6 +129,40 @@ class TestUsersApi(
                 r = self.client.get(path)
             self.assertEqual(r.status_code, 200)
 
+    def test_change_organizationowner_for_org(self):
+        user1 = self._create_user(username='user1', email='user1@email.com')
+        user2 = self._create_user(username='user2', email='user2@email.com')
+        org1 = self._create_org(name='org1')
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        org1_user2 = self._create_org_user(user=user2, organization=org1)
+        self._create_org_owner(organization_user=org1_user1, organization=org1)
+        self.assertEqual(org1.owner.organization_user.id, org1_user1.id)
+        path = reverse('users:organization_detail', args=(org1.pk,))
+        data = {'owner': {'organization_user': org1_user2.id}}
+        with self.assertNumQueries(26):
+            response = self.client.patch(path, data, content_type='application/json')
+        org1.refresh_from_db()
+        self.assertEqual(org1.owner.organization_user.id, org1_user2.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['owner']['organization_user'], org1_user2.id)
+
+    def test_orguser_filter_for_organization_detail(self):
+        user1 = self._create_user(username='user1', email='user1@email.com')
+        user2 = self._create_user(username='user2', email='user2@email.com')
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        self._create_org_user(user=user2, organization=org2)
+        change_perm = Permission.objects.filter(codename='change_organization')
+        user1.user_permissions.add(*change_perm)
+        self.client.force_login(user1)
+        path = reverse('users:organization_detail', args=(org1.pk,))
+        with self.assertNumQueries(7):
+            response = self.client.get(path, {'format': 'api'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'user1</option>')
+        self.assertNotContains(response, 'user2</option>')
+
     # Tests for Group Model API endpoints
     def test_get_group_list_403(self):
         user = self._create_user(username='user1', email='user1@email.com')
