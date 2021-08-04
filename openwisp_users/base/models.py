@@ -155,25 +155,6 @@ class AbstractUser(BaseUser):
                 {'email': _('User with this Email address already exists.')}
             )
 
-    @property
-    def permissions(self):
-        """
-        Returns the user permissions from the cache, if the cache is
-        empty it will call self.get_all_permissions() and cache the result
-        """
-        cache_key = f'user_{self.pk}_permissions'
-        permissions = cache.get(cache_key)
-        if permissions is not None:
-            return permissions
-        permissions = self.get_all_permissions()
-        cache.set(cache_key, permissions)
-        return permissions
-
-    def has_permission(self, permission):
-        if self.is_superuser:
-            return True
-        return permission in self.permissions
-
 
 # on django 3.1, the max length of first_name has been changed, we need to
 # backport this change to the previous versions to avoid migration issues
