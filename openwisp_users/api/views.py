@@ -203,6 +203,11 @@ class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
 
         return Response(serializer.data)
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.get_object()
+        return context
+
     def destroy(self, request, *args, **kwargs):
         user_instance = self.get_object()
         instance = EmailAddress.objects.get(user=user_instance)
@@ -213,8 +218,8 @@ class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
-users_list = UsersListCreateView.as_view()
-users_detail = UserDetailView.as_view()
+user_list = UsersListCreateView.as_view()
+user_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()

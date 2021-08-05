@@ -9,6 +9,8 @@ from openwisp_users.api.views import (
 from openwisp_users.api.views import (
     OrganizationListCreateView as BaseOrganizationListCreateView,
 )
+from openwisp_users.api.views import UserDetailView as BaseUserDetailView
+from openwisp_users.api.views import UsersListCreateView as BaseUsersListCreateView
 
 
 class ObtainAuthTokenView(BaseObtainAuthTokenView):
@@ -16,6 +18,14 @@ class ObtainAuthTokenView(BaseObtainAuthTokenView):
 
 
 class OrganizationListCreateView(BaseOrganizationListCreateView):
+    pass
+
+
+class UsersListCreateView(BaseUsersListCreateView):
+    pass
+
+
+class UserDetailView(BaseUserDetailView):
     pass
 
 
@@ -42,6 +52,8 @@ class EmailUpdateView(BaseEmailUpdateView):
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
+user_list = UsersListCreateView.as_view()
+user_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()

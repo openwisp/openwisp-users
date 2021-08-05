@@ -12,6 +12,7 @@ from ..utils import TestOrganizationMixin
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 Group = load_model('openwisp_users', 'Group')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class TestUsersApi(
@@ -302,7 +303,7 @@ class TestUsersApi(
     def test_get_email_api(self):
         user = self._get_user()
         path = reverse('users:email_update', args=(user.pk,))
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(4):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['email'], 'test@tester.com')
@@ -339,7 +340,7 @@ class TestUsersApi(
         self.assertEqual(admin.email, '')
         path = reverse('users:email_update', args=(admin.pk,))
         data = {'email': 'admin@tester.com', 'verified': True, 'primary': True}
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(13):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         email_obj = EmailAddress.objects.get(user=admin)
@@ -353,7 +354,7 @@ class TestUsersApi(
         self.assertTrue(email_obj.primary)
         self.assertEqual(email_obj.email, 'test@tester.com')
         data = {'email': 'changetest@tester.com', 'verified': False, 'primary': False}
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(8):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         email_obj.refresh_from_db()
@@ -367,7 +368,7 @@ class TestUsersApi(
         self.assertEqual(user.email, 'test@tester.com')
         path = reverse('users:email_update', args=(user.pk,))
         data = {'email': 'newemail@test.com'}
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(8):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['email'], 'newemail@test.com')
@@ -378,7 +379,7 @@ class TestUsersApi(
         user = self._get_user()
         path = reverse('users:email_update', args=(user.pk,))
         data = {'email': 'email.com'}
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('Enter a valid email address.', str(response.content))
@@ -388,4 +389,114 @@ class TestUsersApi(
         path = reverse('users:email_update', args=(user.pk,))
         with self.assertNumQueries(5):
             response = self.client.delete(path)
+        self.assertEqual(response.status_code, 204)
+
+    # Tests for superuser's User API endpoints
+    def test_get_user_list_api(self):
+        path = reverse('users:user_list')
+        with self.assertNumQueries(5):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_create_user_list_api(self):
+        self.assertEqual(User.objects.count(), 1)
+        path = reverse('users:user_list')
+        data = {
+            'username': 'tester',
+            'email': 'tester@test.com',
+            'password': 'password123',
+        }
+        with self.assertNumQueries(14):
+            response = self.client.post(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(User.objects.count(), 2)
+        self.assertEqual(response.data['groups'], [])
+        self.assertEqual(response.data['organization_users'], [])
+        self.assertEqual(response.data['username'], 'tester')
+        self.assertEqual(response.data['email'], 'tester@test.com')
+        self.assertEqual(response.data['is_active'], True)
+
+    def test_post_with_empty_form_api_400(self):
+        path = reverse('users:user_list')
+        with self.assertNumQueries(1):
+            response = self.client.post(path, {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_get_user_detail_api(self):
+        user = self._get_user()
+        path = reverse('users:user_detail', args=(user.pk,))
+        with self.assertNumQueries(5):
+            response = self.client.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['id'], str(user.id))
+        self.assertEqual(response.data['email'], 'test@tester.com')
+
+    def test_put_user_detail_api(self):
+        user = self._get_user()
+        org1 = self._get_org()
+        path = reverse('users:user_detail', args=(user.pk,))
+        data = {
+            'username': 'tester',
+            'first_name': 'Tester',
+            'last_name': 'Tester',
+            'email': 'test@tester.com',
+            'bio': '',
+            'url': '',
+            'company': '',
+            'location': '',
+            'phone_number': None,
+            'birth_date': '1987-03-23',
+            'notes': '',
+            'is_active': True,
+            'is_staff': False,
+            'is_superuser': False,
+            'groups': [],
+            'user_permissions': [],
+            'organization_users': [{'is_admin': False, 'organization': org1.pk}],
+        }
+        self.assertEqual(OrganizationUser.objects.count(), 0)
+        response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(OrganizationUser.objects.count(), 1)
+        self.assertEqual(
+            response.data['organization_users'][0]['organization'], org1.pk
+        )
+
+    def test_patch_user_detail_api(self):
+        user = self._get_user()
+        path = reverse('users:user_detail', args=(user.pk,))
+        data = {'username': 'changetestuser'}
+        with self.assertNumQueries(10):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['username'], 'changetestuser')
+
+    def test_assign_user_to_groups_api(self):
+        user = self._get_user()
+        self.assertEqual(user.groups.count(), 0)
+        path = reverse('users:user_detail', args=(user.pk,))
+        data = {'groups': [1]}
+        with self.assertNumQueries(15):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(user.groups.count(), 1)
+        self.assertEqual(response.data['groups'], [1])
+
+    def test_assign_permission_to_user_api(self):
+        user = self._get_user()
+        self.assertEqual(user.permissions, set())
+        path = reverse('users:user_detail', args=(user.pk,))
+        data = {'user_permissions': [1, 2]}
+        with self.assertNumQueries(16):
+            response = self.client.patch(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        perm = {'account.change_emailaddress', 'account.add_emailaddress'}
+        self.assertEqual(user.permissions, perm)
+        self.assertEqual(response.data['user_permissions'], [1, 2])
+
+    def test_delete_user_api(self):
+        user = self._get_user()
+        path = reverse('users:user_detail', args=(user.pk,))
+        response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)

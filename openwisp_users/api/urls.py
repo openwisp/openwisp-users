@@ -17,8 +17,8 @@ def get_api_urls(api_views=None):
             views.organization_detail,
             name='organization_detail',
         ),
-        path('users/user/', views.users_list, name='user_list',),
-        path('users/user/<str:pk>/', views.users_detail, name='users_detail'),
+        path('users/user/', views.user_list, name='user_list',),
+        path('users/user/<str:pk>/', views.user_detail, name='user_detail'),
         path(
             'users/user/<str:pk>/password/',
             views.change_password,
