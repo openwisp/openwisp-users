@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import transaction
 from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 from rest_framework import serializers
 from swapper import load_model
@@ -114,16 +115,6 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class OrganizationUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = OrganizationUser
-        fields = (
-            'is_admin',
-            'organization',
-        )
-        extra_kwargs = {'organization': {'allow_null': True}}
-
-
 class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
     def to_representation(self, value):
         return f'{value.pk}: {value.natural_key()[2]} | {value.name}'
@@ -160,6 +151,25 @@ class GroupSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class OrganizationUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrganizationUser
+        fields = (
+            'is_admin',
+            'organization',
+        )
+        extra_kwargs = {
+            'organization': {
+                'allow_null': True,
+                'help_text': _(
+                    'If this user is already a member of the selected '
+                    'organization, then he/she will be removed from it, '
+                    'else the user will become the member of the organization'
+                ),
+            }
+        }
+
+
 class SuperUserListSerializer(serializers.ModelSerializer):
     organization_user = OrganizationUserSerializer(required=False)
 
@@ -186,6 +196,23 @@ class SuperUserListSerializer(serializers.ModelSerializer):
             'password': {'write_only': True, 'style': {'input_type': 'password'}},
         }
 
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError(_('This field may not be blank.'))
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        org_users = OrganizationUser.objects.filter(user=instance)
+        list_of_org_users = []
+        for org_user in org_users:
+            user = dict()
+            user['is_admin'] = org_user.is_admin
+            user['organization'] = org_user.organization.id
+            list_of_org_users.append(user)
+        data['organization_user'] = list_of_org_users
+        return data
+
     def create(self, validated_data):
         group_data = validated_data.pop('groups', None)
         org_user_data = validated_data.pop('organization_user', None)
@@ -199,7 +226,7 @@ class SuperUserListSerializer(serializers.ModelSerializer):
         if group_data:
             instance.groups.add(*group_data)
 
-        if org_user_data:
+        if org_user_data.get('organization') is not None:
             org_user_data['user'] = instance
             org_user_instance = OrganizationUser(**org_user_data)
             org_user_instance.full_clean()
@@ -231,6 +258,7 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
+            'id',
             'username',
             'password',
             'first_name',
@@ -246,10 +274,10 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
             'is_active',
             'is_staff',
             'is_superuser',
-            'groups',
-            'user_permissions',
             'last_login',
             'date_joined',
+            'groups',
+            'user_permissions',
             'organization_users',
         )
         extra_kwargs = {
@@ -257,6 +285,42 @@ class SuperUserDetailSerializer(serializers.ModelSerializer):
             'last_login': {'read_only': True},
             'date_joined': {'read_only': True},
         }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        org_users = OrganizationUser.objects.filter(user=instance)
+        list_of_org_users = []
+        for org_user in org_users:
+            user = dict()
+            user['is_admin'] = org_user.is_admin
+            user['organization'] = org_user.organization.id
+            list_of_org_users.append(user)
+        data['organization_users'] = list_of_org_users
+        return data
+
+    def update(self, instance, validated_data):
+        org_user_data = dict()
+        if validated_data.get('organization_users'):
+            org_user_data = validated_data.pop('organization_users')
+
+        if org_user_data.get('organization') is not None:
+            org_user_data['user'] = instance
+            org_user_instance = OrganizationUser(**org_user_data)
+            if (
+                str(org_user_instance.organization.id)
+                in instance.organizations_dict.keys()
+            ):
+                ou = OrganizationUser.objects.get(
+                    user=instance, organization=org_user_data['organization']
+                )
+                ou.delete()
+            else:
+                org_user_instance.full_clean()
+                org_user_instance.save()
+
+        instance = self.instance or self.Meta.model(**validated_data)
+        instance.full_clean()
+        return super().update(instance, validated_data)
 
 
 class ChangePasswordSerializer(ValidatedModelSerializer):
