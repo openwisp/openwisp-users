@@ -151,14 +151,25 @@ class GroupSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
+    def get_queryset(self):
+        user = self.context['request'].user
+        if user.is_superuser:
+            queryset = Organization.objects.all()
+        else:
+            queryset = Organization.objects.filter(pk__in=user.organizations_managed)
+        return queryset
+
+
 class OrganizationUserSerializer(serializers.ModelSerializer):
+    organization = OrgUserCustomPrimarykeyRelatedField(allow_null=True)
+
     class Meta:
         model = OrganizationUser
         fields = (
             'is_admin',
             'organization',
         )
-        extra_kwargs = {'organization': {'allow_null': True}}
 
     def to_internal_value(self, data):
         if type(data) is list:

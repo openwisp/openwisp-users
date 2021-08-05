@@ -344,49 +344,49 @@ Change User password
 
 .. code-block:: text
 
-    PUT /api/v1/user/users/{id}/changepassword/
+    PUT /api/v1/users/user/{id}/changepassword/
 
 List Groups
 ^^^^^^^^^^^
 
 .. code-block:: text
 
-    GET /api/v1/user/group/
+    GET /api/v1/users/group/
 
 Create new Group
 ^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    POST /api/v1/user/group/
+    POST /api/v1/users/group/
 
 Get Group detail
 ^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    GET /api/v1/user/group/{id}/
+    GET /api/v1/users/group/{id}/
 
 Change Group detail
 ^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PUT /api/v1/user/group/{id}/
+    PUT /api/v1/users/group/{id}/
 
 Patch Group detail
 ^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PATCH /api/v1/user/group/{id}/
+    PATCH /api/v1/users/group/{id}/
 
 Delete Group
 ^^^^^^^^^^^^
 
 .. code-block:: text
 
-    DELETE /api/v1/user/group/{id}/
+    DELETE /api/v1/users/group/{id}/
 
 Add Email Address
 ^^^^^^^^^^^^^^^^^
@@ -428,42 +428,84 @@ List Organizations
 
 .. code-block:: text
 
-    GET /api/v1/user/organization/
+    GET /api/v1/users/organization/
 
 Create new Organization
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    POST /api/v1/user/organization/
+    POST /api/v1/users/organization/
 
 Get Organization detail
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    GET /api/v1/user/organization/{id}/
+    GET /api/v1/users/organization/{id}/
 
 Change Organization detail
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PUT /api/v1/user/organization/{id}/
+    PUT /api/v1/users/organization/{id}/
 
 Patch Organization detail
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    PATCH /api/v1/user/organization/{id}/
+    PATCH /api/v1/users/organization/{id}/
 
 Delete Organization
 ^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: text
 
-    DELETE /api/v1/user/organization/{id}/
+    DELETE /api/v1/users/organization/{id}/
+
+List Users
+^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/
+
+Create User
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/users/user/
+
+Get User detail
+^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/
+
+Change User detail
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/
+
+Patch User detail
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/
+
+Delete User
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/user/{id}/
 
 Organization permissions
 ------------------------
