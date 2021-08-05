@@ -477,7 +477,7 @@ class TestUsersApi(
         self.assertEqual(user.groups.count(), 0)
         path = reverse('users:user_detail', args=(user.pk,))
         data = {'groups': [1]}
-        with self.assertNumQueries(15):
+        with self.assertNumQueries(13):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(user.groups.count(), 1)
@@ -485,14 +485,14 @@ class TestUsersApi(
 
     def test_assign_permission_to_user_api(self):
         user = self._get_user()
-        self.assertEqual(user.permissions, set())
+        self.assertEqual(user.get_user_permissions(), set())
+        self.assertEqual(user.user_permissions.count(), 0)
         path = reverse('users:user_detail', args=(user.pk,))
         data = {'user_permissions': [1, 2]}
-        with self.assertNumQueries(16):
+        with self.assertNumQueries(14):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
-        perm = {'account.change_emailaddress', 'account.add_emailaddress'}
-        self.assertEqual(user.permissions, perm)
+        self.assertEqual(user.user_permissions.count(), 2)
         self.assertEqual(response.data['user_permissions'], [1, 2])
 
     def test_delete_user_api(self):
