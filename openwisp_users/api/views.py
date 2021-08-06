@@ -28,6 +28,8 @@ from .serializers import (
     OrganizationSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
+    UserDetailSerializer,
+    UserListSerializer,
 )
 from .swagger import ObtainTokenRequest, ObtainTokenResponse
 from .throttling import AuthRateThrottle
@@ -88,8 +90,6 @@ class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView)
 
 
 class BaseUserView(ProtectedAPIMixin):
-    serializer_class = SuperUserListSerializer
-
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
@@ -110,9 +110,19 @@ class BaseUserView(ProtectedAPIMixin):
 class UsersListCreateView(BaseUserView, ListCreateAPIView):
     pagination_class = ListViewPagination
 
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_superuser:
+            return SuperUserListSerializer
+        return UserListSerializer
+
 
 class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
-    serializer_class = SuperUserDetailSerializer
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_superuser:
+            return SuperUserDetailSerializer
+        return UserDetailSerializer
 
 
 class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
@@ -174,7 +184,9 @@ class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
         try:
             instance = EmailAddress.objects.get(user=user_instance)
         except EmailAddress.DoesNotExist:
-            return Response({'email': _('Email not found')})
+            return Response(
+                {'email': _('Email not found')}, status=status.HTTP_404_NOT_FOUND
+            )
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 

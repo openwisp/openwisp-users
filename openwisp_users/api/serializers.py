@@ -332,6 +332,51 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
         return super().update(instance, validated_data)
 
 
+def get_userlist_fields(fields):
+    """
+    Returns the fields for `UserListSerializer`.
+    """
+    fields = list(fields)
+    fields.remove('is_superuser')
+    fields = tuple(fields)
+    return fields
+
+
+class UserListSerializer(SuperUserListSerializer):
+    class Meta:
+        model = User
+        fields = get_userlist_fields(SuperUserListSerializer.Meta.fields[:])
+        read_only_fields = ('last_login', 'date_joined')
+        extra_kwargs = {
+            'email': {'required': True},
+            'password': {'write_only': True, 'style': {'input_type': 'password'}},
+        }
+
+
+def get_userdetail_fields(fields):
+    """
+    Returns the fields for `UserDetailSerializer`.
+    """
+    fields = list(fields)
+    fields.remove('is_superuser')
+    fields.remove('user_permissions')
+    fields = tuple(fields)
+    return fields
+
+
+class UserDetailSerializer(SuperUserDetailSerializer):
+    organization_users = OrganizationUserSerializer(required=False, read_only=True)
+
+    class Meta:
+        model = User
+        fields = get_userdetail_fields(SuperUserDetailSerializer.Meta.fields[:])
+        extra_kwargs = {
+            'password': {'read_only': True},
+            'last_login': {'read_only': True},
+            'date_joined': {'read_only': True},
+        }
+
+
 class ChangePasswordSerializer(ValidatedModelSerializer):
     old_password = serializers.CharField(
         required=True, write_only=True, style={'input_type': 'password'}

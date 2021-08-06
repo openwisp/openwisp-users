@@ -366,7 +366,7 @@ class TestUsersApi(
         path = reverse('users:email_update', args=(admin.pk,))
         with self.assertNumQueries(3):
             r = self.client.get(path)
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 404)
         self.assertEqual(r.data['email'], 'Email not found')
 
     def test_add_new_email_for_emailnotfound_user(self):
@@ -582,3 +582,46 @@ class TestUsersApi(
         path = reverse('users:user_detail', args=(user.pk,))
         r = self.client.delete(path)
         self.assertEqual(r.status_code, 204)
+
+    def test_user_list_for_nonsuperuser_api(self):
+        org1 = self._create_org(name='org1')
+        org1_manager = self._create_user(
+            username='org1_manager', password='test123', email='org1_manager@test.com'
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name='Administrator')
+        org1_manager.groups.add(administrator)
+        self.client.force_login(org1_manager)
+
+        with self.subTest('test user list'):
+            path = reverse('users:user_list')
+            with self.assertNumQueries(10):
+                r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn('is_superuser', str(r.content))
+
+        with self.subTest('test create org user'):
+            self.assertEqual(User.objects.count(), 3)
+            data = {
+                'username': 'user2org1',
+                'password': 'password',
+                'email': 'user2org1@test.com',
+                'organization_users': {'is_admin': False, 'organization': org1.pk},
+            }
+            r = self.client.post(path, data, content_type='application/json')
+            self.assertEqual(r.status_code, 201)
+            self.assertNotIn('is_superuser', r.data)
+
+        with self.subTest('test user detail'):
+            path = reverse('users:user_detail', args=(org1_manager.pk,))
+            with self.assertNumQueries(9):
+                r = self.client.get(path)
+            self.assertEqual(r.status_code, 200)
+
+        with self.subTest('test update user data'):
+            path = reverse('users:user_detail', args=(org1_manager.pk,))
+            data = {'username': 'changetestuser'}
+            with self.assertNumQueries(14):
+                r = self.client.patch(path, data, content_type='application/json')
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.data['username'], 'changetestuser')
