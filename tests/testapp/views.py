@@ -33,6 +33,7 @@ from .serializers import (
     BookWithNestedShelfSerializer,
     LibrarySerializer,
     ShelfSerializer,
+    ShelfWithReadOnlyOrgSerializer,
     TemplateSerializer,
 )
 
@@ -219,6 +220,13 @@ class BookNestedShelfListCreateView(FilterByOrganizationManaged, ListCreateAPIVi
     queryset = Book.objects.all()
 
 
+class ShelfWithReadOnlyOrgListCreateView(
+    FilterByOrganizationManaged, ListCreateAPIView
+):
+    serializer_class = ShelfWithReadOnlyOrgSerializer
+    queryset = Shelf.objects.all()
+
+
 api_member_view = ApiMemberView.as_view()
 api_manager_view = ApiManagerView.as_view()
 api_owner_view = ApiOwnerView.as_view()
@@ -238,3 +246,4 @@ template_detail = TemplateDetailView.as_view()
 library_list = LibraryListCreateView.as_view()
 library_detail = LibraryDetailView.as_view()
 book_nested_shelf = BookNestedShelfListCreateView.as_view()
+shelf_with_read_only_org_view = ShelfWithReadOnlyOrgListCreateView.as_view()

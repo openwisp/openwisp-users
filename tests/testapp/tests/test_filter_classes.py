@@ -266,3 +266,16 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Shelf.objects.count(), 3)
         self.assertEqual(Book.objects.count(), 3)
+
+    def test_shelf_with_read_only_org_field(self):
+        org1 = self._create_org(name='org1')
+        operator = self._get_operator()
+        self._create_org_user(user=operator, is_admin=True, organization=org1)
+        self.client.force_login(operator)
+        self._create_shelf(name='test-shelf-a', organization=org1)
+        path = reverse('test_shelf_list_with_read_only_org')
+        with self.assertNumQueries(4):
+            response = self.client.get(path, {'format': 'api'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['organization'], org1.pk)
+        self.assertNotContains(response, 'org1</option>')
