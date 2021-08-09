@@ -266,17 +266,14 @@ class TestUsersApi(
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data['old_password'][0][:], 
-            'Old password was entered incorrectly. Please enter it again.'
+            response.data['old_password'][0][:],
+            'Old password was entered incorrectly. Please enter it again.',
         )
 
     def test_old_password_with_empty_new_password(self):
         user = self._get_user()
         path = reverse('users:change_password', args=(user.pk,))
-        data = {
-            'old_password': 'tester',
-            'new_password': ''
-        }
+        data = {'old_password': 'tester', 'new_password': ''}
         with self.assertNumQueries(4):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)

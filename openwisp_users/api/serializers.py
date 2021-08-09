@@ -390,10 +390,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             user = self.context['user']
             if not user.check_password(value):
                 raise serializers.ValidationError(
-                    _(
-                        'Old password was entered incorrectly. '
-                        'Please enter it again.'
-                    )
+                    _('Old password was entered incorrectly. Please enter it again.')
                 )
         return value
 
