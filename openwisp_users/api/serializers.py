@@ -377,7 +377,7 @@ class UserDetailSerializer(SuperUserDetailSerializer):
         }
 
 
-class ChangePasswordSerializer(ValidatedModelSerializer):
+class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(
         required=True, write_only=True, style={'input_type': 'password'}
     )
@@ -385,9 +385,23 @@ class ChangePasswordSerializer(ValidatedModelSerializer):
         required=True, write_only=True, style={'input_type': 'password'}
     )
 
-    class Meta:
-        model = User
-        fields = ('old_password', 'new_password')
+    def validate_old_password(self, value):
+        if self.initial_data.get('new_password'):
+            user = self.context['user']
+            if not user.check_password(value):
+                raise serializers.ValidationError(
+                    _(
+                        'Old password was entered incorrectly. '
+                        'Please enter it again.'
+                    )
+                )
+        return value
+
+    def save(self, **kwargs):
+        password = self.validated_data['new_password']
+        user = self.context['user']
+        user.set_password(password)
+        user.save()
 
 
 class EmailAddressSerializer(ValidatedModelSerializer):

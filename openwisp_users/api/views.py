@@ -162,18 +162,18 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         obj = get_object_or_404(qs, **filter_kwargs)
         return obj
 
-    def update(self, request, *args, **kwargs):
-        user = self.get_object()
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.get_object()
+        return context
 
-        if not user.check_password(request.data.get('old_password')):
-            return Response(
-                {'old_password': [_('You have entered a wrong password.')]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        user.set_password(request.data.get('new_password'))
-        user.save()
-        response = {'status': 'success', 'message': _('Password updated successfully')}
-        return Response(response)
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {'status': 'Success', 'message': _('Password updated successfully')}
+        )
 
 
 class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):

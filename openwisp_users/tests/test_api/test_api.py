@@ -263,9 +263,23 @@ class TestUsersApi(
         path = reverse('users:change_password', args=(client.pk,))
         data = {'old_password': 'wrong', 'new_password': 'super1234'}
         with self.assertNumQueries(4):
-            r = self.client.put(path, data, content_type='application/json')
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(r.data['old_password'], ['You have entered a wrong password.'])
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['old_password'][0][:], 
+            'Old password was entered incorrectly. Please enter it again.'
+        )
+
+    def test_old_password_with_empty_new_password(self):
+        user = self._get_user()
+        path = reverse('users:change_password', args=(user.pk,))
+        data = {
+            'old_password': 'tester',
+            'new_password': ''
+        }
+        with self.assertNumQueries(4):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
 
     def test_change_password_of_superuser_by_superuser(self):
         client = auth.get_user(self.client)
@@ -274,7 +288,7 @@ class TestUsersApi(
         with self.assertNumQueries(5):
             r = self.client.put(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data['status'], 'success')
+        self.assertEqual(r.data['status'], 'Success')
         self.assertEqual(r.data['message'], 'Password updated successfully')
 
     def test_change_password_of_other_user_by_superuser(self):
@@ -309,7 +323,7 @@ class TestUsersApi(
             with self.assertNumQueries(8):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.data['status'], 'success')
+            self.assertEqual(r.data['status'], 'Success')
             self.assertEqual(r.data['message'], 'Password updated successfully')
 
         with self.subTest('Change password of org user by org manager'):
@@ -320,7 +334,7 @@ class TestUsersApi(
             with self.assertNumQueries(8):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.data['status'], 'success')
+            self.assertEqual(r.data['status'], 'Success')
             self.assertEqual(r.data['message'], 'Password updated successfully')
 
         with self.subTest('change password of org user by itself'):
@@ -331,7 +345,7 @@ class TestUsersApi(
             with self.assertNumQueries(8):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.data['status'], 'success')
+            self.assertEqual(r.data['status'], 'Success')
             self.assertEqual(r.data['message'], 'Password updated successfully')
 
     # Tests for users email update endpoints
@@ -442,8 +456,7 @@ class TestUsersApi(
             'email': 'tester@test.com',
             'password': 'password123',
         }
-        with self.assertNumQueries(14):
-            r = self.client.post(path, data, content_type='application/json')
+        r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 201)
         self.assertEqual(User.objects.count(), 2)
         self.assertEqual(r.data['groups'], [])

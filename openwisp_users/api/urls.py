@@ -26,7 +26,7 @@ def get_api_urls(api_views=None):
         ),
         path('users/user/<str:pk>/email/', views.email_update, name='email_update',),
         path('users/group/', views.group_list, name='group_list'),
-        path('users/group/<str:pk>/', views.group_detail, name='group_detail'),
+        path('users/group/<int:pk>/', views.group_detail, name='group_detail'),
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
