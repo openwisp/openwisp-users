@@ -126,13 +126,17 @@ class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
 
 
 class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
-    queryset = Group.objects.prefetch_related('permissions').order_by('name')
+    queryset = Group.objects.prefetch_related(
+        'permissions', 'permissions__content_type'
+    ).order_by('name')
     serializer_class = GroupSerializer
     pagination_class = ListViewPagination
 
 
 class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
-    queryset = Group.objects.order_by('name')
+    queryset = Group.objects.prefetch_related(
+        'permissions', 'permissions__content_type'
+    ).order_by('name')
     serializer_class = GroupSerializer
 
 

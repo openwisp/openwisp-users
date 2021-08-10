@@ -127,7 +127,9 @@ class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
 
 class GroupSerializer(serializers.ModelSerializer):
     permissions = MyPrimaryKeyRelatedField(
-        many=True, queryset=Permission.objects.all(), required=False
+        many=True,
+        queryset=Permission.objects.select_related('content_type'),
+        required=False,
     )
 
     class Meta:

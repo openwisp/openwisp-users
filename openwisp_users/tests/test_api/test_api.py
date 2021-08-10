@@ -198,7 +198,7 @@ class TestUsersApi(
 
     def test_get_group_list_api(self):
         path = reverse('users:group_list')
-        with self.assertNumQueries(18):
+        with self.assertNumQueries(5):
             r = self.client.get(path)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['count'], 2)
