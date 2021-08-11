@@ -107,7 +107,7 @@ class TestUsersApi(
         org1_user1 = self._create_org_user(user=user1, organization=org1)
         path = reverse('users:organization_detail', args=(org1.pk,))
         data = {'owner': {'organization_user': org1_user1.pk}}
-        with self.assertNumQueries(17):
+        with self.assertNumQueries(15):
             r = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['owner']['organization_user'], org1_user1.pk)
@@ -163,7 +163,7 @@ class TestUsersApi(
         self.assertEqual(org1.owner.organization_user.id, org1_user1.id)
         path = reverse('users:organization_detail', args=(org1.pk,))
         data = {'owner': {'organization_user': org1_user2.id}}
-        with self.assertNumQueries(26):
+        with self.assertNumQueries(24):
             r = self.client.patch(path, data, content_type='application/json')
         org1.refresh_from_db()
         self.assertEqual(org1.owner.organization_user.id, org1_user2.id)
@@ -181,7 +181,7 @@ class TestUsersApi(
         user1.user_permissions.add(*change_perm)
         self.client.force_login(user1)
         path = reverse('users:organization_detail', args=(org1.pk,))
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             r = self.client.get(path, {'format': 'api'})
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'user1</option>')
@@ -622,7 +622,7 @@ class TestUsersApi(
 
         with self.subTest('test user list'):
             path = reverse('users:user_list')
-            with self.assertNumQueries(10):
+            with self.assertNumQueries(9):
                 r = self.client.get(path)
             self.assertEqual(r.status_code, 200)
             self.assertNotIn('is_superuser', str(r.content))
@@ -641,14 +641,14 @@ class TestUsersApi(
 
         with self.subTest('test user detail'):
             path = reverse('users:user_detail', args=(org1_manager.pk,))
-            with self.assertNumQueries(9):
+            with self.assertNumQueries(8):
                 r = self.client.get(path)
             self.assertEqual(r.status_code, 200)
 
         with self.subTest('test update user data'):
             path = reverse('users:user_detail', args=(org1_manager.pk,))
             data = {'username': 'changetestuser'}
-            with self.assertNumQueries(14):
+            with self.assertNumQueries(13):
                 r = self.client.patch(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data['username'], 'changetestuser')

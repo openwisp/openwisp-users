@@ -46,7 +46,7 @@ class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
             queryset = OrganizationUser.objects.filter(
                 Q(organization__in=user.organizations_managed)
             )
-        return queryset
+        return queryset.select_related()
 
 
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
@@ -187,7 +187,7 @@ class BaseSuperUserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        org_users = OrganizationUser.objects.filter(user=instance)
+        org_users = OrganizationUser.objects.filter(user=instance).select_related()
         list_of_org_users = []
         for org_user in org_users:
             user = dict()
