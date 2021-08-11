@@ -1728,7 +1728,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             self.client.force_login(user)
             response = self.client.get(url)
             for org in Organization.objects.all():
-                self.assertContains(response, f'<a href="?organization={org.pk}"')
+                self.assertContains(response, f'value="?organization={org.pk}">')
 
         with self.subTest('test non superadmin'):
             user = User.objects.get(username='operator')
