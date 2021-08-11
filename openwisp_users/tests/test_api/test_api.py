@@ -259,10 +259,11 @@ class TestUsersApi(
 
     # Test Change Password endpoints
     def test_with_wrong_password(self):
-        client = auth.get_user(self.client)
-        path = reverse('users:change_password', args=(client.pk,))
+        user1 = self._create_user(is_staff=True)
+        self.client.force_login(user1)
+        path = reverse('users:change_password', args=(user1.pk,))
         data = {'old_password': 'wrong', 'new_password': 'super1234'}
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
@@ -293,6 +294,22 @@ class TestUsersApi(
         org1_user = self._create_user(username='org1_user', email='org1_user@test.com')
         self._create_org_user(organization=org1, user=org1_user)
 
+    def test_change_password_of_different_org_user(self):
+        user2 = self._create_user(username='user2', email='user2@mail.com')
+        org1 = self._create_org(name='org1')
+        org1_manager = self._create_user(
+            username='org1_manager', password='test123', email='org1_manager@test.com'
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name='Administrator')
+        org1_manager.groups.add(administrator)
+        self.client.force_login(org1_manager)
+        path = reverse('users:change_password', args=(user2.pk,))
+        data = {'old_password': 'admin', 'new_password': 'super1234'}
+        with self.assertNumQueries(7):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 404)
+
     def test_change_password_org_manager(self):
         # Org managers should be able to update
         # passwords of his org. users
@@ -317,7 +334,7 @@ class TestUsersApi(
             self.client.force_login(org1_manager)
             path = reverse('users:change_password', args=(org1_manager.pk,))
             data = {'old_password': 'test123', 'new_password': 'test1234'}
-            with self.assertNumQueries(8):
+            with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data['status'], 'Success')
@@ -339,7 +356,7 @@ class TestUsersApi(
             self.client.force_login(org1_user)
             path = reverse('users:change_password', args=(org1_user.pk,))
             data = {'old_password': 'test1234', 'new_password': 'test1342'}
-            with self.assertNumQueries(8):
+            with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data['status'], 'Success')

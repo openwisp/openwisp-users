@@ -152,6 +152,18 @@ class UpdateAPIView(UpdateModelMixin, GenericAPIView):
 class ChangePasswordView(BaseUserView, UpdateAPIView):
     serializer_class = ChangePasswordSerializer
 
+    def get_permissions(self):
+        """
+        Remove `DangoModelPermissions` permission
+        class if loggedin user wants to change
+        his own password.
+        """
+        if str(self.request.user.id) == self.kwargs['pk']:
+            self.permission_classes = [IsAuthenticated]
+        else:
+            self.permission_classes = [IsAuthenticated, DjangoModelPermissions]
+        return super(self.__class__, self).get_permissions()
+
     def get_object(self):
         user = User.objects.filter(id=self.request.user.id)
         qs = self.get_queryset()

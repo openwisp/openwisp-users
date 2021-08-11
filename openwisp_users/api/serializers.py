@@ -381,19 +381,28 @@ class UserDetailSerializer(SuperUserDetailSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(
-        required=True, write_only=True, style={'input_type': 'password'}
+        allow_null=True, write_only=True, style={'input_type': 'password'}
     )
     new_password = serializers.CharField(
         required=True, write_only=True, style={'input_type': 'password'}
     )
 
     def validate_old_password(self, value):
-        if self.initial_data.get('new_password'):
-            user = self.context['user']
-            if not user.check_password(value):
-                raise serializers.ValidationError(
-                    _('Old password was entered incorrectly. Please enter it again.')
-                )
+        logged_user = self.context['request'].user
+        if logged_user.is_superuser:
+            return value
+        elif logged_user.organizations_managed:
+            return value
+        else:
+            if self.initial_data.get('new_password'):
+                to_change_user = self.context['user']
+                if not to_change_user.check_password(value):
+                    raise serializers.ValidationError(
+                        _(
+                            'Old password was entered incorrectly. '
+                            'Please enter it again.'
+                        )
+                    )
         return value
 
     def save(self, **kwargs):
