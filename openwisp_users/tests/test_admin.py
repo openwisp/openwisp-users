@@ -1728,16 +1728,16 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             self.client.force_login(user)
             response = self.client.get(url)
             for org in Organization.objects.all():
-                self.assertContains(response, f'value="?organization={org.pk}">')
+                self.assertContains(response, f'href="?organization={org.pk}">')
 
         with self.subTest('test non superadmin'):
             user = User.objects.get(username='operator')
             self.client.force_login(user)
             response = self.client.get(url)
             for pk in user.organizations_managed:
-                self.assertContains(response, f'<a href="?organization={pk}"')
+                self.assertContains(response, f'href="?organization={pk}">')
             for org in Organization.objects.exclude(pk__in=user.organizations_managed):
-                self.assertNotContains(response, f'<a href="?organization={org.pk}"')
+                self.assertNotContains(response, f'href="?organization={org.pk}">')
 
         with self.subTest('test only 1 org'):
             OrganizationUser.objects.filter(
@@ -1747,4 +1747,4 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             self.assertEqual(len(user.organizations_managed), 1)
             response = self.client.get(url)
             for pk in user.organizations_managed:
-                self.assertNotContains(response, f'<a href="?organization={pk}"')
+                self.assertNotContains(response, f'href="?organization={pk}">')
