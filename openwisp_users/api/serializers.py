@@ -273,7 +273,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
         fields = (
             'id',
             'username',
-            'password',
             'first_name',
             'last_name',
             'email',
@@ -294,7 +293,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             'organization_users',
         )
         extra_kwargs = {
-            'password': {'read_only': True},
             'last_login': {'read_only': True},
             'date_joined': {'read_only': True},
         }
@@ -373,7 +371,6 @@ class UserDetailSerializer(SuperUserDetailSerializer):
         model = User
         fields = get_userdetail_fields(SuperUserDetailSerializer.Meta.fields[:])
         extra_kwargs = {
-            'password': {'read_only': True},
             'last_login': {'read_only': True},
             'date_joined': {'read_only': True},
         }
