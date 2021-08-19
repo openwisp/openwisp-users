@@ -52,4 +52,9 @@ urlpatterns = [
     path('library/', views.library_list, name='test_library_list',),
     path('library/<int:pk>/', views.library_detail, name='test_library_detail',),
     path('booknestedshelf/', views.book_nested_shelf, name='test_book_nested_shelf',),
+    path(
+        'shelfreadonlyorg/',
+        views.shelf_with_read_only_org_view,
+        name='test_shelf_list_with_read_only_org',
+    ),
 ]

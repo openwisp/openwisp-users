@@ -138,7 +138,8 @@ class FilterSerializerByOrganization(OrgLookup):
         # non superusers can see only items of organizations they're related to
         organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
-            if field == 'organization':
+            if field == 'organization' and not self.fields[field].read_only:
+                # queryset attribute will not be present if set to read_only
                 self.fields[field].allow_null = False
                 self.fields[field].queryset = self.fields[field].queryset.filter(
                     pk__in=organization_filter

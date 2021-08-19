@@ -83,3 +83,12 @@ class BookWithNestedShelfSerializer(
         instance = self.instance or self.Meta.model(**data)
         instance.full_clean()
         return data
+
+
+class ShelfWithReadOnlyOrgSerializer(
+    FilterSerializerByOrgManaged, ValidatedModelSerializer
+):
+    class Meta:
+        model = Shelf
+        fields = '__all__'
+        read_only_fields = ('organization', 'created', 'modified')
