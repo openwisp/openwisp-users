@@ -169,6 +169,6 @@ if os.environ.get('NO_SOCIAL_APP', False):
 
 # local settings must be imported before test runner otherwise they'll be ignored
 try:
-    from local_settings import *
+    from .local_settings import *
 except ImportError:
     pass
