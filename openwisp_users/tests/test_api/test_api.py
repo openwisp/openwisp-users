@@ -262,13 +262,13 @@ class TestUsersApi(
         user1 = self._create_user(is_staff=True)
         self.client.force_login(user1)
         path = reverse('users:change_password', args=(user1.pk,))
-        data = {'old_password': 'wrong', 'new_password': 'super1234'}
+        data = {'current_password': 'wrong', 'new_password': 'super1234'}
         with self.assertNumQueries(5):
-            response = self.client.put(path, data, content_type='application/json')
-        self.assertEqual(response.status_code, 400)
+            r = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(r.status_code, 400)
         self.assertEqual(
-            response.data['old_password'][0][:],
-            'Old password was entered incorrectly. Please enter it again.',
+            r.data['current_password'][0][:],
+            'Current password was entered incorrectly. Please enter it again.',
         )
 
     def test_old_password_with_empty_new_password(self):
@@ -282,7 +282,7 @@ class TestUsersApi(
     def test_change_password_of_superuser_by_superuser(self):
         client = auth.get_user(self.client)
         path = reverse('users:change_password', args=(client.pk,))
-        data = {'old_password': 'admin', 'new_password': 'super1234'}
+        data = {'current_password': 'admin', 'new_password': 'super1234'}
         with self.assertNumQueries(5):
             r = self.client.put(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
@@ -290,9 +290,14 @@ class TestUsersApi(
         self.assertEqual(r.data['message'], 'Password updated successfully')
 
     def test_change_password_of_other_user_by_superuser(self):
-        org1 = self._create_org(name='org1')
-        org1_user = self._create_user(username='org1_user', email='org1_user@test.com')
-        self._create_org_user(organization=org1, user=org1_user)
+        user1 = self._create_user(
+            username='user1233', password='tester123', email='user@test.com'
+        )
+        data = {'current_password': 'wrong', 'new_password': 'change123'}
+        path = reverse('users:change_password', args=(user1.pk,))
+        with self.assertNumQueries(5):
+            r = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(r.status_code, 200)
 
     def test_change_password_of_different_org_user(self):
         user2 = self._create_user(username='user2', email='user2@mail.com')
@@ -333,7 +338,7 @@ class TestUsersApi(
         with self.subTest('Change password of org manager by manager'):
             self.client.force_login(org1_manager)
             path = reverse('users:change_password', args=(org1_manager.pk,))
-            data = {'old_password': 'test123', 'new_password': 'test1234'}
+            data = {'current_password': 'test123', 'new_password': 'test1234'}
             with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
@@ -344,7 +349,7 @@ class TestUsersApi(
             org1_manager.refresh_from_db()
             self.client.force_login(org1_manager)
             path = reverse('users:change_password', args=(org1_user.pk,))
-            data = {'old_password': 'test321', 'new_password': 'test1234'}
+            data = {'current_password': 'test321', 'new_password': 'test1234'}
             with self.assertNumQueries(8):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
@@ -355,7 +360,7 @@ class TestUsersApi(
             org1_user.refresh_from_db()
             self.client.force_login(org1_user)
             path = reverse('users:change_password', args=(org1_user.pk,))
-            data = {'old_password': 'test1234', 'new_password': 'test1342'}
+            data = {'current_password': 'test1234', 'new_password': 'test1342'}
             with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
