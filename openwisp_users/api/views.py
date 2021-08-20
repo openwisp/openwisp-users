@@ -165,6 +165,11 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         return super(self.__class__, self).get_permissions()
 
     def get_object(self):
+        if getattr(self, 'swagger_fake_view', False):
+            # To get rid of assertion error raised in
+            # the dev server, and for schema generation
+            return User.objects.none()
+
         user = User.objects.filter(id=self.request.user.id)
         qs = self.get_queryset()
         if (
@@ -232,6 +237,11 @@ class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
         return Response(serializer.data)
 
     def get_serializer_context(self):
+        if getattr(self, 'swagger_fake_view', False):
+            # To get rid of assertion error raised in
+            # the dev server, and for schema generation
+            return None
+
         context = super().get_serializer_context()
         context['user'] = self.get_object()
         return context
