@@ -383,6 +383,18 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(
         required=True, write_only=True, style={'input_type': 'password'}
     )
+    confirm_password = serializers.CharField(
+        required=True, write_only=True, style={'input_type': 'password'}
+    )
+
+    def validate_confirm_password(self, value):
+        if self.initial_data.get('new_password') != self.initial_data.get(
+            'confirm_password'
+        ):
+            raise serializers.ValidationError(
+                _('New password and Confirm password do not match.')
+            )
+        return value
 
     def validate_current_password(self, value):
         logged_user = self.context['request'].user

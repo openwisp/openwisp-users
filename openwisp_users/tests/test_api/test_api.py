@@ -282,7 +282,11 @@ class TestUsersApi(
     def test_change_password_of_superuser_by_superuser(self):
         client = auth.get_user(self.client)
         path = reverse('users:change_password', args=(client.pk,))
-        data = {'current_password': 'admin', 'new_password': 'super1234'}
+        data = {
+            'current_password': 'admin',
+            'new_password': 'super1234',
+            'confirm_password': 'super1234',
+        }
         with self.assertNumQueries(5):
             r = self.client.put(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 200)
@@ -293,7 +297,11 @@ class TestUsersApi(
         user1 = self._create_user(
             username='user1233', password='tester123', email='user@test.com'
         )
-        data = {'current_password': 'wrong', 'new_password': 'change123'}
+        data = {
+            'current_password': 'wrong',
+            'new_password': 'change123',
+            'confirm_password': 'change123',
+        }
         path = reverse('users:change_password', args=(user1.pk,))
         with self.assertNumQueries(5):
             r = self.client.put(path, data, content_type='application/json')
@@ -314,6 +322,24 @@ class TestUsersApi(
         with self.assertNumQueries(7):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 404)
+
+    def test_change_password_with_wrong_confirm_password(self):
+        user1 = self._create_user(
+            username='user1233', password='tester123', email='user@test.com'
+        )
+        data = {
+            'current_password': '',
+            'new_password': 'change123',
+            'confirm_password': 'change321',
+        }
+        path = reverse('users:change_password', args=(user1.pk,))
+        with self.assertNumQueries(4):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['confirm_password'][0].title(),
+            'New Password And Confirm Password Do Not Match.',
+        )
 
     def test_change_password_org_manager(self):
         # Org managers should be able to update
@@ -338,7 +364,11 @@ class TestUsersApi(
         with self.subTest('Change password of org manager by manager'):
             self.client.force_login(org1_manager)
             path = reverse('users:change_password', args=(org1_manager.pk,))
-            data = {'current_password': 'test123', 'new_password': 'test1234'}
+            data = {
+                'current_password': 'test123',
+                'new_password': 'test1234',
+                'confirm_password': 'test1234',
+            }
             with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
@@ -349,7 +379,11 @@ class TestUsersApi(
             org1_manager.refresh_from_db()
             self.client.force_login(org1_manager)
             path = reverse('users:change_password', args=(org1_user.pk,))
-            data = {'current_password': 'test321', 'new_password': 'test1234'}
+            data = {
+                'current_password': 'test321',
+                'new_password': 'test1234',
+                'confirm_password': 'test1234',
+            }
             with self.assertNumQueries(8):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
@@ -360,7 +394,11 @@ class TestUsersApi(
             org1_user.refresh_from_db()
             self.client.force_login(org1_user)
             path = reverse('users:change_password', args=(org1_user.pk,))
-            data = {'current_password': 'test1234', 'new_password': 'test1342'}
+            data = {
+                'current_password': 'test1234',
+                'new_password': 'test1342',
+                'confirm_password': 'test1342',
+            }
             with self.assertNumQueries(5):
                 r = self.client.put(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
