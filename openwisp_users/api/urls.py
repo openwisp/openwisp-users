@@ -24,7 +24,12 @@ def get_api_urls(api_views=None):
             views.change_password,
             name='change_password',
         ),
-        path('users/user/<str:pk>/email/', views.email_update, name='email_update',),
+        path('users/user/<str:pk>/email/', views.email_list, name='email_list',),
+        path(
+            'users/user/<str:pk>/email/<int:email_id>/',
+            views.email_update,
+            name='email_update',
+        ),
         path('users/group/', views.group_list, name='group_list'),
         path('users/group/<int:pk>/', views.group_detail, name='group_detail'),
     ]

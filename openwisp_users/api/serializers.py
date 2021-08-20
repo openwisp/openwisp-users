@@ -424,7 +424,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class EmailAddressSerializer(ValidatedModelSerializer):
     class Meta:
         model = EmailAddress
-        fields = ('email', 'verified', 'primary')
+        fields = ('id', 'email', 'verified', 'primary')
 
     def validate(self, data):
         data['user'] = self.context['user']

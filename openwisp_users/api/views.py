@@ -1,10 +1,12 @@
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import pagination, status
+from rest_framework import pagination
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import NotFound
 from rest_framework.generics import (
     GenericAPIView,
     ListCreateAPIView,
@@ -197,60 +199,70 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class EmailUpdateView(BaseUserView, RetrieveUpdateDestroyAPIView):
+class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
+    model = EmailAddress
     serializer_class = EmailAddressSerializer
 
-    def retrieve(self, request, *args, **kwargs):
-        user_instance = self.get_object()
+    def get_queryset(self):
+        return EmailAddress.objects.select_related('user').order_by('id')
+
+    def initial(self, *args, **kwargs):
+        super().initial(*args, **kwargs)
+        self.assert_parent_exists()
+
+    def assert_parent_exists(self):
         try:
-            instance = EmailAddress.objects.get(user=user_instance)
-        except EmailAddress.DoesNotExist:
-            return Response(
-                {'email': _('Email not found')}, status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+            assert self.get_parent_queryset().exists()
+        except (AssertionError, ValidationError):
+            user_id = self.kwargs['pk']
+            raise NotFound(detail=_("User with ID '{}' not found.".format(user_id)))
 
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        user_instance = self.get_object()
-        try:
-            instance = EmailAddress.objects.get(user=user_instance)
-        except EmailAddress.DoesNotExist:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance = EmailAddress.objects.create(
-                user=user_instance,
-                email=serializer.data['email'],
-                verified=serializer.data['verified'],
-                primary=serializer.data['primary'],
-            )
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+    def get_parent_queryset(self):
+        user = self.request.user
 
-        if getattr(instance, '_prefetched_objects_cache', None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # forcibly invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
+        if user.is_superuser:
+            return User.objects.filter(pk=self.kwargs['pk'])
 
-        return Response(serializer.data)
+        org_users = OrganizationUser.objects.filter(user=user).select_related(
+            'organization'
+        )
+        qs_user = User.objects.none()
+        for org_user in org_users:
+            if org_user.is_admin:
+                qs_user = qs_user | org_user.organization.users.all().distinct()
+        qs_user = qs_user.filter(is_superuser=False)
+        return qs_user.filter(pk=self.kwargs['pk'])
 
     def get_serializer_context(self):
         if getattr(self, 'swagger_fake_view', False):
             # To get rid of assertion error raised in
             # the dev server, and for schema generation
             return None
-
         context = super().get_serializer_context()
-        context['user'] = self.get_object()
+        context['user'] = self.get_parent_queryset().first()
         return context
 
-    def destroy(self, request, *args, **kwargs):
-        user_instance = self.get_object()
-        instance = EmailAddress.objects.get(user=user_instance)
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class EmailListCreateView(BaseEmailView, ListCreateAPIView):
+    pagination_class = ListViewPagination
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            # To get rid of assertion error raised in
+            # the dev server, and for schema generation
+            return EmailAddress.objects.none()
+        return super().get_queryset().filter(user_id=self.kwargs['pk'])
+
+
+class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        filter_kwargs = {
+            'id': self.kwargs['email_id'],
+        }
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
@@ -262,3 +274,4 @@ group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()
 email_update = EmailUpdateView.as_view()
+email_list = EmailListCreateView.as_view()
