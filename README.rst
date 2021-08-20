@@ -344,7 +344,7 @@ Change User password
 
 .. code-block:: text
 
-    PUT /api/v1/users/user/{id}/changepassword/
+    PUT /api/v1/users/user/{id}/password/
 
 List Groups
 ^^^^^^^^^^^
