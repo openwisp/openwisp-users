@@ -425,6 +425,7 @@ class EmailAddressSerializer(ValidatedModelSerializer):
     class Meta:
         model = EmailAddress
         fields = ('id', 'email', 'verified', 'primary')
+        extra_kwargs = {'verified': {'read_only': True}}
 
     def validate(self, data):
         data['user'] = self.context['user']
