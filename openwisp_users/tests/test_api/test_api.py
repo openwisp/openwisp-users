@@ -446,7 +446,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse('users:email_update', args=(user1.pk, email_id))
         data = {'email': 'emailchange@test.com', 'primary': True, 'verified': False}
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(9):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['email'], 'emailchange@test.com')
@@ -456,7 +456,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse('users:email_update', args=(user1.pk, email_id))
         data = {'email': 'changemail@test.com'}
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(9):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -468,7 +468,7 @@ class TestUsersApi(
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 1)
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse('users:email_update', args=(user1.pk, email_id))
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(6):
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 0)

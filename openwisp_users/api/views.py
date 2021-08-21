@@ -257,6 +257,7 @@ class EmailListCreateView(BaseEmailView, ListCreateAPIView):
 class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(user=self.get_parent_queryset().first())
         filter_kwargs = {
             'id': self.kwargs['email_id'],
         }
