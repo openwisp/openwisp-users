@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from swapper import load_model
 
 from .utils import TestOrganizationMixin
@@ -8,6 +9,7 @@ from .utils import TestOrganizationMixin
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+EmailConfirmation = load_model('account', 'EmailConfirmation')
 User = get_user_model()
 
 
@@ -242,3 +244,18 @@ class TestUsers(TestOrganizationMixin, TestCase):
             org_user2.full_clean()
             org_user2.save()
             self.assertEqual(org_user2.is_admin, False)
+
+    @override_settings(
+        ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL='email_confirmation_success',
+        ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL=(
+            'email_confirmation_success'
+        ),
+    )
+    def test_email_verification(self):
+        user = self._create_user()
+        email_address = user.emailaddress_set.first()
+        email_confirmation = EmailConfirmation.create(email_address)
+        email_confirmation.send()
+        url = reverse('account_confirm_email', args=[email_confirmation.key])
+        response = self.client.post(url, follow=True)
+        self.assertContains(response, 'Your email has been verified successfully.')
