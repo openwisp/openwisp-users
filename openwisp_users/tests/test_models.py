@@ -251,7 +251,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             'email_confirmation_success'
         ),
     )
-    def test_email_verification(self):
+    def test_email_verification_success(self):
         user = self._create_user()
         email_address = user.emailaddress_set.first()
         email_confirmation = EmailConfirmation.create(email_address)
@@ -259,3 +259,4 @@ class TestUsers(TestOrganizationMixin, TestCase):
         url = reverse('account_confirm_email', args=[email_confirmation.key])
         response = self.client.post(url, follow=True)
         self.assertContains(response, 'Your email has been verified successfully.')
+        self.assertContains(response, 'You can safely close this window.')
