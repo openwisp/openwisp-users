@@ -1,0 +1,20 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .breadcrumbs, .messagelist {
+        display: none;
+    }
+    #content {
+        text-align: center;
+        margin-top: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans "Your email has been verified successfully." %}</h1>
+<h1>{% trans "You can safely close this window." %}</h1>
+{% endblock %}

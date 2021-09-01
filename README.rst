@@ -124,6 +124,12 @@ to your ``settings.py``:
 
     urlpatterns += staticfiles_urlpatterns()
 
+Add following in ``settings.py`` to configure email verification success view:
+
+.. code-block:: python
+
+    ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'email_confirmation_success'
+    ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'email_confirmation_success'
 
 For additional steps to properly configure ``allauth`` in your project,
 please refer to their documentation:
