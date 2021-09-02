@@ -1,0 +1,66 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2021-09-01 18:32-0500\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: templates/account/email/base_message.txt:1
+#, python-format
+msgid "Hello from %(site_name)s!"
+msgstr "Benvenuti su %(site_name)s!"
+
+#: templates/account/email/base_message.txt:5
+#, python-format
+msgid ""
+"Thank you for using %(site_name)s!\n"
+"%(site_domain)s"
+msgstr ""
+"La ringraziamo per aver utilizzato %(site_name)s!\n"
+"%(site_domain)s"
+
+#: templates/account/email/email_confirmation_message.txt:5
+#, python-format
+msgid ""
+"You're receiving this e-mail because user %(user_display)s has given your e-"
+"mail address to register an account on %(site_domain)s.\n"
+"\n"
+"To confirm this is correct, go to %(activate_url)s"
+msgstr ""
+"L'utente %(user_display)s ha registrato questo indirizzo "
+"e-mail su %(site_domain)s.\n"
+"Per confermare, la preghiamo di cliccare sul seguente collegamento: %(activate_url)s"
+
+#: templates/account/email_confirm.html:6
+#: templates/account/email_confirm.html:9
+msgid "Confirm E-mail Address"
+msgstr "Confermi il suo indirizzo E-mail"
+
+#: templates/account/email_confirm.html:15
+#, python-format
+msgid ""
+"Please confirm that <a href=\"mailto:%(email)s\">%(email)s</a> is an e-mail "
+"address for user %(user_display)s."
+msgstr ""
+"La preghiamo di confermare che <a href=\"mailto:%(email)s\">%(email)s</a> è l'indirizzo e-"
+"mail per l'utente %(user_display)s."
+
+#: templates/account/email_verification_success.html:18
+msgid "Your email has been verified successfully."
+msgstr "Il suo indirizzo email è stato verificato con successo."
+
+#: templates/account/email_verification_success.html:19
+msgid "You can safely close this window."
+msgstr "Puó tranquillamente chiudere questa pagina."
+
+#: templates/account/email_confirm.html:20
+msgid "Confirm"
+msgstr "Confermo"
