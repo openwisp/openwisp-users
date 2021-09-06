@@ -259,4 +259,4 @@ class TestUsers(TestOrganizationMixin, TestCase):
         url = reverse('account_confirm_email', args=[email_confirmation.key])
         response = self.client.post(url, follow=True)
         self.assertContains(response, 'Your email has been verified successfully.')
-        self.assertContains(response, 'You can safely close this window.')
+        self.assertContains(response, 'This web page can be closed.')
