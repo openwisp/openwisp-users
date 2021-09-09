@@ -56,6 +56,11 @@ urlpatterns = [
         TemplateView.as_view(template_name='account/email_verification_success.html'),
         name='email_confirmation_success',
     ),
+    url(
+        r"^logout-success/",
+        TemplateView.as_view(template_name='account/logout_success.html'),
+        name='logout_success',
+    ),
 ]
 
 if app_settings.SOCIALACCOUNT_ENABLED:

@@ -260,3 +260,11 @@ class TestUsers(TestOrganizationMixin, TestCase):
         response = self.client.post(url, follow=True)
         self.assertContains(response, 'Your email has been verified successfully.')
         self.assertContains(response, 'This web page can be closed.')
+
+    @override_settings(ACCOUNT_LOGOUT_REDIRECT_URL='logout_success')
+    def test_logout_success(self):
+        user = self._create_user()
+        self.client.force_login(user)
+        response = self.client.post(reverse('account_logout'), follow=True)
+        self.assertContains(response, 'Logout successful.')
+        self.assertContains(response, 'This web page can be closed.')
