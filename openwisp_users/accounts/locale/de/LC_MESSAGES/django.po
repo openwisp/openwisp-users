@@ -19,3 +19,7 @@ msgstr "Ihre E-Mail wurde erfolgreich verifiziert."
 #: templates/account/email_verification_success.html:19
 msgid "This web page can be closed."
 msgstr "Sie können dieses Fenster sicher schließen."
+
+#: templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Abmeldung erfolgreich."

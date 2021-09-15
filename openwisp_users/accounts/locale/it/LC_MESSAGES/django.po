@@ -63,3 +63,7 @@ msgstr "La pagina può essere chiusa."
 #: templates/account/email_confirm.html:20
 msgid "Confirm"
 msgstr "Confermo"
+
+#: templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Logout effettuato con successo."

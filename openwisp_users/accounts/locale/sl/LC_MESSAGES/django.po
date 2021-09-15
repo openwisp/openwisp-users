@@ -19,3 +19,7 @@ msgstr "Vaš e -poštni naslov je bil uspešno preverjen."
 #: templates/account/email_verification_success.html:19
 msgid "This web page can be closed."
 msgstr "To okno lahko varno zaprete."
+
+#: templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Odjava uspešna."
