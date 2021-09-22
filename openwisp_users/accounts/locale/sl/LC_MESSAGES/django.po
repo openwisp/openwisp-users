@@ -1,0 +1,25 @@
+# OpenWISP RADIUS
+# Copyright (C) 2021
+# This file is distributed under the same license as the PACKAGE package.
+# Federico Capoano support@openwisp.io, 2021.
+#
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2021-09-01 18:32-0500\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: templates/account/email_verification_success.html:18
+msgid "Your email has been verified successfully."
+msgstr "Vaš e -poštni naslov je bil uspešno preverjen."
+
+#: templates/account/email_verification_success.html:19
+msgid "This web page can be closed."
+msgstr "To okno lahko varno zaprete."
+
+#: templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Odjava uspešna."

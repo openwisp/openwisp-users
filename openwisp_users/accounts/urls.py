@@ -13,6 +13,7 @@ from allauth.socialaccount import providers
 from django.conf.urls import include, url
 from django.urls import reverse_lazy
 from django.views.generic import RedirectView
+from django.views.generic.base import TemplateView
 
 redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 
@@ -49,6 +50,16 @@ urlpatterns = [
         r"^password/reset/key/done/$",
         views.password_reset_from_key_done,
         name="account_reset_password_from_key_done",
+    ),
+    url(
+        r"^email-verification-success/",
+        TemplateView.as_view(template_name='account/email_verification_success.html'),
+        name='email_confirmation_success',
+    ),
+    url(
+        r"^logout-success/",
+        TemplateView.as_view(template_name='account/logout_success.html'),
+        name='logout_success',
     ),
 ]
 
