@@ -341,6 +341,22 @@ class TestUsersApi(
             'New Password And Confirm Password Do Not Match.',
         )
 
+    def test_change_password_with_same_old_password(self):
+        client = auth.get_user(self.client)
+        path = reverse('users:change_password', args=(client.pk,))
+        data = {
+            'current_password': 'admin',
+            'new_password': 'admin',
+            'confirm_password': 'admin',
+        }
+        with self.assertNumQueries(4):
+            response = self.client.put(path, data, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data['new_password'][0]),
+            'New Password and Current Password cannot be same.',
+        )
+
     def test_change_password_org_manager(self):
         # Org managers should be able to update
         # passwords of his org. users
