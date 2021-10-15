@@ -261,6 +261,20 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             html = 'class="readonly"><img src="/static/admin/img/icon'
             self.assertContains(response, html)
 
+    def test_org_admin_cannot_add_superuser(self):
+        operator = self._create_operator()
+        options = {
+            'organization': self._get_org(),
+            'is_admin': True,
+            'user': self._get_operator(),
+        }
+        self._create_org_user(**options)
+        self.client.force_login(operator)
+        response = self.client.get(
+            reverse(f'admin:{self.app_label}_user_change', args=[operator.pk])
+        )
+        self.assertNotContains(response, 'superuser')
+
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()
         operator = self._create_operator()
