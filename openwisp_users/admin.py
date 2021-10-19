@@ -20,8 +20,8 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
-from django.utils.translation import ugettext_lazy as _
 from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (
     BaseOrganizationAdmin,

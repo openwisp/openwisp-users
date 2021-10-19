@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from swapper import load_model
 
 User = get_user_model()
@@ -104,13 +104,13 @@ class MultitenantAdminMixin(object):
         """
         user = request.user
         if not user.is_superuser:
-            org_users = OrganizationUser.objects.filter(user=user).select_related(
-                'organization'
+            qs = User.objects.filter(
+                **{
+                    (
+                        f'{User._meta.app_label}_organizationuser__organization__in'
+                    ): user.organizations_managed
+                }
             )
-            qs = User.objects.none()
-            for org_user in org_users:
-                if org_user.is_admin:
-                    qs = qs | org_user.organization.users.all().distinct()
             # hide superusers from organization operators
             # so they can't edit nor delete them
             qs = qs.filter(is_superuser=False)

@@ -1,4 +1,3 @@
-from django.conf.urls import url
 from django.urls import path
 
 from openwisp_users import settings as app_settings
@@ -35,7 +34,7 @@ def get_api_urls(api_views=None):
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
-            url(r'^user/token/', views.obtain_auth_token, name='user_auth_token')
+            path('user/token/', views.obtain_auth_token, name='user_auth_token')
         ]
     return urlpatterns
 

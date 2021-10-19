@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from openwisp_utils import settings as utils_settings
 from openwisp_utils.admin_theme.menu import register_menu_group
 from swapper import get_model_name, load_model
@@ -20,6 +20,7 @@ class OpenwispUsersConfig(AppConfig):
     name = 'openwisp_users'
     app_label = 'openwisp_users'
     verbose_name = _('Users and Organizations')
+    default_auto_field = 'django.db.models.AutoField'
 
     def ready(self):
         self.register_menu_group()
