@@ -337,6 +337,203 @@ the token in the ``Authorization`` header:
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
 
+List of endpoints
+~~~~~~~~~~~~~~~~~
+
+Since the detailed explanation is contained in the `Live documentation <#live-documentation>`_
+and in the `Browsable web page <#browsable-web-interface>`_ of each point,
+here we'll provide just a list of the available endpoints,
+for further information please open the URL of the endpoint in your browser.
+
+Change User password
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/password/
+
+List Groups
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/group/
+
+Create new Group
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/users/group/
+
+Get Group detail
+^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/group/{id}/
+
+Change Group detail
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/group/{id}/
+
+Patch Group detail
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/group/{id}/
+
+Delete Group
+^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/group/{id}/
+
+List Email Addresses
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/email/
+
+Add Email Address
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST/api/v1/users/user/{id}/email/
+
+Get Email Address
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/email/{id}/
+
+Change Email Address
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/email/{id}/
+
+Patch Email Address
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/{id}/
+
+Make/Unmake Email Address Primary
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/{id}/
+
+Mark/Unmark Email Address as Verified
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/email/{id}/
+
+Remove Email Address
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/user/{id}/email/{id}/
+
+List Organizations
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/organization/
+
+Create new Organization
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/users/organization/
+
+Get Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/organization/{id}/
+
+Change Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/organization/{id}/
+
+Patch Organization detail
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/organization/{id}/
+
+Delete Organization
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/organization/{id}/
+
+List Users
+^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/
+
+Create User
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    POST /api/v1/users/user/
+
+Get User detail
+^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/
+
+Change User detail
+^^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/
+
+Patch User detail
+^^^^^^^^^^^^^^^^^
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/
+
+Delete User
+^^^^^^^^^^^
+
+.. code-block:: text
+
+    DELETE /api/v1/users/user/{id}/
+
 Organization permissions
 ------------------------
 
