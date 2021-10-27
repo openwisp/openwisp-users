@@ -178,4 +178,4 @@ except ImportError:
 # Added for silencing warnings raised by django-all-auth
 # on Django 3.2 and above. Remove when new version of
 # django-all-auth is released
-DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+SILENCED_SYSTEM_CHECKS = ['models.W042']
