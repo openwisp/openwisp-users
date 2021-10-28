@@ -116,7 +116,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = user.__dict__
         params['email'] = 'new@mail.com'
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params = self._additional_params_pop(params)
         # inline emails
@@ -496,7 +497,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params['username'] = 'user2'
         params.pop('last_login')
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
         params.update(
@@ -531,7 +533,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = user.__dict__
         params['email'] = 'test@tester.com'
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
@@ -560,7 +563,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         user = self._create_operator()
         self._create_org_user(user=user)
         params = user.__dict__
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params.pop('phone_number')
         params.update(self.add_user_inline_params)
@@ -584,7 +588,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = user.__dict__
         params['groups'] = str(group.pk)
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -648,7 +653,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params['username'] = 'newuser1'
         params['groups'] = str(group.pk)
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -951,7 +957,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             reverse(f'admin:{self.app_label}_organization_change', args=[org.pk])
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Organization owners')
+        self.assertContains(response, 'Organization owner')
 
     @patch.object(
         OrganizationOwner, 'full_clean', side_effect=ValidationError('invalid')
@@ -1542,7 +1548,8 @@ class TestBasicUsersIntegration(
         params = user.__dict__
         params['bio'] = 'Test change'
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params['birth_date'] = user.date_joined.date()
         params = self._additional_params_pop(params)
@@ -1566,7 +1573,8 @@ class TestBasicUsersIntegration(
         self.client.force_login(admin)
         params = user.__dict__
         params.pop('phone_number')
-        params.pop('_password')
+        params.pop('password', None)
+        params.pop('_password', None)
         params.pop('last_login')
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -1597,7 +1605,7 @@ class TestBasicUsersIntegration(
 
         with self.subTest('Test forgot password link'):
             self.assertContains(
-                r, '<a href="/accounts/password/reset/">Forgot Password?</a>'
+                r, '<a href="/accounts/password/reset/">Forgot Password?</a'
             )
 
         with self.subTest('Test username label'):

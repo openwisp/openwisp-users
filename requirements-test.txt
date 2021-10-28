@@ -3,4 +3,4 @@ openwisp-utils[qa]
 mock>=2.0.0
 redis>=3.4.1,<4.0.0
 django-redis>=4.11.0,<5.0
-django-reversion<=3.0.9
+django-reversion~=3.0.9
