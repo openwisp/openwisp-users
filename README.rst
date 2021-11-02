@@ -7,9 +7,9 @@ openwisp-users
 .. image:: https://coveralls.io/repos/openwisp/openwisp-users/badge.svg
   :target: https://coveralls.io/r/openwisp/openwisp-users
 
-.. image:: https://requires.io/github/openwisp/openwisp-users/requirements.svg?branch=master
-   :target: https://requires.io/github/openwisp/openwisp-users/requirements/?branch=master
-   :alt: Requirements Status
+.. image:: https://img.shields.io/librariesio/release/github/openwisp/openwisp-users
+  :target: https://libraries.io/github/openwisp/openwisp-users#repository_dependencies
+  :alt: Dependency monitoring
 
 .. image:: https://badge.fury.io/py/openwisp-users.svg
    :target: http://badge.fury.io/py/openwisp-users
