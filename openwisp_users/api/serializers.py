@@ -224,7 +224,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
 
     def validate_email(self, value):
         if not value:
-            raise serializers.ValidationError(_('This field may not be blank.'))
+            raise serializers.ValidationError(_('This field cannot be blank.'))
         return value
 
     def create(self, validated_data):
