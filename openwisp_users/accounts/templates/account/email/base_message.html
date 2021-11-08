@@ -1,19 +1,13 @@
-{% extends openwisp_utils/email_template.html %}
-
+{% extends "openwisp_utils/email_template.html" %}
+{% load i18n %}
 {% block mail_header %}
 {{ block.super }}
 <div class="subject">
 {% blocktrans with site_name=current_site.name %}Welcome to {{ site_name|safe }}!{% endblocktrans %}
 </div>
 {% endblock %}
-
 {% block mail_body %}
 {{ block.super }}
-{% user_display user as user_display %}
-{% blocktrans with site_name=current_site.name site_domain=current_site.name %}
-You're receiving this e-mail because user {{ user_display }} registered this e-mail address to create an account on {{ site_domain|safe }}.
-To confirm this is correct, go to {{ activate_url }}
-{% endblocktrans %}
 {% blocktrans with site_name=current_site.name site_domain=current_site.name %}Thank you for using {{ site_name|safe }}!
 {{ site_domain }}{% endblocktrans %}
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends "account/email/base_message.html" %}
 {% load account %}
-
+{% load i18n %}
 {% block mail_body %}
 {{ block.super }}
 {% user_display user as user_display %}
