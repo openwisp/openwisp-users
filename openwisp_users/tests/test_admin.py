@@ -93,6 +93,13 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         emailaddress = user.emailaddress_set.first()
         self.assertEqual(emailaddress.email, 'test@testadd.com')
         self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox.pop()
+        self.assertTrue(email.alternatives)
+        self.assertIn('<b>testadd</b>', email.alternatives[0][0])
+        self.assertIn(
+            'To confirm this is correct, click on the button below',
+            email.alternatives[0][0],
+        )
 
     def test_admin_add_user_empty_email(self):
         admin = self._create_admin()
