@@ -339,8 +339,8 @@ class TestUsersApi(
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data['confirm_password'][0].title(),
-            'The Two Password Fields Didn’T Match.',
+            response.data['confirm_password'][0],
+            'The two password fields didn’t match.',
         )
 
     def test_change_password_with_same_old_password(self):
