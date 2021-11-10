@@ -97,7 +97,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertTrue(email.alternatives)
         self.assertIn('<b>testadd</b>', email.alternatives[0][0])
         self.assertIn(
-            'To confirm this is correct, click on the button below',
+            'To confirm this is correct, please click on the button below',
             email.alternatives[0][0],
         )
 

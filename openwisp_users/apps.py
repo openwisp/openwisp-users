@@ -87,6 +87,9 @@ class OpenwispUsersConfig(AppConfig):
             }
             setattr(settings, 'SWAGGER_SETTINGS', SWAGGER_SETTINGS)
 
+        ACCOUNT_ADAPTER = "openwisp_users.accounts.adapter.EmailAdapter"
+        setattr(settings, 'ACCOUNT_ADAPTER', ACCOUNT_ADAPTER)
+
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
