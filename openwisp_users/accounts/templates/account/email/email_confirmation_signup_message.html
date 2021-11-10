@@ -2,14 +2,11 @@
 {% load account %}
 {% load i18n %}
 
-{% block mail_body %}
+{% block body %}
+{{ block.super }}
 {% user_display user as user_display %}
 {% blocktrans with site_name=current_site.name site_domain=current_site.name %}
 You're receiving this e-mail because user <b>{{ user_display }}</b> registered this e-mail address to create an account on <b>{{ site_domain }}</b>.
 To confirm this is correct, click on the button below.
 {% endblocktrans %}
-<div class="call-to-action">
-    <a href="{{ activate_url }}" class="btn">
-      Confirm</a>
-  </div>
 {% endblock %}
