@@ -14,7 +14,9 @@ class Migration(migrations.Migration):
             model_name='user',
             name='notes',
             field=models.TextField(
-                blank=True, help_text='notes for internal usage', verbose_name='notes',
+                blank=True,
+                help_text='notes for internal usage',
+                verbose_name='notes',
             ),
         ),
     ]

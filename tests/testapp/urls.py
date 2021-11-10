@@ -35,7 +35,9 @@ urlpatterns = [
         name='test_shelf_list_manager_view',
     ),
     path(
-        'owner/shelf', views.shelf_list_owner_view, name='test_shelf_list_owner_view',
+        'owner/shelf',
+        views.shelf_list_owner_view,
+        name='test_shelf_list_owner_view',
     ),
     path(
         'user/shelf/<str:shelf_id>/books',
@@ -47,11 +49,31 @@ urlpatterns = [
         views.shelf_list_unauthorized_view,
         name='test_shelf_list_unauthorized_view',
     ),
-    path('template/', views.template_list, name='test_template_list',),
-    path('template/<int:pk>/', views.template_detail, name='test_template_detail',),
-    path('library/', views.library_list, name='test_library_list',),
-    path('library/<int:pk>/', views.library_detail, name='test_library_detail',),
-    path('booknestedshelf/', views.book_nested_shelf, name='test_book_nested_shelf',),
+    path(
+        'template/',
+        views.template_list,
+        name='test_template_list',
+    ),
+    path(
+        'template/<int:pk>/',
+        views.template_detail,
+        name='test_template_detail',
+    ),
+    path(
+        'library/',
+        views.library_list,
+        name='test_library_list',
+    ),
+    path(
+        'library/<int:pk>/',
+        views.library_detail,
+        name='test_library_detail',
+    ),
+    path(
+        'booknestedshelf/',
+        views.book_nested_shelf,
+        name='test_book_nested_shelf',
+    ),
     path(
         'shelfreadonlyorg/',
         views.shelf_with_read_only_org_view,

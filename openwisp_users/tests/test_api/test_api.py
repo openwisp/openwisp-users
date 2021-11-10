@@ -16,7 +16,9 @@ OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class TestUsersApi(
-    AssertNumQueriesSubTestMixin, TestOrganizationMixin, TestCase,
+    AssertNumQueriesSubTestMixin,
+    TestOrganizationMixin,
+    TestCase,
 ):
     def setUp(self):
         user = get_user_model().objects.create_superuser(

@@ -161,7 +161,10 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         )
         token = self._obtain_auth_token()
         url = reverse('test_shelf_list_owner_view')
-        response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}',)
+        response = self.client.get(
+            url,
+            HTTP_AUTHORIZATION=f'Bearer {token}',
+        )
         self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
         self.assertNotContains(response, str(self.shelf_b.id))
 
