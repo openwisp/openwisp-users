@@ -68,7 +68,7 @@ class AbstractUser(BaseUser):
 
     @staticmethod
     def _get_pk(obj):
-        """ meant for internal usage only """
+        """meant for internal usage only"""
         if isinstance(obj, (uuid.UUID, str)):
             pk = obj
         elif isinstance(obj, BaseOrganization):

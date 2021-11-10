@@ -30,7 +30,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         with self.subTest('Test optional organization label for superuser'):
             r = self.client.get(reverse('admin:testapp_template_add'))
             self.assertContains(
-                r, '<option value="" selected>Shared systemwide (no organization)',
+                r,
+                '<option value="" selected>Shared systemwide (no organization)',
             )
 
         with self.subTest('Test optional organization label for non-superuser'):
@@ -40,7 +41,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             self.client.force_login(operator)
             r = self.client.get(reverse('admin:testapp_template_add'))
             self.assertNotContains(
-                r, 'Shared systemwide (no organization)',
+                r,
+                'Shared systemwide (no organization)',
             )
 
     def test_group_reversion(self):

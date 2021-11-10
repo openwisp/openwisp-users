@@ -32,7 +32,7 @@ Group = load_model('openwisp_users', 'Group')
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase):
-    """ test admin site """
+    """test admin site"""
 
     app_label = 'openwisp_users'
     is_integration_test = False
@@ -182,7 +182,11 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         with self.subTest('Test for non-existing user'):
             id = uuid.uuid4()
             response = self.client.get(
-                reverse(f'admin:{self.app_label}_user_change', args=[id],), follow=True
+                reverse(
+                    f'admin:{self.app_label}_user_change',
+                    args=[id],
+                ),
+                follow=True,
             )
             content = f'User with ID “{id}” doesn’t exist. Perhaps it was deleted?'
             self.assertContains(response, content, status_code=200)
@@ -257,7 +261,12 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             # regex to check if `<div class="readonly"> ... app_label </div>`
             # exists in the response
             html = f'<div class="readonly">((?!</div>).)*({self.app_label})'
-            self.assertTrue(re.search(html, str(response.content),))
+            self.assertTrue(
+                re.search(
+                    html,
+                    str(response.content),
+                )
+            )
         with self.subTest('Organization User Inline'):
             html = 'class="readonly"><img src="/static/admin/img/icon'
             self.assertContains(response, html)
@@ -1555,7 +1564,11 @@ class TestBasicUsersIntegration(
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
         url = reverse(f'admin:{self.app_label}_user_change', args=[user.pk])
-        response = self.client.post(url, params, follow=True,)
+        response = self.client.post(
+            url,
+            params,
+            follow=True,
+        )
         self.assertNotContains(response, 'Please correct the error below.')
         user.refresh_from_db()
         self.assertEqual(user.bio, params['bio'])

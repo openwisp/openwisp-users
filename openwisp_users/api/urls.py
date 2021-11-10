@@ -10,20 +10,32 @@ def get_api_urls(api_views=None):
     if api_views is None:
         api_views = views
     urlpatterns += [
-        path('users/organization/', views.organization_list, name='organization_list',),
+        path(
+            'users/organization/',
+            views.organization_list,
+            name='organization_list',
+        ),
         path(
             'users/organization/<str:pk>/',
             views.organization_detail,
             name='organization_detail',
         ),
-        path('users/user/', views.user_list, name='user_list',),
+        path(
+            'users/user/',
+            views.user_list,
+            name='user_list',
+        ),
         path('users/user/<str:pk>/', views.user_detail, name='user_detail'),
         path(
             'users/user/<str:pk>/password/',
             views.change_password,
             name='change_password',
         ),
-        path('users/user/<str:pk>/email/', views.email_list, name='email_list',),
+        path(
+            'users/user/<str:pk>/email/',
+            views.email_list,
+            name='email_list',
+        ),
         path(
             'users/user/<str:pk>/email/<int:email_id>/',
             views.email_update,

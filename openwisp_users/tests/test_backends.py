@@ -17,7 +17,8 @@ class TestBackends(TestOrganizationMixin, TestCase):
         self.client.login(username=username, password=password)
         self.assertIn('_auth_user_id', self.client.session)
         self.assertEqual(
-            UUID(self.client.session['_auth_user_id'], version=4), pk,
+            UUID(self.client.session['_auth_user_id'], version=4),
+            pk,
         )
         self.client.logout()
         self.assertNotIn('_auth_user_id', self.client.session)
