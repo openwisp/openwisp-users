@@ -720,6 +720,9 @@ Based on the `rest_framework.authentication.TokenAuthentication <https://www.dja
 ``BearerAuthentication`` is the primary authentication class for REST APIs
 implemented across all modules of OpenWISP.
 
+Kindly refer to `authenticating with the user token <#authenticating-with-the-user-token>`_
+section for usage information.
+
 2. ``openwisp_users.api.authentication.SesameAuthentication``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
