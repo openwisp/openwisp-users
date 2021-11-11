@@ -48,14 +48,45 @@ class AuthenticationTests(APITestCase):
         def my_view(request):
             return Response({})
 
-        request = self.factory.get('/')
-        response = my_view(request)
-        self.assertEqual(response.status_code, 403)
-
         user = User.objects.first()
         token = get_one_time_auth_token_for_user(user)
-        request = self.factory.get(
-            '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME} {token}'
-        )
-        response = my_view(request)
-        self.assertEqual(response.status_code, 200)
+
+        with self.subTest('Test without header'):
+            request = self.factory.get('/')
+            response = my_view(request)
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest('Test token missing'):
+            request = self.factory.get(
+                '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME}'
+            )
+            response = my_view(request)
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest('Test extra key'):
+            request = self.factory.get(
+                '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME} {token} extrakey'
+            )
+            response = my_view(request)
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest('Test UnicodeError'):
+            request = self.factory.get(
+                '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME} "¸"'
+            )
+            response = my_view(request)
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest('Test with invalid token'):
+            request = self.factory.get(
+                '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME} token'
+            )
+            response = my_view(request)
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest('Test ideal flow'):
+            request = self.factory.get(
+                '/', HTTP_AUTHORIZATION=f'{sesame_settings.TOKEN_NAME} {token}'
+            )
+            response = my_view(request)
+            self.assertEqual(response.status_code, 200)
