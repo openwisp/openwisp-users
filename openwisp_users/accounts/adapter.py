@@ -1,16 +1,21 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from django.template import TemplateDoesNotExist
+from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
-from openwisp_utils.admin_theme import settings as utils_settings
+from openwisp_utils.admin_theme.email import send_email
 
 
 class EmailAdapter(DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
-        context['logo_url'] = utils_settings.OPENWISP_EMAIL_LOGO
         site_name = context['current_site'].name
-        context['subject'] = _('Welcome to %(site_name)s') % {'site_name': site_name}
-        context['message'] = _('Thank you for using <b>%(site_name)s</b>') % {
-            'site_name': site_name
-        }
+        subject = _('Welcome to %(site_name)s') % {'site_name': site_name}
+        try:
+            template_name = '{0}_message.txt'.format(template_prefix)
+            body_text = render_to_string(template_name, context, self.request).strip()
+        except TemplateDoesNotExist:
+            body_text = ''
+        template_name = '{0}_message.html'.format(template_prefix)
+        body_html = render_to_string(template_name, context, self.request).strip()
         context['call_to_action_url'] = context['activate_url']
         context['call_to_action_text'] = _('Confirm')
-        super().send_mail(template_prefix, email, context)
+        send_email(subject, body_text, body_html, [email], context)
