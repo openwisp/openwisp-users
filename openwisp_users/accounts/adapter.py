@@ -16,6 +16,9 @@ class EmailAdapter(DefaultAccountAdapter):
             body_text = ''
         template_name = '{0}_message.html'.format(template_prefix)
         body_html = render_to_string(template_name, context, self.request).strip()
+        context["footer"] = _("Thank you for using %(site_name)s") % {
+            "site_name": site_name
+        }
         context['call_to_action_url'] = context['activate_url']
         context['call_to_action_text'] = _('Confirm')
         send_email(subject, body_text, body_html, [email], context)
