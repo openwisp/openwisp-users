@@ -72,10 +72,6 @@ msgstr ""
 "Conferma che <a href=\"mailto:%(email)s\">%(email)s</a> è l'indirizzo e-mail "
 "per l'utente %(user_display)s."
 
-#: accounts/templates/account/email_confirm.html:26
-msgid "This e-mail confirmation link expired or is invalid."
-msgstr ""
-
 #: accounts/templates/account/email_verification_success.html:18
 msgid "Your email has been verified successfully."
 msgstr "L'indirizzo email è stato verificato con successo."
@@ -84,16 +80,6 @@ msgstr "L'indirizzo email è stato verificato con successo."
 #: accounts/templates/account/logout_success.html:19
 msgid "This web page can be closed."
 msgstr "La pagina può essere chiusa."
-
-#: accounts/templates/account/login.html:4
-#: accounts/templates/account/login.html:7
-#: accounts/templates/account/login.html:16
-msgid "Sign In"
-msgstr ""
-
-#: accounts/templates/account/login.html:15
-msgid "Forgot Password?"
-msgstr ""
 
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
