@@ -14,11 +14,11 @@ class EmailAdapter(DefaultAccountAdapter):
         content = {}
         errors = {}
         for ext in ['html', 'txt']:
+            template_name = '{0}_message.{1}'.format(template_prefix, ext)
+            if 'activate_url' in context:
+                context['call_to_action_url'] = context['activate_url']
+                context['call_to_action_text'] = _('Confirm')
             try:
-                template_name = '{0}_message.{1}'.format(template_prefix, ext)
-                if 'activate_url' in context:
-                    context['call_to_action_url'] = context['activate_url']
-                    context['call_to_action_text'] = _('Confirm')
                 content[ext] = render_to_string(
                     template_name, context, self.request
                 ).strip()
