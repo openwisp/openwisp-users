@@ -270,7 +270,7 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 400)
         self.assertEqual(
             r.data['current_password'][0][:],
-            'Current password was entered incorrectly. Please enter it again.',
+            'Your old password was entered incorrectly. Please enter it again.',
         )
 
     def test_old_password_with_empty_new_password(self):
@@ -339,8 +339,8 @@ class TestUsersApi(
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data['confirm_password'][0].title(),
-            'New Password And Confirm Password Do Not Match.',
+            response.data['confirm_password'][0],
+            'The two password fields didn’t match.',
         )
 
     def test_change_password_with_same_old_password(self):
@@ -356,7 +356,7 @@ class TestUsersApi(
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             str(response.data['new_password'][0]),
-            'New Password and Current Password cannot be same.',
+            'New password cannot be the same as your old password.',
         )
 
     def test_change_password_org_manager(self):

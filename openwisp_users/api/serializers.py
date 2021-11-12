@@ -224,7 +224,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
 
     def validate_email(self, value):
         if not value:
-            raise serializers.ValidationError(_('This field may not be blank.'))
+            raise serializers.ValidationError(_('This field cannot be blank.'))
         return value
 
     def create(self, validated_data):
@@ -392,7 +392,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             'confirm_password'
         ):
             raise serializers.ValidationError(
-                _('New password and Confirm password do not match.')
+                _('The two password fields didn’t match.')
             )
         return value
 
@@ -408,8 +408,8 @@ class ChangePasswordSerializer(serializers.Serializer):
                 if not to_change_user.check_password(value):
                     raise serializers.ValidationError(
                         _(
-                            'Current password was entered incorrectly. '
-                            'Please enter it again.'
+                            'Your old password was entered incorrectly.'
+                            ' Please enter it again.'
                         )
                     )
         return value
@@ -419,7 +419,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             'new_password'
         ):
             raise serializers.ValidationError(
-                _('New Password and Current Password cannot be same.')
+                _('New password cannot be the same as your old password.')
             )
         return value
 
