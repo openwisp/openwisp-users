@@ -8,15 +8,28 @@ from openwisp_utils.admin_theme.email import send_email
 class EmailAdapter(DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
         site_name = context['current_site'].name
-        subject = _('Confirm E-mail Address')
+        subject = render_to_string("{0}_subject.txt".format(template_prefix), context)
+        subject = " ".join(subject.splitlines()).strip()
         subject = f'{site_name}: {subject}'
-        try:
-            template_name = '{0}_message.txt'.format(template_prefix)
-            body_text = render_to_string(template_name, context, self.request).strip()
-        except TemplateDoesNotExist:
-            body_text = ''
-        template_name = '{0}_message.html'.format(template_prefix)
-        body_html = render_to_string(template_name, context, self.request).strip()
-        context['call_to_action_url'] = context['activate_url']
-        context['call_to_action_text'] = _('Confirm')
+        for ext in ['html', 'txt']:
+            try:
+                template_name = '{0}_message.{1}'.format(template_prefix, ext)
+                if ext == 'html':
+                    body_html = render_to_string(
+                        template_name, context, self.request
+                    ).strip()
+                    if 'activate_url' in context:
+                        context['call_to_action_url'] = context['activate_url']
+                        context['call_to_action_text'] = _('Confirm')
+                else:
+                    body_text = render_to_string(
+                        template_name, context, self.request
+                    ).strip()
+            except TemplateDoesNotExist:
+                if ext == 'txt':
+                    if body_html == '':
+                        raise
+                    body_text = ''
+                else:
+                    body_html = ''
         send_email(subject, body_text, body_html, [email], context)
