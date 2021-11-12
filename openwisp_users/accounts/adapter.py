@@ -11,25 +11,22 @@ class EmailAdapter(DefaultAccountAdapter):
         subject = render_to_string("{0}_subject.txt".format(template_prefix), context)
         subject = " ".join(subject.splitlines()).strip()
         subject = f'{site_name}: {subject}'
+        content = {}
+        errors = {}
         for ext in ['html', 'txt']:
             try:
                 template_name = '{0}_message.{1}'.format(template_prefix, ext)
-                if ext == 'html':
-                    body_html = render_to_string(
-                        template_name, context, self.request
-                    ).strip()
-                    if 'activate_url' in context:
-                        context['call_to_action_url'] = context['activate_url']
-                        context['call_to_action_text'] = _('Confirm')
-                else:
-                    body_text = render_to_string(
-                        template_name, context, self.request
-                    ).strip()
-            except TemplateDoesNotExist:
-                if ext == 'txt':
-                    if body_html == '':
-                        raise
-                    body_text = ''
-                else:
-                    body_html = ''
-        send_email(subject, body_text, body_html, [email], context)
+                if 'activate_url' in context:
+                    context['call_to_action_url'] = context['activate_url']
+                    context['call_to_action_text'] = _('Confirm')
+                content[ext] = render_to_string(
+                    template_name, context, self.request
+                ).strip()
+            except TemplateDoesNotExist as e:
+                errors[ext] = e
+            text = content.get('txt', '')
+            html = content.get('html', '')
+            # both templates fail to load, raise the exception
+            if len(errors.keys()) >= 2:
+                raise errors['txt'] from errors['html']
+        send_email(subject, text, html, [email], context)
