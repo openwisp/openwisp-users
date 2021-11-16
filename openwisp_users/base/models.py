@@ -61,7 +61,7 @@ class AbstractUser(BaseUser):
         _('notes'), help_text=_('notes for internal usage'), blank=True
     )
     language = models.CharField(
-        max_length=10,
+        max_length=8,
         choices=settings.LANGUAGES,
         default=settings.LANGUAGE_CODE,
     )

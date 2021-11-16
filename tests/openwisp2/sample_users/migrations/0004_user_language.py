@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 choices=settings.LANGUAGES,
                 default=settings.LANGUAGE_CODE,
-                max_length=10,
+                max_length=8,
             ),
         ),
     ]
