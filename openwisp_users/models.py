@@ -2,6 +2,7 @@ import swapper
 from django.contrib.auth.models import Group as AbstractGroup
 from organizations.abstract import (
     AbstractOrganization,
+    AbstractOrganizationInvitation,
     AbstractOrganizationOwner,
     AbstractOrganizationUser,
 )
@@ -33,6 +34,12 @@ class OrganizationUser(BaseOrganizationUser, AbstractOrganizationUser):
 class OrganizationOwner(BaseOrganizationOwner, AbstractOrganizationOwner):
     class Meta(AbstractOrganizationOwner.Meta):
         swapper.swappable_setting('openwisp_users', 'OrganizationOwner')
+
+
+# only needed for django-organizations~=2.x
+class OrganizationInvitation(AbstractOrganizationInvitation):
+    class Meta(AbstractOrganizationInvitation.Meta):
+        abstract = True
 
 
 class Group(BaseGroup, AbstractGroup):

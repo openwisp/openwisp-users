@@ -3,6 +3,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from organizations.abstract import (
     AbstractOrganization,
+    AbstractOrganizationInvitation,
     AbstractOrganizationOwner,
     AbstractOrganizationUser,
 )
@@ -55,6 +56,12 @@ class OrganizationUser(DetailsModel, BaseOrganizationUser, AbstractOrganizationU
 
 class OrganizationOwner(DetailsModel, BaseOrganizationOwner, AbstractOrganizationOwner):
     pass
+
+
+# only needed for django-organizations~=2.x
+class OrganizationInvitation(AbstractOrganizationInvitation):
+    class Meta(AbstractOrganizationInvitation.Meta):
+        abstract = True
 
 
 class Group(DetailsModel, BaseGroup, AbstractGroup):
