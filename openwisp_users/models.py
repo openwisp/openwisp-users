@@ -36,7 +36,11 @@ class OrganizationOwner(BaseOrganizationOwner, AbstractOrganizationOwner):
         swapper.swappable_setting('openwisp_users', 'OrganizationOwner')
 
 
-# only needed for django-organizations~=2.x
+# only needed for compatibility with django-organizations~=2.x
+# it is not direclty used in OpenWISP right now but users
+# are free to implement it / swap it if needed
+# for more information refer to the django-organizations docs:
+# https://django-organizations.readthedocs.io/
 class OrganizationInvitation(AbstractOrganizationInvitation):
     class Meta(AbstractOrganizationInvitation.Meta):
         swapper.swappable_setting('openwisp_users', 'OrganizationInvitation')

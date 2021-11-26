@@ -559,15 +559,6 @@ If the ``OrganizationUser`` instance related to the owner of an organization is 
 or flagged as ``is_admin=False``, the admin interface will return an error informing
 users that the operation is not allowed, the owner should be changed before attempting to do that.
 
-Organization Invitation
------------------------
-
-Organization invitation tracks ``users`` specifically, rather than OrganizationUsers, as it's
-considered ``more critical`` to know who invited or joined even if they are no longer members
-of the organization.
-
-We don't use this model in OpenWISP but users are free to implement custom flows with it if needed.
-
 Organization membership helpers
 -------------------------------
 
@@ -1089,7 +1080,10 @@ Once you have created the models, add the following to your ``settings.py``:
     OPENWISP_USERS_ORGANIZATION_MODEL = 'myusers.Organization'
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'myusers.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'myusers.OrganizationOwner'
-    # Optional: We don't use below model in OpenWISP but users can implement it
+    # The following model is not used in OpenWISP yet
+    # but users are free to implement it in their projects if needed
+    # for more information refer to the django-organizations docs:
+    # https://django-organizations.readthedocs.io/
     OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = 'myusers.OrganizationInvitation'
 
 Substitute ``myusers`` with the name you chose in step 1.
