@@ -3,6 +3,7 @@ import uuid
 
 import django
 from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
@@ -58,6 +59,11 @@ class AbstractUser(BaseUser):
     birth_date = models.DateField(_('birth date'), blank=True, null=True)
     notes = models.TextField(
         _('notes'), help_text=_('notes for internal usage'), blank=True
+    )
+    language = models.CharField(
+        max_length=8,
+        choices=settings.LANGUAGES,
+        default=settings.LANGUAGE_CODE,
     )
 
     objects = UserManager()

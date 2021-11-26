@@ -6,11 +6,17 @@ DEBUG = True
 TESTING = sys.argv[1] == 'test'
 PARALLEL = '--parallel' in sys.argv
 SHELL = 'shell' in sys.argv or 'shell_plus' in sys.argv
+SAMPLE_APP = os.environ.get('SAMPLE_APP', False)
 
 ALLOWED_HOSTS = ['*']
 
 DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'openwisp-users.db'}
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'openwisp-users.db'
+        if not SAMPLE_APP
+        else 'openwisp-users-SAMPLE_APP.db',
+    }
 }
 
 SECRET_KEY = 'fn)t*+$)ugeyip6-#txyy$5wf2ervc0d2n#h)qb)y5@ly$t*@w'
@@ -155,7 +161,7 @@ SESSION_CACHE_ALIAS = 'default'
 
 OPENWISP_ORGANIZATION_USER_ADMIN = True
 
-if os.environ.get('SAMPLE_APP', False):
+if SAMPLE_APP:
     users_index = INSTALLED_APPS.index('openwisp_users')
     INSTALLED_APPS.insert(users_index, 'openwisp2.sample_users')
     INSTALLED_APPS.remove('openwisp_users')

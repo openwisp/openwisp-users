@@ -1105,6 +1105,11 @@ Once you have created the models, add the following to your ``settings.py``:
     OPENWISP_USERS_ORGANIZATION_MODEL = 'myusers.Organization'
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'myusers.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'myusers.OrganizationOwner'
+    # The following model is not used in OpenWISP yet
+    # but users are free to implement it in their projects if needed
+    # for more information refer to the django-organizations docs:
+    # https://django-organizations.readthedocs.io/
+    OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = 'myusers.OrganizationInvitation'
 
 Substitute ``myusers`` with the name you chose in step 1.
 
@@ -1115,11 +1120,17 @@ Create database migrations::
 
     ./manage.py makemigrations
 
-Now, manually create a file ``0002_default_groups_and_permissions.py`` in the migrations directory just create by the ``makemigrations`` command and copy contents of the `sample_users/migrations/0002_default_groups_and_permissions.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0002_default_groups_and_permissions.py>`_.
+Now, manually create a file ``0004_default_groups.py`` in the migrations directory
+just created by the ``makemigrations`` command and copy contents of
+the `sample_users/migrations/0004_default_groups.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0004_default_groups.py>`_.
 
-Apply database migrations::
+Then, run the migrations::
 
     ./manage.py migrate
+
+**Note**: the ``0004_default_groups`` is required because other OpenWISP modules
+depend on it. If it's not created as documented here, the migrations of
+other OpenWISP modules will fail.
 
 10. Create the admin
 ~~~~~~~~~~~~~~~~~~~~
