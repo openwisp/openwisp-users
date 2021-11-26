@@ -1080,6 +1080,11 @@ Once you have created the models, add the following to your ``settings.py``:
     OPENWISP_USERS_ORGANIZATION_MODEL = 'myusers.Organization'
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'myusers.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'myusers.OrganizationOwner'
+    # The following model is not used in OpenWISP yet
+    # but users are free to implement it in their projects if needed
+    # for more information refer to the django-organizations docs:
+    # https://django-organizations.readthedocs.io/
+    OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = 'myusers.OrganizationInvitation'
 
 Substitute ``myusers`` with the name you chose in step 1.
 
