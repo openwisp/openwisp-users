@@ -181,6 +181,14 @@ class Migration(migrations.Migration):
                         verbose_name='user permissions',
                     ),
                 ),
+                (
+                    'language',
+                    models.CharField(
+                        choices=settings.LANGUAGES,
+                        default=settings.LANGUAGE_CODE,
+                        max_length=8,
+                    ),
+                ),
             ],
             options={
                 'verbose_name': 'user',
