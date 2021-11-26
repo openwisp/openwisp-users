@@ -1095,11 +1095,17 @@ Create database migrations::
 
     ./manage.py makemigrations
 
-Now, manually create a file ``0002_default_groups_and_permissions.py`` in the migrations directory just create by the ``makemigrations`` command and copy contents of the `sample_users/migrations/0002_default_groups_and_permissions.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0002_default_groups_and_permissions.py>`_.
+Now, manually create a file ``0004_default_groups.py`` in the migrations directory
+just created by the ``makemigrations`` command and copy contents of
+the `sample_users/migrations/0004_default_groups.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0004_default_groups.py>`_.
 
-Apply database migrations::
+Then, run the migrations::
 
     ./manage.py migrate
+
+**Note**: the ``0004_default_groups`` is required because other OpenWISP modules
+depend on it. If it's not created as documented here, the migrations of
+other OpenWISP modules will fail.
 
 10. Create the admin
 ~~~~~~~~~~~~~~~~~~~~
