@@ -60,8 +60,7 @@ class OrganizationOwner(DetailsModel, BaseOrganizationOwner, AbstractOrganizatio
 
 # only needed for django-organizations~=2.x
 class OrganizationInvitation(AbstractOrganizationInvitation):
-    class Meta(AbstractOrganizationInvitation.Meta):
-        abstract = True
+    pass
 
 
 class Group(DetailsModel, BaseGroup, AbstractGroup):

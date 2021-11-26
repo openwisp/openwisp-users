@@ -39,7 +39,7 @@ class OrganizationOwner(BaseOrganizationOwner, AbstractOrganizationOwner):
 # only needed for django-organizations~=2.x
 class OrganizationInvitation(AbstractOrganizationInvitation):
     class Meta(AbstractOrganizationInvitation.Meta):
-        abstract = True
+        swapper.swappable_setting('openwisp_users', 'OrganizationInvitation')
 
 
 class Group(BaseGroup, AbstractGroup):
