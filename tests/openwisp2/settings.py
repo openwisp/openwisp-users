@@ -171,6 +171,7 @@ if SAMPLE_APP:
     OPENWISP_USERS_ORGANIZATION_MODEL = 'sample_users.Organization'
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = 'sample_users.OrganizationUser'
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = 'sample_users.OrganizationOwner'
+    OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = 'sample_users.OrganizationInvitation'
 
 if os.environ.get('NO_SOCIAL_APP', False):
     INSTALLED_APPS.remove('allauth.socialaccount')
