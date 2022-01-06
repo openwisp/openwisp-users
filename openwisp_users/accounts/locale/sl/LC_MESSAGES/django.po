@@ -1,4 +1,4 @@
-# OpenWISP RADIUS
+# OpenWISP Users
 # Copyright (C) 2021
 # This file is distributed under the same license as the PACKAGE package.
 # Federico Capoano support@openwisp.io, 2021.
@@ -30,12 +30,12 @@ msgstr "Če želite potrditi, da je to pravilno, kliknite spodnji gumb."
 
 #: accounts/templates/account/email_verification_success.html:18
 msgid "Your email has been verified successfully."
-msgstr "Vaš e -poštni naslov je bil uspešno preverjen."
+msgstr "Preverjanje naslova e-pošte je bilo uspešno."
 
 #: accounts/templates/account/email_verification_success.html:19
 #: accounts/templates/account/logout_success.html:19
 msgid "This web page can be closed."
-msgstr "To okno lahko varno zaprete."
+msgstr "Lahko zaprete stran."
 
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
