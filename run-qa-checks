@@ -3,6 +3,12 @@ set -e
 
 jshint ./openwisp_users/static/openwisp-users/js/*.js
 
+echo ''
+echo 'Compiling translations'
+cd openwisp_users
+django-admin compilemessages
+cd ..
+
 openwisp-qa-check \
       --migrations-to-ignore 2 \
       --migration-path './openwisp_users/migrations' \
