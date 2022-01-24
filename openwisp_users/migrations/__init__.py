@@ -152,3 +152,13 @@ def allow_admins_change_organization(apps, schema_editor):
         admins.permissions.add(*permissions)
     except ObjectDoesNotExist:
         pass
+
+
+def allow_operator_view_organization(apps, schema_editor):
+    Group = get_model(apps, 'Group')
+    try:
+        operator = Group.objects.get(name='Operator')
+        permissions = [Permission.objects.get(codename='view_organization').pk]
+        operator.permissions.add(*permissions)
+    except ObjectDoesNotExist:
+        pass
