@@ -215,12 +215,12 @@ class TestUsersApi(
 
     def test_get_group_detail_api(self):
         path = reverse('users:group_detail', args='1')
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(4):
             r = self.client.get(path)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['id'], 1)
         self.assertEqual(r.data['name'], 'Operator')
-        self.assertEqual(r.data['permissions'], [])
+        self.assertIn('Can view organization', r.data['permissions'][0])
 
     def test_put_group_detail_api(self):
         path = reverse('users:group_detail', args='1')
@@ -242,7 +242,7 @@ class TestUsersApi(
     def test_patch_group_detail_assign_permission_api(self):
         path = reverse('users:group_detail', args='1')
         grp = Group.objects.get(id=1)
-        self.assertEqual(grp.permissions.values_list('codename', flat=True).count(), 0)
+        self.assertEqual(grp.permissions.values_list('codename', flat=True).count(), 1)
         data = {
             "permissions": [
                 "2: emailaddress | Can change email address",
