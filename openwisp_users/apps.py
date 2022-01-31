@@ -3,7 +3,7 @@ import logging
 from django.apps import AppConfig
 from django.conf import settings
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils.translation import gettext_lazy as _
@@ -119,7 +119,10 @@ class OpenwispUsersConfig(AppConfig):
         if hasattr(instance, 'user'):
             user = instance.user
         else:
-            user = instance.organization_user.user
+            try:
+                user = instance.organization_user.user
+            except ObjectDoesNotExist:
+                return
         cache_key = 'user_{}_organizations'.format(user.pk)
         cache.delete(cache_key)
         # forces caching
