@@ -33,9 +33,10 @@ class FilterByOrganization(OrgLookup):
         return self.get_organization_queryset(qs)
 
     def get_organization_queryset(self, qs):
-        return qs.filter(
-            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
-        )
+        if not self.request.user.is_anonymous:
+            return qs.filter(
+                **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
+            )
 
 
 class FilterByOrganizationMembership(FilterByOrganization):
@@ -136,24 +137,25 @@ class FilterSerializerByOrganization(OrgLookup):
         if user.is_superuser:
             return
         # non superusers can see only items of organizations they're related to
-        organization_filter = getattr(user, self._user_attr)
-        for field in self.fields:
-            if field == 'organization' and not self.fields[field].read_only:
-                # queryset attribute will not be present if set to read_only
-                self.fields[field].allow_null = False
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            conditions = Q(**{self.organization_lookup: organization_filter})
-            if self.include_shared:
-                conditions |= Q(organization__isnull=True)
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    conditions
-                )
-            except AttributeError:
-                pass
+        if not user.is_anonymous:
+            organization_filter = getattr(user, self._user_attr)
+            for field in self.fields:
+                if field == 'organization' and not self.fields[field].read_only:
+                    # queryset attribute will not be present if set to read_only
+                    self.fields[field].allow_null = False
+                    self.fields[field].queryset = self.fields[field].queryset.filter(
+                        pk__in=organization_filter
+                    )
+                    continue
+                conditions = Q(**{self.organization_lookup: organization_filter})
+                if self.include_shared:
+                    conditions |= Q(organization__isnull=True)
+                try:
+                    self.fields[field].queryset = self.fields[field].queryset.filter(
+                        conditions
+                    )
+                except AttributeError:
+                    pass
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
