@@ -43,5 +43,5 @@ class SesameAuthentication(BaseAuthentication):
     def authenticate_credentials(self, key):
         user = get_user_from_one_time_auth_token(key)
         if user is None:
-            raise exceptions.AuthenticationFailed(_('Invalid token.'))
+            raise exceptions.AuthenticationFailed(_('Invalid or expired token.'))
         return (user, key)
