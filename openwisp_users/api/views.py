@@ -77,10 +77,11 @@ class BaseOrganizationView(ProtectedAPIMixin):
         user = self.request.user
         if user.is_superuser:
             return Organization.objects.order_by('-created')
-        if not user.is_anonymous:
-            return Organization.objects.filter(
-                pk__in=user.organizations_managed
-            ).order_by('-created')
+        if user.is_anonymous:
+            return
+        return Organization.objects.filter(
+            pk__in=user.organizations_managed
+        ).order_by('-created')
 
 
 class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):
@@ -97,7 +98,7 @@ class BaseUserView(ProtectedAPIMixin):
         if user.is_superuser:
             return User.objects.order_by('-date_joined')
 
-        if not (user.is_superuser, user.is_anonymous):
+        if not user.is_superuser and not user.is_anonymous:
             org_users = OrganizationUser.objects.filter(user=user).select_related(
                 'organization'
             )
