@@ -83,6 +83,7 @@ class AuthenticationTests(APITestCase):
             )
             response = my_view(request)
             self.assertEqual(response.status_code, 403)
+            self.assertEqual(str(response.data['detail']), 'Invalid or expired token.')
 
         with self.subTest('Test ideal flow'):
             request = self.factory.get(
