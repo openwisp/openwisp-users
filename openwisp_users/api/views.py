@@ -79,9 +79,9 @@ class BaseOrganizationView(ProtectedAPIMixin):
             return Organization.objects.order_by('-created')
         if user.is_anonymous:
             return
-        return Organization.objects.filter(
-            pk__in=user.organizations_managed
-        ).order_by('-created')
+        return Organization.objects.filter(pk__in=user.organizations_managed).order_by(
+            '-created'
+        )
 
 
 class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):

@@ -36,11 +36,7 @@ class FilterByOrganization(OrgLookup):
         if self.request.user.is_anonymous:
             return
         return qs.filter(
-            **{
-                self.organization_lookup: getattr(
-                    self.request.user, self._user_attr
-                )
-            }
+            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
         )
 
 
