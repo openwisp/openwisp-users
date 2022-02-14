@@ -294,7 +294,7 @@ Obtain Authentication Token
 
 .. code-block:: text
 
-    /api/v1/user/token/
+    /api/v1/users/token/
 
 This endpoint only accepts the ``POST`` method and is used to retrieve the
 Bearer token that is required to make API requests to other endpoints.
@@ -303,7 +303,7 @@ Example usage of the endpoint:
 
 .. code-block:: shell
 
-    http POST localhost:8000/api/v1/user/token/ username=openwisp password=1234
+    http POST localhost:8000/api/v1/users/token/ username=openwisp password=1234
 
     HTTP/1.1 200 OK
     Allow: POST, OPTIONS
@@ -332,7 +332,7 @@ the token in the ``Authorization`` header:
 .. code-block:: shell
 
     # get token
-    TOKEN=$(http POST :8000/api/v1/user/token/ username=openwisp password=1234 | jq -r .token)
+    TOKEN=$(http POST :8000/api/v1/users/token/ username=openwisp password=1234 | jq -r .token)
 
     # send bearer token
     http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
