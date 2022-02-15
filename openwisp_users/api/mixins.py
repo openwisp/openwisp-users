@@ -33,6 +33,8 @@ class FilterByOrganization(OrgLookup):
         return self.get_organization_queryset(qs)
 
     def get_organization_queryset(self, qs):
+        if self.request.user.is_anonymous:
+            return
         return qs.filter(
             **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
         )
@@ -133,7 +135,7 @@ class FilterSerializerByOrganization(OrgLookup):
     def filter_fields(self):
         user = self.context['request'].user
         # superuser can see everything
-        if user.is_superuser:
+        if user.is_superuser or user.is_anonymous:
             return
         # non superusers can see only items of organizations they're related to
         organization_filter = getattr(user, self._user_attr)
