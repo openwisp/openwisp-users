@@ -43,7 +43,13 @@ class TestMultitenantAdminMixin(object):
     def _logout(self):
         self.client.logout()
 
-    def _create_operator(self, organizations=[], **kwargs):
+    def _add_permissions(self, user, permission_filters):
+        filters = Q()
+        for filter in permission_filters:
+            filters = filters | Q(**filter)
+        user.user_permissions.add(*Permission.objects.filter(filters))
+
+    def _create_operator(self, organizations=[], permission_filters=[], **kwargs):
         opts = dict(
             username='operator',
             password='tester',
@@ -52,12 +58,9 @@ class TestMultitenantAdminMixin(object):
         )
         opts.update(kwargs)
         operator = User.objects.create_user(**opts)
-        groups = Group.objects.filter(name__in=['Administrator', 'Operator'])
+        groups = Group.objects.filter(name='Operator')
         operator.groups.set(groups)
-        permissions = Permission.objects.filter(
-            Q(codename__endswith='book') | Q(codename__endswith='shelf')
-        )
-        operator.user_permissions.add(*permissions)
+        self._add_permissions(operator, permission_filters)
         for organization in organizations:
             OrganizationUser.objects.create(
                 user=operator, organization=organization, is_admin=True

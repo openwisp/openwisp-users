@@ -13,7 +13,13 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
         inactive = self._create_org(name='inactive-org', is_active=False)
-        operator = self._create_operator(organizations=[org1, inactive])
+        operator = self._create_operator(
+            organizations=[org1, inactive],
+            permission_filters=[
+                {'codename__endswith': 'book'},
+                {'codename__endswith': 'shelf'},
+            ],
+        )
         s1 = self._create_shelf(name='shell1', organization=org1)
         s2 = self._create_shelf(name='shell2', organization=org2)
         s3 = self._create_shelf(name='shell3', organization=inactive)
