@@ -8,16 +8,21 @@ from .mixins import TestMultitenancyMixin
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
     book_model = Book
     shelf_model = Shelf
-    operator_permission_filter = [
-        {'codename__endswith': 'book'},
-        {'codename__endswith': 'shelf'},
-    ]
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
         inactive = self._create_org(name='inactive-org', is_active=False)
-        operator = self._create_operator(organizations=[org1, inactive])
+        operator = self._create_operator(
+            organizations=[org1, inactive],
+        )
+        self._add_permissions(
+            user=operator,
+            permission_filters=[
+                {'codename__endswith': 'book'},
+                {'codename__endswith': 'shelf'},
+            ],
+        )
         s1 = self._create_shelf(name='shell1', organization=org1)
         s2 = self._create_shelf(name='shell2', organization=org2)
         s3 = self._create_shelf(name='shell3', organization=inactive)

@@ -1663,6 +1663,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             organization_user=organization_user2, organization=org2
         )
         operator = self._create_operator()
+        self._add_permissions(operator, [{'codename__endswith': 'user'}])
         organization_user3 = self._create_org_user(
             organization=org3, user=operator, is_admin=True
         )
@@ -1693,6 +1694,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
 
     def _make_org_manager(self, user, org):
         ou = OrganizationUser.objects.get(organization=org, user=user)
+        self._add_permissions(user, [{'codename__contains': 'organization'}])
         ou.is_admin = True
         ou.save()
 

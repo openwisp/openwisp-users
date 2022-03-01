@@ -9,6 +9,7 @@ from swapper import load_model
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+Group = load_model('openwisp_users', 'Group')
 User = get_user_model()
 
 
@@ -42,13 +43,13 @@ class TestMultitenantAdminMixin(object):
     def _logout(self):
         self.client.logout()
 
-    operator_permission_filters = []
-
-    def get_operator_permissions(self):
+    def _add_permissions(self, user, permission_filters=[]):
+        if not permission_filters:
+            return
         filters = Q()
-        for filter in self.operator_permission_filters:
+        for filter in permission_filters:
             filters = filters | Q(**filter)
-        return Permission.objects.filter(filters)
+        user.user_permissions.add(*Permission.objects.filter(filters))
 
     def _create_operator(self, organizations=[], **kwargs):
         opts = dict(
@@ -59,7 +60,9 @@ class TestMultitenantAdminMixin(object):
         )
         opts.update(kwargs)
         operator = User.objects.create_user(**opts)
-        operator.user_permissions.add(*self.get_operator_permissions())
+        groups = Group.objects.filter(name='Operator')
+        operator.groups.set(groups)
+        operator.user_permissions.add(*groups.first().permissions.all())
         for organization in organizations:
             OrganizationUser.objects.create(
                 user=operator, organization=organization, is_admin=True
