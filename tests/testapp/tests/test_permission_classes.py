@@ -143,6 +143,15 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         auth, t1 = self._get_auth_template(user, org1)
         with self.subTest('Get Template List'):
             response = self.client.get(reverse('test_template_list'), **auth)
+            self.assertEqual(response.status_code, 200)
+        with self.subTest('Get Template Detail'):
+            response = self.client.get(
+                reverse('test_template_detail', args=[t1.pk]), **auth
+            )
+            self.assertEqual(response.status_code, 200)
+        operator_group.first().permissions.set([])
+        with self.subTest('Get Template List'):
+            response = self.client.get(reverse('test_template_list'), **auth)
             self.assertEqual(response.status_code, 403)
         with self.subTest('Get Template Detail'):
             response = self.client.get(
@@ -173,8 +182,8 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
     def test_view_permission_with_operator_having_view_perm(self):
         user = self._get_user()
         operator_group = Group.objects.get(name='Operator')
-        view_perm = Permission.objects.get(codename='view_template')
-        operator_group.permissions.add(view_perm)
+        view_perm = Permission.objects.filter(codename='view_template')
+        operator_group.permissions.set(view_perm)
         user.groups.add(operator_group)
         org1 = self._get_org()
         auth, t1 = self._get_auth_template(user, org1)

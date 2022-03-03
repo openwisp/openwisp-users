@@ -194,14 +194,6 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self._create_org_user(
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
-        self._add_permissions(
-            operator,
-            [
-                {
-                    'codename__contains': 'template',
-                }
-            ],
-        )
         token = self._obtain_auth_token(operator)
         url = reverse('test_template_list')
         response = self.client.get(
@@ -247,14 +239,6 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self._create_org_user(
             user=operator, is_admin=True, organization=self._get_org('org_a')
         )
-        self._add_permissions(
-            operator,
-            [
-                {
-                    'codename__contains': 'book',
-                }
-            ],
-        )
         token = self._obtain_auth_token(operator)
         url = reverse('test_book_nested_shelf')
         with self.assertNumQueries(6):
@@ -266,14 +250,6 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         operator = self._get_operator()
         self._create_org_user(
             user=operator, is_admin=True, organization=self._get_org('org_a')
-        )
-        self._add_permissions(
-            operator,
-            [
-                {
-                    'codename__contains': 'book',
-                }
-            ],
         )
         token = self._obtain_auth_token(operator)
         url = reverse('test_book_nested_shelf')

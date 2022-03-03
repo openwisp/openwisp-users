@@ -45,6 +45,16 @@ def create_default_groups(apps, schema_editor):
     operator = group.objects.filter(name='Operator')
     if operator.count() == 0:
         operator = group.objects.create(name='Operator')
+        permissions = [
+            Permission.objects.get(
+                content_type__app_label=model_app_label, codename='view_user'
+            ).pk,
+            Permission.objects.get(
+                content_type__app_label=model_app_label,
+                codename='view_organizationuser',
+            ).pk,
+        ]
+        operator.permissions.set(permissions)
 
     admin = group.objects.filter(name='Administrator')
     if admin.count() == 0:

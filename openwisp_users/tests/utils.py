@@ -62,7 +62,6 @@ class TestMultitenantAdminMixin(object):
         operator = User.objects.create_user(**opts)
         groups = Group.objects.filter(name='Operator')
         operator.groups.set(groups)
-        operator.user_permissions.add(*groups.first().permissions.all())
         for organization in organizations:
             OrganizationUser.objects.create(
                 user=operator, organization=organization, is_admin=True

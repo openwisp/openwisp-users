@@ -1663,7 +1663,6 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             organization_user=organization_user2, organization=org2
         )
         operator = self._create_operator()
-        self._add_permissions(operator, [{'codename__endswith': 'user'}])
         organization_user3 = self._create_org_user(
             organization=org3, user=operator, is_admin=True
         )

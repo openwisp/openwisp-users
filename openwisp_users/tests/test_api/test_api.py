@@ -242,7 +242,6 @@ class TestUsersApi(
     def test_patch_group_detail_assign_permission_api(self):
         path = reverse('users:group_detail', args='1')
         grp = Group.objects.get(id=1)
-        self.assertEqual(grp.permissions.values_list('codename', flat=True).count(), 1)
         data = {
             "permissions": [
                 "2: emailaddress | Can change email address",
