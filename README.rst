@@ -808,6 +808,10 @@ Usage example:
         permission_classes = (DjangoModelPermissions,)
         queryset = Template.objects.all()
 
+**Note:** ``DjangoModelPermissions`` allows *read-only* access to
+organization owners and managers for *shared objects*.
+Normal organization users *do not* have access to shared objects.
+
 Django REST Framework Mixins
 ----------------------------
 

@@ -8,21 +8,14 @@ from swapper import load_model
 Organization = load_model('openwisp_users', 'Organization')
 
 
-class BaseOrganizationPermission(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        organization = self.get_object_organization(view, obj)
-        return self.validate_membership(request.user, organization)
-
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated
-
+class ObjectOrganizationMixin(object):
     def get_object_organization(self, view, obj):
         organization_field = getattr(view, 'organization_field', 'organization')
         fields = organization_field.split('__')
         accessed_object = obj
         for field in fields:
-            accessed_object = getattr(accessed_object, field, None)
-            if not accessed_object:
+            accessed_object = getattr(accessed_object, field, False)
+            if accessed_object is False:
                 raise AttributeError(
                     _(
                         'Organization not found, `organization_field` '
@@ -30,6 +23,25 @@ class BaseOrganizationPermission(BasePermission):
                     )
                 )
         return accessed_object
+
+
+class BaseOrganizationPermission(ObjectOrganizationMixin, BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # Superuser bypasses organization permission checks
+        if request.user.is_superuser:
+            return True
+        organization = self.get_object_organization(view, obj)
+        if organization is None:
+            # User should be allowed access to shared objects only if
+            # they are manager or owner of atleast one organization.
+            return (
+                len(request.user.organizations_managed) >= 1
+                or len(request.user.organizations_owned) >= 1
+            )
+        return self.validate_membership(request.user, organization)
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated
 
     def validate_membership(self, user, org):
         raise NotImplementedError(
@@ -57,6 +69,12 @@ class IsOrganizationManager(BaseOrganizationPermission):
         'requested resource belongs.'
     )
 
+    def has_permission(self, request, view):
+        # User must be manager of atleast one organization.
+        return super().has_permission(request, view) and (
+            request.user.is_superuser or len(request.user.organizations_managed) > 0
+        )
+
     def validate_membership(self, user, org):
         return org and (user.is_superuser or user.is_manager(org))
 
@@ -67,11 +85,17 @@ class IsOrganizationOwner(BaseOrganizationPermission):
         'requested resource belongs.'
     )
 
+    def has_permission(self, request, view):
+        # User must be owner of atleast one organization.
+        return super().has_permission(request, view) and (
+            request.user.is_superuser or len(request.user.organizations_owned) > 0
+        )
+
     def validate_membership(self, user, org):
         return org and (user.is_superuser or user.is_owner(org))
 
 
-class DjangoModelPermissions(BaseDjangoModelPermissions):
+class DjangoModelPermissions(ObjectOrganizationMixin, BaseDjangoModelPermissions):
     perms_map = {
         'GET': ['%(app_label)s.view_%(model_name)s'],
         'OPTIONS': [],
@@ -81,6 +105,7 @@ class DjangoModelPermissions(BaseDjangoModelPermissions):
         'PATCH': ['%(app_label)s.change_%(model_name)s'],
         'DELETE': ['%(app_label)s.delete_%(model_name)s'],
     }
+    READ_ONLY_METHOD = ['GET', 'HEAD']
 
     def has_permission(self, request, view):
         # Workaround to ensure DjangoModelPermissions are not applied
@@ -98,5 +123,27 @@ class DjangoModelPermissions(BaseDjangoModelPermissions):
 
         if request.method == 'GET':
             return user.has_perms(perms) or user.has_perms(change_perm)
-
         return user.has_perms(perms)
+
+    def has_object_permission(self, request, view, obj):
+        """
+        Controls access to objects that are shared between organizations.
+        Allow access to only READ_ONLY_METHOD for non-superusers.
+        """
+        if request.user and request.user.is_superuser:
+            # Superusers will have access to all methods.
+            return True
+        try:
+            organization = self.get_object_organization(view, obj)
+        except AttributeError:
+            # The object does not have an organization field. Therefore,
+            # these tests are not applicable to it.
+            return True
+        if organization is None:
+            if request.method not in self.READ_ONLY_METHOD:
+                return False
+            else:
+                queryset = self._queryset(view)
+                perms = self.get_required_permissions(request.method, queryset.model)
+                return request.user.has_perms(perms)
+        return True

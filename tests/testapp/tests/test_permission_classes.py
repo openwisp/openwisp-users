@@ -101,7 +101,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.assertEqual(response.status_code, 200)
 
     def test_base_org_perm_fails(self):
-        admin = self._get_admin()
+        admin = self._get_operator()
         token = self._obtain_auth_token(username=admin)
         self.client.force_login(admin)
         auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -230,3 +230,130 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
                 reverse('test_template_detail', args=[t1.pk]), **auth
             )
             self.assertEqual(response.status_code, 200)
+
+    def _test_non_superuser_access_shared_object(
+        self, token, expected_templates_count=1, expected_status_codes={}
+    ):
+        auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
+        template = self._create_template(organization=None)
+
+        with self.subTest('Test listing templates'):
+            response = self.client.get(reverse('test_template_list'), **auth)
+            data = response.data.copy()
+            # Only check "templates" in response.
+            if isinstance(data, dict):
+                data.pop('detail', None)
+            self.assertEqual(response.status_code, expected_status_codes['list'])
+            self.assertEqual(len(data), expected_templates_count)
+
+        with self.subTest('Test creating template'):
+            response = self.client.post(
+                reverse('test_template_list'),
+                data={'name': 'Test Template', 'organization': None},
+                content_type='application/json',
+                **auth,
+            )
+            self.assertEqual(response.status_code, expected_status_codes['create'])
+            if expected_status_codes['create'] == 400:
+                self.assertEqual(
+                    str(response.data['organization'][0]), 'This field may not be null.'
+                )
+
+        with self.subTest('Test retreiving template'):
+            response = self.client.get(
+                reverse('test_template_detail', args=[template.id]), **auth
+            )
+            self.assertEqual(response.status_code, expected_status_codes['retrieve'])
+
+        with self.subTest('Test updating template'):
+            response = self.client.put(
+                reverse('test_template_detail', args=[template.id]),
+                data={'name': 'Name changed'},
+                content_type='application/json',
+                **auth,
+            )
+            self.assertEqual(response.status_code, expected_status_codes['update'])
+
+        with self.subTest('Test deleting template'):
+            response = self.client.delete(
+                reverse('test_template_detail', args=[template.id]), **auth
+            )
+            self.assertEqual(response.status_code, expected_status_codes['delete'])
+
+        with self.subTest('Test HEAD and OPTION methods'):
+            response = self.client.head(reverse('test_template_list'), **auth)
+            self.assertEqual(response.status_code, expected_status_codes['head'])
+
+            response = self.client.options(reverse('test_template_list'), **auth)
+            self.assertEqual(response.status_code, expected_status_codes['option'])
+
+    def test_superuser_access_shared_object(self):
+        admin = self._get_admin()
+        token = self._obtain_auth_token(username=admin)
+        self._test_non_superuser_access_shared_object(
+            token,
+            expected_status_codes={
+                'create': 201,
+                'list': 200,
+                'retrieve': 200,
+                'update': 200,
+                'delete': 204,
+                'head': 200,
+                'option': 200,
+            },
+        )
+
+    def test_org_manager_access_shared_object(self):
+        operator = self._get_operator()
+        token = self._obtain_auth_token(username=operator)
+        # First user is automatically owner, so created dummy
+        # user to keep operator as manager only.
+        self._create_org_user(user=self._get_user(), is_admin=True)
+        self._create_org_user(user=operator, is_admin=True)
+        self._test_non_superuser_access_shared_object(
+            token,
+            expected_status_codes={
+                'create': 400,
+                'list': 200,
+                'retrieve': 200,
+                'update': 403,
+                'delete': 403,
+                'head': 200,
+                'option': 200,
+            },
+        )
+
+    def test_org_owner_access_shared_object(self):
+        operator = self._get_operator()
+        token = self._obtain_auth_token(username=operator)
+        self._create_org_user(user=operator, is_admin=True)
+        self._test_non_superuser_access_shared_object(
+            token,
+            expected_status_codes={
+                'create': 400,
+                'list': 200,
+                'retrieve': 200,
+                'update': 403,
+                'delete': 403,
+                'head': 200,
+                'option': 200,
+            },
+        )
+
+    def test_org_user_access_shared_object(self):
+        operator = self._get_operator()
+        token = self._obtain_auth_token(username=operator)
+        self._create_org_user(user=operator, is_admin=False)
+        self._test_non_superuser_access_shared_object(
+            token,
+            expected_templates_count=0,
+            expected_status_codes={
+                'create': 400,
+                'list': 200,
+                'retrieve': 404,
+                'update': 404,
+                'delete': 404,
+                'head': 200,
+                'option': 200,
+            },
+        )
