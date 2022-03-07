@@ -68,4 +68,4 @@ msgstr "O confermi"
 
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
-msgstr "Logout effettuato con successo."
+msgstr "Logout fat cun sucès."

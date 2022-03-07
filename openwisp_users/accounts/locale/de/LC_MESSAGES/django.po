@@ -39,4 +39,4 @@ msgstr "Die Seite kann geschlossen werden."
 
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
-msgstr "Abmeldung erfolgreich."
+msgstr "Sie wurden erfolgreich abgemeldet."
