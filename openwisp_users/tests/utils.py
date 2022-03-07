@@ -2,7 +2,6 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.db.models import Q
 from django.urls import reverse
 from swapper import load_model
 
@@ -43,14 +42,6 @@ class TestMultitenantAdminMixin(object):
     def _logout(self):
         self.client.logout()
 
-    def _add_permissions(self, user, permission_filters=[]):
-        if not permission_filters:
-            return
-        filters = Q()
-        for filter in permission_filters:
-            filters = filters | Q(**filter)
-        user.user_permissions.add(*Permission.objects.filter(filters))
-
     def _create_operator(self, organizations=[], **kwargs):
         opts = dict(
             username='operator',
@@ -69,7 +60,27 @@ class TestMultitenantAdminMixin(object):
         operator.organizations_dict  # force caching
         return operator
 
-    def _test_multitenant_admin(self, url, visible, hidden, select_widget=False):
+    def _create_administrator(self, organizations=[], **kwargs):
+        opts = dict(
+            username='administrator',
+            password='tester',
+            email='administrator@test.com',
+            is_staff=True,
+        )
+        opts.update(kwargs)
+        administrator = User.objects.create_user(**opts)
+        groups = Group.objects.filter(name='Administrator')
+        administrator.groups.set(groups)
+        for organization in organizations:
+            OrganizationUser.objects.create(
+                user=administrator, organization=organization, is_admin=True
+            )
+        administrator.organizations_dict  # force caching
+        return administrator
+
+    def _test_multitenant_admin(
+        self, url, visible, hidden, select_widget=False, administrator=False
+    ):
         """
         reusable test function that ensures different users
         can see the right objects.
@@ -78,6 +89,8 @@ class TestMultitenantAdminMixin(object):
         a superuser can see everything.
         """
         self._login(username='operator', password='tester')
+        if administrator:
+            self._login(username='administrator', password='tester')
         response = self.client.get(url)
 
         # utility format function

@@ -1,7 +1,7 @@
 # Manually Created
 
 from django.db import migrations
-from testapp.migrations import update_operator_permissions
+from testapp.migrations import update_administrator_permissions
 
 
 class Migration(migrations.Migration):
@@ -11,6 +11,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            update_operator_permissions, reverse_code=migrations.RunPython.noop
+            update_administrator_permissions, reverse_code=migrations.RunPython.noop
         ),
     ]

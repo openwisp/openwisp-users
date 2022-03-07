@@ -1666,8 +1666,15 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         organization_user3 = self._create_org_user(
             organization=org3, user=operator, is_admin=True
         )
+        administrator = self._create_administrator()
+        organization_user4 = self._create_org_user(
+            organization=org3, user=administrator, is_admin=True
+        )
         organization_user31 = self._create_org_user(organization=org3, user=user3)
         organization_user1o = self._create_org_user(organization=org1, user=operator)
+        organization_user1a = self._create_org_user(
+            organization=org1, user=administrator
+        )
         data = dict(
             org1=org1,
             org2=org2,
@@ -1683,23 +1690,25 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             organization_user12=organization_user12,
             organization_user22=organization_user22,
             organization_user3=organization_user3,
+            organization_user4=organization_user4,
             organization_user1o=organization_user1o,
+            organization_user1a=organization_user1a,
             organization_user31=organization_user31,
             organization_owner1=organization_owner1,
             organization_owner2=organization_owner2,
             operator=operator,
+            administrator=administrator,
         )
         return data
 
     def _make_org_manager(self, user, org):
         ou = OrganizationUser.objects.get(organization=org, user=user)
-        self._add_permissions(user, [{'codename__contains': 'organization'}])
         ou.is_admin = True
         ou.save()
 
     def test_multitenancy_organization_user_queryset(self):
         data = self._create_multitenancy_test_env()
-        self._make_org_manager(data['operator'], data['org1'])
+        self._make_org_manager(data['administrator'], data['org1'])
         self._test_multitenant_admin(
             url=reverse(f'admin:{self.app_label}_organizationuser_changelist'),
             hidden=[
@@ -1712,15 +1721,17 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
                 data['organization_user1o'].user.username,
                 data['organization_user3'].user.username,
             ],
+            administrator=True,
         )
 
     def test_multitenancy_organization_owner_queryset(self):
         data = self._create_multitenancy_test_env()
-        self._make_org_manager(data['operator'], data['org1'])
+        self._make_org_manager(data['administrator'], data['org1'])
         self._test_multitenant_admin(
             url=reverse(f'admin:{self.app_label}_organizationowner_changelist'),
             hidden=[data['organization_owner2'].organization_user.user.username],
             visible=[data['organization_owner1'].organization_user.user.username],
+            administrator=True,
         )
 
     def test_useradmin_specific_multitenancy_costraints(self):
@@ -1729,6 +1740,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             url=reverse(f'admin:{self.app_label}_user_changelist'),
             visible=[data['user3'], data['operator']],
             hidden=[data['user2'], data['user22'], data['user1'], data['user12']],
+            administrator=True,
         )
 
     def test_multitenant_admin_manager_only(self):
@@ -1766,7 +1778,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
 
     def test_organization_user_filter(self):
         data = self._create_multitenancy_test_env()
-        self._make_org_manager(data['operator'], data['org1'])
+        self._make_org_manager(data['administrator'], data['org1'])
         url = reverse(f'admin:{self.app_label}_user_changelist')
 
         with self.subTest('test superadmin'):
@@ -1777,7 +1789,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
                 self.assertContains(response, f'href="?organization={org.pk}">')
 
         with self.subTest('test non superadmin'):
-            user = User.objects.get(username='operator')
+            user = User.objects.get(username='administrator')
             self.client.force_login(user)
             response = self.client.get(url)
             for pk in user.organizations_managed:

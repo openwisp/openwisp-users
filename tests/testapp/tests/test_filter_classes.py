@@ -190,11 +190,11 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(r.status_code, 401)
 
     def test_presence_of_null_org_field(self):
-        operator = self._get_operator()
+        administrator = self._create_administrator()
         self._create_org_user(
-            user=operator, is_admin=True, organization=self._get_org('org_a')
+            user=administrator, is_admin=True, organization=self._get_org('org_a')
         )
-        token = self._obtain_auth_token(operator)
+        token = self._obtain_auth_token(administrator)
         url = reverse('test_template_list')
         response = self.client.get(
             url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
@@ -235,11 +235,11 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(response.status_code, 404)
 
     def test_get_book_nested_shelf(self):
-        operator = self._get_operator()
+        administrator = self._create_administrator()
         self._create_org_user(
-            user=operator, is_admin=True, organization=self._get_org('org_a')
+            user=administrator, is_admin=True, organization=self._get_org('org_a')
         )
-        token = self._obtain_auth_token(operator)
+        token = self._obtain_auth_token(administrator)
         url = reverse('test_book_nested_shelf')
         with self.assertNumQueries(6):
             response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -247,11 +247,11 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
 
     def test_post_book_nested_shelf(self):
         org1 = self._get_org('org_a')
-        operator = self._get_operator()
+        administrator = self._create_administrator()
         self._create_org_user(
-            user=operator, is_admin=True, organization=self._get_org('org_a')
+            user=administrator, is_admin=True, organization=self._get_org('org_a')
         )
-        token = self._obtain_auth_token(operator)
+        token = self._obtain_auth_token(administrator)
         url = reverse('test_book_nested_shelf')
         data = {
             'shelf': {'name': 'test-shelf', 'organization': org1.pk},
