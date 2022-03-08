@@ -154,6 +154,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         user = self._get_user()
         administrator_group = Group.objects.get(name='Administrator')
         change_perm = Permission.objects.get(codename='change_template')
+        administrator_group.permissions.set([])
         administrator_group.permissions.add(change_perm)
         user.groups.add(administrator_group)
         org1 = self._get_org()
@@ -173,8 +174,8 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
     def test_view_permission_with_operator_having_view_perm(self):
         user = self._get_user()
         operator_group = Group.objects.get(name='Operator')
-        view_perm = Permission.objects.get(codename='view_template')
-        operator_group.permissions.add(view_perm)
+        view_perm = Permission.objects.filter(codename='view_template')
+        operator_group.permissions.set(view_perm)
         user.groups.add(operator_group)
         org1 = self._get_org()
         auth, t1 = self._get_auth_template(user, org1)

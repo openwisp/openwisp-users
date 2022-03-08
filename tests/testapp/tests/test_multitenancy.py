@@ -8,16 +8,17 @@ from .mixins import TestMultitenancyMixin
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
     book_model = Book
     shelf_model = Shelf
-    operator_permission_filter = [
-        {'codename__endswith': 'book'},
-        {'codename__endswith': 'shelf'},
-    ]
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
         inactive = self._create_org(name='inactive-org', is_active=False)
-        operator = self._create_operator(organizations=[org1, inactive])
+        operator = self._create_operator(
+            organizations=[org1, inactive],
+        )
+        administrator = self._create_administrator(
+            organizations=[org1, inactive],
+        )
         s1 = self._create_shelf(name='shell1', organization=org1)
         s2 = self._create_shelf(name='shell2', organization=org2)
         s3 = self._create_shelf(name='shell3', organization=inactive)
@@ -35,6 +36,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             org2=org2,
             inactive=inactive,
             operator=operator,
+            administrator=administrator,
         )
         return data
 
@@ -44,6 +46,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             url=reverse('admin:testapp_shelf_changelist'),
             visible=[data['s1'].name, data['org1'].name],
             hidden=[data['s2'].name, data['org2'].name, data['s3_inactive'].name],
+            administrator=True,
         )
 
     def test_shelf_organization_fk_queryset(self):
@@ -53,6 +56,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             visible=[data['org1'].name],
             hidden=[data['org2'].name, data['inactive']],
             select_widget=True,
+            administrator=True,
         )
 
     def test_book_queryset(self):
@@ -61,6 +65,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             url=reverse('admin:testapp_book_changelist'),
             visible=[data['b1'].name, data['org1'].name],
             hidden=[data['b2'].name, data['org2'].name, data['b3_inactive'].name],
+            administrator=True,
         )
 
     def test_book_organization_fk_queryset(self):
@@ -70,6 +75,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             visible=[data['org1'].name],
             hidden=[data['org2'].name, data['inactive']],
             select_widget=True,
+            administrator=True,
         )
 
     def test_book_shelf_filter(self):
@@ -79,6 +85,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             url=reverse('admin:testapp_book_changelist'),
             visible=[data['s1'].name, s_special.name],
             hidden=[data['s2'].name, data['s3_inactive'].name],
+            administrator=True,
         )
 
     def test_book_shelf_fk_queryset(self):
@@ -88,4 +95,5 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             visible=[data['s1'].name],
             hidden=[data['s2'].name, data['s3_inactive'].name],
             select_widget=True,
+            administrator=True,
         )

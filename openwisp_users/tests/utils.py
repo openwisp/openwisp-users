@@ -2,13 +2,13 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.db.models import Q
 from django.urls import reverse
 from swapper import load_model
 
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+Group = load_model('openwisp_users', 'Group')
 User = get_user_model()
 
 
@@ -42,14 +42,6 @@ class TestMultitenantAdminMixin(object):
     def _logout(self):
         self.client.logout()
 
-    operator_permission_filters = []
-
-    def get_operator_permissions(self):
-        filters = Q()
-        for filter in self.operator_permission_filters:
-            filters = filters | Q(**filter)
-        return Permission.objects.filter(filters)
-
     def _create_operator(self, organizations=[], **kwargs):
         opts = dict(
             username='operator',
@@ -59,7 +51,8 @@ class TestMultitenantAdminMixin(object):
         )
         opts.update(kwargs)
         operator = User.objects.create_user(**opts)
-        operator.user_permissions.add(*self.get_operator_permissions())
+        groups = Group.objects.filter(name='Operator')
+        operator.groups.set(groups)
         for organization in organizations:
             OrganizationUser.objects.create(
                 user=operator, organization=organization, is_admin=True
@@ -67,7 +60,27 @@ class TestMultitenantAdminMixin(object):
         operator.organizations_dict  # force caching
         return operator
 
-    def _test_multitenant_admin(self, url, visible, hidden, select_widget=False):
+    def _create_administrator(self, organizations=[], **kwargs):
+        opts = dict(
+            username='administrator',
+            password='tester',
+            email='administrator@test.com',
+            is_staff=True,
+        )
+        opts.update(kwargs)
+        administrator = User.objects.create_user(**opts)
+        groups = Group.objects.filter(name='Administrator')
+        administrator.groups.set(groups)
+        for organization in organizations:
+            OrganizationUser.objects.create(
+                user=administrator, organization=organization, is_admin=True
+            )
+        administrator.organizations_dict  # force caching
+        return administrator
+
+    def _test_multitenant_admin(
+        self, url, visible, hidden, select_widget=False, administrator=False
+    ):
         """
         reusable test function that ensures different users
         can see the right objects.
@@ -75,7 +88,10 @@ class TestMultitenantAdminMixin(object):
         to see the elements contained in ``hidden``, while
         a superuser can see everything.
         """
-        self._login(username='operator', password='tester')
+        if administrator:
+            self._login(username='administrator', password='tester')
+        else:
+            self._login(username='operator', password='tester')
         response = self.client.get(url)
 
         # utility format function
