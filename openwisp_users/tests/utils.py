@@ -88,9 +88,10 @@ class TestMultitenantAdminMixin(object):
         to see the elements contained in ``hidden``, while
         a superuser can see everything.
         """
-        self._login(username='operator', password='tester')
         if administrator:
             self._login(username='administrator', password='tester')
+        else:
+            self._login(username='operator', password='tester')
         response = self.client.get(url)
 
         # utility format function
