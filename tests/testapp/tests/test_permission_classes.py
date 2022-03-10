@@ -231,7 +231,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
-    def _test_non_superuser_access_shared_object(
+    def _test_access_shared_object(
         self, token, expected_templates_count=1, expected_status_codes={}
     ):
         auth = dict(HTTP_AUTHORIZATION=f'Bearer {token}')
@@ -290,7 +290,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
     def test_superuser_access_shared_object(self):
         superuser = self._get_admin()
         token = self._obtain_auth_token(username=superuser)
-        self._test_non_superuser_access_shared_object(
+        self._test_access_shared_object(
             token,
             expected_status_codes={
                 'create': 201,
@@ -304,13 +304,13 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         )
 
     def test_org_manager_access_shared_object(self):
-        org_manager = self._get_operator()
+        org_manager = self._create_administrator()
         token = self._obtain_auth_token(username=org_manager)
         # First user is automatically owner, so created dummy
         # user to keep operator as manager only.
         self._create_org_user(user=self._get_user(), is_admin=True)
         self._create_org_user(user=org_manager, is_admin=True)
-        self._test_non_superuser_access_shared_object(
+        self._test_access_shared_object(
             token,
             expected_status_codes={
                 'create': 400,
@@ -324,12 +324,11 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         )
 
     def test_org_owner_access_shared_object(self):
-        org_owner = self._get_operator()
-        token = self._obtain_auth_token(username=org_owner)
         # The first admin of an organization automatically
         # becomes organization owner.
-        self._create_org_user(user=org_owner, is_admin=True)
-        self._test_non_superuser_access_shared_object(
+        org_owner = self._create_administrator(organizations=[self._get_org()])
+        token = self._obtain_auth_token(username=org_owner)
+        self._test_access_shared_object(
             token,
             expected_status_codes={
                 'create': 400,
@@ -346,10 +345,10 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         # The test uses a user with operator permissions,
         # because Django's model permission will deny permissions
         # to the view and this test won't test "shared object" permissions.
-        user = self._get_operator()
+        user = self._create_administrator()
         token = self._obtain_auth_token(username=user)
         self._create_org_user(user=user, is_admin=False)
-        self._test_non_superuser_access_shared_object(
+        self._test_access_shared_object(
             token,
             expected_templates_count=0,
             expected_status_codes={
