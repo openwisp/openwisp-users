@@ -9,9 +9,24 @@ Organization = swapper.load_model('openwisp_users', 'Organization')
 
 class OrgLookup:
     @property
+    def org_field(self):
+        return getattr(self, 'organization_field', 'organization')
+
+    @property
     def organization_lookup(self):
-        org_field = getattr(self, 'organization_field', 'organization')
-        return f'{org_field}__in'
+        return f'{self.org_field}__in'
+
+
+class SharedObjectsLookup:
+    @property
+    def queryset_organization_conditions(self):
+        conditions = super().queryset_organization_conditions
+        organizations = getattr(self.request.user, self._user_attr)
+        # If user has access to any organization, then include shared
+        # objects in the queryset.
+        if len(organizations):
+            conditions |= Q(**{f'{self.org_field}__isnull': True})
+        return conditions
 
 
 class FilterByOrganization(OrgLookup):
@@ -26,6 +41,12 @@ class FilterByOrganization(OrgLookup):
     def _user_attr(self):
         raise NotImplementedError()
 
+    @property
+    def queryset_organization_conditions(self):
+        return Q(
+            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
+        )
+
     def get_queryset(self):
         qs = super().get_queryset()
         if self.request.user.is_superuser:
@@ -35,9 +56,7 @@ class FilterByOrganization(OrgLookup):
     def get_organization_queryset(self, qs):
         if self.request.user.is_anonymous:
             return
-        return qs.filter(
-            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
-        )
+        return qs.filter(self.queryset_organization_conditions)
 
 
 class FilterByOrganizationMembership(FilterByOrganization):
@@ -48,7 +67,7 @@ class FilterByOrganizationMembership(FilterByOrganization):
     _user_attr = 'organizations_dict'
 
 
-class FilterByOrganizationManaged(FilterByOrganization):
+class FilterByOrganizationManaged(SharedObjectsLookup, FilterByOrganization):
     """
     Filter queryset by organizations managed by user
     """
@@ -56,7 +75,7 @@ class FilterByOrganizationManaged(FilterByOrganization):
     _user_attr = 'organizations_managed'
 
 
-class FilterByOrganizationOwned(FilterByOrganization):
+class FilterByOrganizationOwned(SharedObjectsLookup, FilterByOrganization):
     """
     Filter queryset by organizations owned by user
     """
