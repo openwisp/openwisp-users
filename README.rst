@@ -282,7 +282,7 @@ A general live API documentation (following the OpenAPI specification) at ``/api
 Browsable web interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/master/docs/images/api-ui.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/api-ui.png
 
 Additionally, opening any of the endpoints listed below
 directly in the browser will show the `browsable API interface of Django-REST-Framework
@@ -1175,7 +1175,7 @@ usermodel_add_form
 When monkey patching the ``UserAdmin`` class to add add fields in the
 "Add user" form, you can use this function. In the example, `Social Security Number is added in the add form <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/master/docs/images/add_user.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/add_user.png
    :alt: Social Security Number in Add form
 
 usermodel_change_form
@@ -1186,7 +1186,7 @@ When monkey patching the ``UserAdmin`` class to add fields in the
 you can use this function. In the example, `Social Security Number
 is added in the change form <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/master/docs/images/change_user.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/change_user.png
    :alt: Social Security Number in Change form
 
 usermodel_list_and_search
@@ -1196,7 +1196,7 @@ When monkey patching the ``UserAdmin`` class you can use this
 function to make field searchable and add it to the user
 display list view. In the example, `Social Security Number is added in the changelist view <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/master/docs/images/search_user.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/search_user.png
    :alt: Users Change List View
 
 2. Inheriting admin classes
