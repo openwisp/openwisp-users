@@ -1,36 +1,86 @@
 Changelog
 =========
 
-Version 0.6.0 [unreleased]
+Version 1.0.0 [2022-03-19]
 --------------------------
 
 Features
 ~~~~~~~~
 
-- Allowed authentication with email or phone number,
-  see `Authentication Backend <https://github.com/openwisp/openwisp-users#authentication-backend>`_
-- Added possibility to filter users by their organization in
-  the user administration section
-- Added phone number parsing to the authentication backend.
-  The value inserted by users as their identifier is parsed with the ``phonenumbers``
-  library to understand if it's a phone number, in which case the phone number
-  lookup is given priority.
-  This also allows recognizing the phone number if it contains additional
-  characters like spaces, dashes or dots.
-- If any international prefix is specified in the setting
-  ``OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES``, the authentication backend
-  tries prepending the listed prefixes when parsing numbers, so that users
-  can authenticate by typing only their national phone number.
+- Added `UsersAuthenticationBackend class
+  <https://github.com/openwisp/openwisp-users#authentication-backend>`_
+  that allows users to authenticate using either email, phone_number or username.
+- Added the possibility to filter users by their organization in
+  the user administration section.
+- Added `REST API endpoints for openwisp-users
+  <https://github.com/openwisp/openwisp-users#list-of-endpoints>`_.
+- Added various `Django REST Framework mixins and utilities
+  <https://github.com/openwisp/openwisp-users#django-rest-framework-mixins>`_
+  which allow to implement.
+- Added `DRF permission classes
+  <https://github.com/openwisp/openwisp-users#django-rest-framework-permission-classes>`_.
+- Added `passwordless authentication backend for REST APIs
+  <https://github.com/openwisp/openwisp-users#2-openwisp_usersapiauthenticationsesameauthentication>`_.
+- Added ``OrganizationInvitation`` model.
+- Added `email verification success view
+  <https://github.com/openwisp/openwisp-users/issues/277>`_.
+- Added logout success view.
 
 Changes
 ~~~~~~~
 
-- Improved or removed empty label for organization field
+- `Authentication REST API endpoints are now enabled by default
+  <https://github.com/openwisp/openwisp-users#openwisp_users_auth_api>`_.
+- Following changes have been made to the User model:
+
+  - Increased max length of `User.location field
+    <https://github.com/openwisp/openwisp-users/commit/0088b0bdfe882e54cf6dfd2fbbafa7ccd79a8beb>`_.
+  - Added `User.birth_date field
+    <https://github.com/openwisp/openwisp-users/issues/221>`_.
+  - Added `User.notes field
+    <https://github.com/openwisp/openwisp-users/commit/e8b4f0a125969453795a57333e8b2cb612e2743e>`_.
+  - Added `User.language field
+    <https://github.com/openwisp/openwisp-users/issues/261>`_.
+  - Made `User.email case insensitive
+    <https://github.com/openwisp/openwisp-users/issues/227>`_.
+    Email addresses will always get converted to lower case before
+    storage and comparison.
+
+- Updated ``OrganizationOwnerInline`` to use ``raw_id`` field for
+  ``organization_user`` field.
+- Updated ``OrganizationUserInline`` to use ``autocomplete`` field
+  for ``organization`` field.
+- **Backward incompatible:** removed `custom permission helpers
+  <https://github.com/openwisp/openwisp-users/issues/266>`_.
+- **Backward incompatible:** the REST API endpoint ``/api/v1/user/token/``
+  has been changed to ``/api/v1/users/token/`` for consistency
+  with the rest of the API.
+
+**Dependencies**:
+
+- Dropped support for Django ``2.2.x``.
+- Dropped support for Python ``3.6``.
+- Added support for Python ``3.8`` and Python ``3.9``.
+- Added support for Django ``3.2.x`` and ``4.0.x``.
+- Bumped ``django-allauth~=0.46.0``.
+- Bumped ``django-organizations~=2.0.1``
+- Bumped ``django-phonenumber-field~=6.0.0``.
+- Bumped ``openwisp-utils~=1.0.0``.
+- Bumped ``swapper~=1.3.0``
+- Added ``django-sesame~=2.4.0``.
 
 Bugfixes
 ~~~~~~~~
 
-N/A
+- Fixed `internal server error on "/accounts/login/" page
+  <https://github.com/openwisp/openwisp-users/issues/218>`_
+  when the social account app is disabled.
+- Fixed `error on restoring "Group" object with django-reversion
+  <https://github.com/openwisp/openwisp-users/issues/214>`_.
+- Fixed `error on visiting Django admin URL for non-existing users
+  <https://github.com/openwisp/openwisp-users/issues/228>`_.
+- Fixed `organization managers could escalate their privileges to superuser
+  <https://github.com/openwisp/openwisp-users/issues/284>`_.
 
 Version 0.5.1 [2020-12-13]
 --------------------------
