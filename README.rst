@@ -950,15 +950,37 @@ Usage example: `organization_field <https://github.com/openwisp/openwisp-users#o
 Admin Multitenancy mixins
 -------------------------
 
-* **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class will make it multitenant
-  (users will only be able to see items of the organizations they manage or own).
-  Set ``multitenant_shared_relations`` to the list of parameters you wish to have only organization
-  specific options.
+* **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class
+  will make it multitenant-capable (users will only be able to see items
+  of the organizations they manage or own).
 
-* **MultitenantOrgFilter**: admin filter that shows only organizations the current user can manage in its available choices.
+  This class has two important attributes that can be set:
 
-* **MultitenantRelatedOrgFilter**: similar ``MultitenantOrgFilter`` but shows only objects which have a relation with
-  one of the organizations the current user can manage.
+  * ``multitenant_shared_relations``: if the model has relations (eg:
+    ``ForeignKey``, ``OneToOne``) to other models which are also
+    multitenant (that is, they have an ``organization`` field),
+    you want the admin to only show the relations the user can manage,
+    the way to do that is to list those model attributes here as a list
+    of strings.
+    See `how it is used in OpenWISP Controller
+    <https://github.com/openwisp/openwisp-controller/search?q=multitenant_shared_relations>`_
+    for a real world example.
+  * ``multitenant_parent``: if the admin model does not have an
+    ``organization`` field, but instead relies on a parent model
+    which has the field, then you can specify here the field which
+    points to the parent.
+    See `how it is used in OpenWISP Firmware Upgrader
+    <https://github.com/openwisp/openwisp-firmware-upgrader/search?q=multitenant_parent>`_
+    for a real world example.
+
+* **MultitenantOrgFilter**: admin filter that shows only organizations
+  the current user can manage in its available choices.
+
+* **MultitenantRelatedOrgFilter**: similar ``MultitenantOrgFilter`` but
+  shows only objects which have a relation with one of the organizations
+  the current user can manage, this shall be used when the model does not
+  have its own organization field but relies on a parent model which
+  has the organization field.
 
 Extend openwisp-users
 ---------------------
