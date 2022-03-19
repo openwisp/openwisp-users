@@ -40,7 +40,8 @@ Implementation of user management and multi-tenancy for OpenWISP (built with pyt
 Deploy it in production
 -----------------------
 
-An automated installer is available at `ansible-openwisp2 <https://github.com/openwisp/ansible-openwisp2>`_.
+An automated installer is available at `ansible-openwisp2
+<https://github.com/openwisp/ansible-openwisp2>`_.
 
 Install stable version from pypi
 --------------------------------
@@ -133,7 +134,8 @@ Add following in ``settings.py`` to configure email verification success view:
 
 For additional steps to properly configure ``allauth`` in your project,
 please refer to their documentation:
-`allauth documentation installation section <http://django-allauth.readthedocs.io/en/latest/installation.html>`_.
+`allauth documentation installation section
+<http://django-allauth.readthedocs.io/en/latest/installation.html>`_.
 
 Installing for development
 --------------------------
@@ -696,7 +698,8 @@ that even if the user adds characters like spaces, dots or dashes, the number
 will be recognized anyway.
 
 When parsing phone numbers, the
-`OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES <#openwisp_users_auth_backend_auto_prefixes>`_
+`OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES
+<#openwisp_users_auth_backend_auto_prefixes>`_
 setting allows to specify a list of international prefixes that can
 be prepended to the username string automatically in order to allow
 users to log in without having to type the international prefix.
@@ -716,7 +719,8 @@ Django REST Framework Authentication Classes
 1. ``openwisp_users.api.authentication.BearerAuthentication``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Based on the `rest_framework.authentication.TokenAuthentication <https://www.django-rest-framework.org/api-guide/authentication/#tokenauthentication>`_,
+Based on the `rest_framework.authentication.TokenAuthentication
+<https://www.django-rest-framework.org/api-guide/authentication/#tokenauthentication>`_,
 ``BearerAuthentication`` is the primary authentication class for REST APIs
 implemented across all modules of OpenWISP.
 
@@ -732,7 +736,9 @@ It is primarily used for providing password-less authentication
 e.g. in magic login links.
 
 Configuration of ``django-sesame`` is required for the functioning
-of this authentication class. Please refer to `django-sesame documentation <https://github.com/aaugustin/django-sesame#getting-started>`_
+of this authentication class. Please refer to
+`django-sesame documentation
+<https://github.com/aaugustin/django-sesame#getting-started>`_
 for more information.
 
 Django REST Framework Permission Classes
@@ -766,7 +772,8 @@ find the organization of the current object.
 In most cases this won't need to be changed, but it does need to
 be changed when the ``organization`` is defined only on a parent object.
 
-For example, in `openwisp-firmware-upgrader <https://github.com/openwisp/openwisp-firmware-upgrader>`_,
+For example, in `openwisp-firmware-upgrader
+<https://github.com/openwisp/openwisp-firmware-upgrader>`_,
 ``organization`` is defined on ``Category`` and ``Build`` has a relation
 to ``category``, so the organization of Build instances is inferred from
 the organization of the Category.
@@ -784,7 +791,8 @@ Therefore, to implement the permission class correctly, we would have to do:
 
 This will translate into accessing ``obj.category.organization``.
 Ensure the queryset of your views make use of
-`select_related <https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
+`select_related
+<https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_
 in these cases to avoid generating too many queries.
 
 ``DjangoModelPermissions``
@@ -830,7 +838,8 @@ They work by filtering the queryset so that only items related
 to organizations the user is member, manager or owner of, respectively.
 
 These mixins ship the Django REST Framework's
-`IsAuthenticated <https://www.django-rest-framework.org/api-guide/permissions/#isauthenticated>`_
+`IsAuthenticated
+<https://www.django-rest-framework.org/api-guide/permissions/#isauthenticated>`_
 permission class by default because the organization filtering
 works only on authenticated users.
 Always remember to include this class when
@@ -924,7 +933,8 @@ objects in the accepted values of the multi-tenant serializers.
 
 Shared objects have the ``organization`` field set to ``None`` and can
 be used by any organization. A common use case is `shared templates
-in OpenWISP Controller <https://openwisp.io/docs/user/templates.html#shared-templates-vs-organization-specific>`_.
+in OpenWISP Controller
+<https://openwisp.io/docs/user/templates.html#shared-templates-vs-organization-specific>`_.
 
 Usage example:
 
@@ -945,7 +955,8 @@ To filter items based on the ``organization`` of their parent object,
 ``organization_field`` attribute can be defined in the view function
 which is inheriting any of the mixin classes.
 
-Usage example: `organization_field <https://github.com/openwisp/openwisp-users#organization_field>`_.
+Usage example: `organization_field
+<https://github.com/openwisp/openwisp-users#organization_field>`_.
 
 Admin Multitenancy mixins
 -------------------------
@@ -985,7 +996,9 @@ Admin Multitenancy mixins
 Extend openwisp-users
 ---------------------
 
-One of the core values of the OpenWISP project is `Software Reusability <http://openwisp.io/docs/general/values.html#software-reusability-means-long-term-sustainability>`_,
+One of the core values of the OpenWISP project is
+`Software Reusability
+<http://openwisp.io/docs/general/values.html#software-reusability-means-long-term-sustainability>`_,
 for this reason *openwisp-users* provides a set of base classes
 which can be imported, extended and reused to create derivative apps.
 
@@ -996,8 +1009,10 @@ User for registeration.
 In order to implement your custom version of *openwisp-users*,
 you need to perform the steps described in this section.
 
-When in doubt, the code in the `test project <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/>`_ and
-the `sample app <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/>`_
+When in doubt, the code in the `test project
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/>`_
+and the `sample app
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/>`_
 will serve you as source of truth:
 just replicate and adapt that code to get a basic derivative of
 *openwisp-users* working.
@@ -1020,7 +1035,8 @@ A django app is nothing more than a
     django-admin startapp myusers
 
 Keep in mind that the command mentioned above must be called from a directory
-which is available in your `PYTHON_PATH <https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH>`_
+which is available in your `PYTHON_PATH
+<https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH>`_
 so that you can then import the result into your project.
 
 Now you need to add ``myusers`` to ``INSTALLED_APPS`` in your ``settings.py``,
@@ -1101,24 +1117,29 @@ before ``django.template.loaders.app_directories.Loader`` in your ``settings.py`
 
 Please refer to the following files in the sample app of the test project:
 
-- `openwisp_users/__init__.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/__init__.py>`_
-- `openwisp_users/apps.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/apps.py>`_
+- `openwisp_users/__init__.py
+  <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/__init__.py>`_
+- `openwisp_users/apps.py
+  <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/apps.py>`_
 
 You have to replicate and adapt that code in your project.
 
 For more information regarding the concept of ``AppConfig`` please refer to
-the `"Applications" section in the django documentation <https://docs.djangoproject.com/en/dev/ref/applications/>`_.
+the `"Applications" section in the django documentation
+<https://docs.djangoproject.com/en/dev/ref/applications/>`_.
 
 7. Create your custom models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the purpose of showing an example, we added a simple ``social_security_number`` field in User model to the
-`models of the sample app in the test project <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/models.py>`_.
+`models of the sample app in the test project
+<https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/models.py>`_.
 
 You can add fields in a similar way in your ``models.py`` file.
 
 For doubts regarding how to use, extend or develop models please refer to the
-`"Models" section in the django documentation <https://docs.djangoproject.com/en/dev/topics/db/models/>`_.
+`"Models" section in the django documentation
+<https://docs.djangoproject.com/en/dev/topics/db/models/>`_.
 
 8. Add swapper configurations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1150,7 +1171,8 @@ Create database migrations::
 
 Now, manually create a file ``0004_default_groups.py`` in the migrations directory
 just created by the ``makemigrations`` command and copy contents of
-the `sample_users/migrations/0004_default_groups.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0004_default_groups.py>`_.
+the `sample_users/migrations/0004_default_groups.py
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0004_default_groups.py>`_.
 
 Then, run the migrations::
 
@@ -1163,12 +1185,14 @@ other OpenWISP modules will fail.
 10. Create the admin
 ~~~~~~~~~~~~~~~~~~~~
 
-Refer to the `admin.py file of the sample app <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/admin.py>`_.
+Refer to the `admin.py file of the sample app
+<https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/admin.py>`_.
 
 To introduce changes to the admin, you can do it in two main ways which are described below.
 
 For more information regarding how the django admin works, or how it can be customized, please refer to
-`"The django admin site" section in the django documentation <https://docs.djangoproject.com/en/dev/ref/contrib/admin/>`_.
+`"The django admin site" section in the django documentation
+<https://docs.djangoproject.com/en/dev/ref/contrib/admin/>`_.
 
 1. Monkey patching
 ^^^^^^^^^^^^^^^^^^
@@ -1195,7 +1219,9 @@ usermodel_add_form
 """"""""""""""""""
 
 When monkey patching the ``UserAdmin`` class to add add fields in the
-"Add user" form, you can use this function. In the example, `Social Security Number is added in the add form <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
+"Add user" form, you can use this function. In the example,
+`Social Security Number is added in the add form
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/add_user.png
    :alt: Social Security Number in Add form
@@ -1206,7 +1232,8 @@ usermodel_change_form
 When monkey patching the ``UserAdmin`` class to add fields in the
 "Change user" form to change / modify user form's profile section,
 you can use this function. In the example, `Social Security Number
-is added in the change form <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
+is added in the change form
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/change_user.png
    :alt: Social Security Number in Change form
@@ -1216,7 +1243,9 @@ usermodel_list_and_search
 
 When monkey patching the ``UserAdmin`` class you can use this
 function to make field searchable and add it to the user
-display list view. In the example, `Social Security Number is added in the changelist view <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
+display list view. In the example,
+`Social Security Number is added in the changelist view
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/search_user.png
    :alt: Users Change List View
@@ -1280,22 +1309,27 @@ monkey patching, you can proceed as follows:
 11. Create root URL configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Please refer to the `urls.py <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/urls.py>`_ file in the sample project.
+Please refer to the `urls.py
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/urls.py>`_
+file in the sample project.
 
 For more information about URL configuration in django, please refer to the
-`"URL dispatcher" section in the django documentation <https://docs.djangoproject.com/en/dev/topics/http/urls/>`_.
+`"URL dispatcher" section in the django documentation
+<https://docs.djangoproject.com/en/dev/topics/http/urls/>`_.
 
 12. Import the automated tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When developing a custom application based on this module, it's a good
-idea to import and run the base tests too, so that you can be sure the changes
-you're introducing are not breaking some of the existing features of *openwisp-users*.
+idea to import and run the base tests too, so that you can be sure the
+changes you're introducing are not breaking some of the existing
+features of *openwisp-users*.
 
-In case you need to add breaking changes, you can overwrite the tests defined
-in the base classes to test your own behavior.
+In case you need to add breaking changes, you can overwrite the tests
+defined in the base classes to test your own behavior.
 
-See the `tests of the sample app <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/tests.py>`_
+See the `tests of the sample app
+<https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/tests.py>`_
 to find out how to do this.
 
 You can then run tests with::
@@ -1317,17 +1351,20 @@ The API view classes can be extended into other django applications as well. Not
 that it is not required for extending *openwisp-users* to your app and this change
 is required only if you plan to make changes to the API views.
 
-Create a view file as done in `API views.py <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/views.py>`_.
+Create a view file as done in `API views.py
+<https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/views.py>`_.
 
 Remember to use these views in root URL configurations in point 11.
 
 For more information about django views, please refer to the
-`views section in the django documentation <https://docs.djangoproject.com/en/dev/topics/http/views/>`_.
+`views section in the django documentation
+<https://docs.djangoproject.com/en/dev/topics/http/views/>`_.
 
 Contributing
 ------------
 
-Please refer to the `OpenWISP contributing guidelines <http://openwisp.io/docs/developer/contributing.html>`_.
+Please refer to the `OpenWISP contributing guidelines
+<http://openwisp.io/docs/developer/contributing.html>`_.
 
 Support
 -------
