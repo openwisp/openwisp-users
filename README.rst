@@ -337,7 +337,7 @@ the token in the ``Authorization`` header:
     TOKEN=$(http POST :8000/api/v1/users/token/ username=openwisp password=1234 | jq -r .token)
 
     # send bearer token
-    http GET localhost:8000/api/v1/firmware/build/ "Authorization: Bearer $TOKEN"
+    http GET localhost:8000/api/v1/firmware-upgrader/build/ "Authorization: Bearer $TOKEN"
 
 List of endpoints
 ~~~~~~~~~~~~~~~~~
