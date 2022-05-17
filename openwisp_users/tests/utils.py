@@ -126,13 +126,6 @@ class TestMultitenantAdminMixin(object):
                 response, _f(el, select_widget), msg_prefix='[superuser contains]'
             )
 
-    def _test_changelist_recover_deleted(self, app_label, model_label):
-        self._test_multitenant_admin(
-            url=reverse('admin:{0}_{1}_changelist'.format(app_label, model_label)),
-            visible=[],
-            hidden=['Recover deleted'],
-        )
-
     def _test_recoverlist_operator_403(self, app_label, model_label):
         self._login(username='operator', password='tester')
         response = self.client.get(
