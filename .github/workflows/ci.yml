@@ -34,7 +34,7 @@ jobs:
           - django~=3.1.0
           - django~=3.2.8
         include:
-          - django-version: django~=4.0rc1
+          - django-version: django~=4.0.0
             python-version: 3.9
             experimental: true
 
