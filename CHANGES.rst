@@ -6,6 +6,11 @@ Version 1.1.0 [unreleased]
 
 WIP
 
+Version 1.0.1 [2022-05-24]
+--------------------------
+
+- Updated fur translations
+
 Version 1.0.0 [2022-03-19]
 --------------------------
 
