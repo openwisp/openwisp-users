@@ -44,7 +44,7 @@ setup(
     version=get_version(),
     license='BSD',
     author='Federico Capoano',
-    author_email='federico.capoano@gmail.com',
+    author_email='support@openwisp.io',
     description='Provides basic multi-tenancy features for OpenWISP (using the Django web-framework)',
     long_description=open('README.rst').read(),
     url='http://openwisp.org',
