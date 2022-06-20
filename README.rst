@@ -756,7 +756,7 @@ organization member, manager or owner respectively. Usage example:
     from rest_framework import generics
 
     class MyApiView(generics.APIView):
-        permission_classes = (IsOrganizationMember,)
+        permission_classes = (IsOrganizationManager,)
 
 ``organization_field``
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -786,7 +786,7 @@ Therefore, to implement the permission class correctly, we would have to do:
     from rest_framework import generics
 
     class MyApiView(generics.APIView):
-        permission_classes = (IsOrganizationMember,)
+        permission_classes = (IsOrganizationManager,)
         organization_field = 'category__organization'
 
 This will translate into accessing ``obj.category.organization``.
