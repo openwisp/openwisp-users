@@ -115,6 +115,7 @@ class OpenwispUsersConfig(AppConfig):
             dispatch_uid='make_first_org_user_org_owner',
         )
 
+    @classmethod
     def update_organizations_dict(cls, instance, **kwargs):
         if hasattr(instance, 'user'):
             user = instance.user
@@ -133,6 +134,7 @@ class OpenwispUsersConfig(AppConfig):
         except AttributeError:
             pass
 
+    @classmethod
     def create_organization_owner(cls, instance, created, **kwargs):
         if not created or not instance.is_admin:
             return
