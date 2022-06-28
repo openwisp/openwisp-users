@@ -1,6 +1,4 @@
-coveralls
 openwisp-utils[qa]~=1.0.0
-mock>=2.0.0
-redis>=3.4.1,<4.0.0
+redis~=4.3.4
 django-redis~=5.0.0
 django-reversion~=4.0.1
