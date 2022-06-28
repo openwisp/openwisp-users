@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Version 1.0.2 [2022-06-28]
+--------------------------
+
+- Bumped django-all-auth from 0.46.0 to 0.51.0
+  to fix mild security issues (see the `change log
+  of django-all-auth for more information
+  <https://github.com/pennersr/django-allauth/blob/master/ChangeLog.rst>`_)
+- The ``@classmethod`` decorator was mistakenly forgotten and hence
+  missing from the following methods of
+  ``openwisp_users.apps.OpenwispUsersConfig``:
+
+  - ``update_organizations_dict``
+  - ``create_organization_owner``
+- Fixed a broken example in the DRF Permission Classes section
+  of the documentation
+
 Version 1.0.1 [2022-05-24]
 --------------------------
 
