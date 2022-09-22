@@ -84,7 +84,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
 class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
-    raw_id_fields = ('organization_user',)
+    autocomplete_fields = ('organization_user',)
 
     def has_change_permission(self, request, obj=None):
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
@@ -546,6 +546,7 @@ class OrganizationUserAdmin(
 ):
     view_on_site = False
     actions = ['delete_selected_overridden']
+    search_fields = ['user__username', 'organization__name']
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
@@ -633,6 +634,7 @@ class OrganizationOwnerAdmin(
     MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin
 ):
     list_display = ('get_user', 'organization')
+    autocomplete_fields = ['organization_user', 'organization']
 
     def get_user(self, obj):
         return obj.organization_user.user
