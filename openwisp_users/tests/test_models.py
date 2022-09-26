@@ -268,3 +268,24 @@ class TestUsers(TestOrganizationMixin, TestCase):
         response = self.client.post(reverse('account_logout'), follow=True)
         self.assertContains(response, 'Logout successful.')
         self.assertContains(response, 'This web page can be closed.')
+
+    def test_organization_user_string_representation(self):
+        org = self._get_org()
+        user = self._create_user()
+        org_user = self._create_org_user(
+            organization=org,
+            user=user,
+        )
+
+        with self.subTest('Test user first and last names are mot empty'):
+            self.assertEqual(
+                str(org_user), f'{user.first_name} {user.last_name} ({org.name})'
+            )
+
+        user.first_name = ''
+        user.last_name = ''
+        user.save()
+        org_user.refresh_from_db()
+
+        with self.subTest('Test user first and last names are empty'):
+            self.assertEqual(str(org_user), f'{user.username} ({org.name})')

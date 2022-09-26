@@ -221,6 +221,19 @@ class BaseOrganizationUser(models.Model):
                 )
             )
 
+    @property
+    def name(self):
+        """
+        Returns the connected user's full name or user's username if
+        full name method is unavailable (e.g. on a custom user class)
+        or if full name is an empty string.
+        """
+        try:
+            assert self.user.get_full_name() != ''
+            return self.user.get_full_name()
+        except (AssertionError, AttributeError):
+            return str(self.user.username)
+
 
 class BaseOrganizationOwner(models.Model):
     """
