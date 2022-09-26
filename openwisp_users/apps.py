@@ -2,10 +2,11 @@ import logging
 
 from django.apps import AppConfig
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils.translation import gettext_lazy as _
 from openwisp_utils import settings as utils_settings
 from openwisp_utils.admin_theme.menu import register_menu_group
@@ -98,7 +99,10 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-        signal_tuples = [(post_save, 'post_save'), (post_delete, 'post_delete')]
+        signal_tuples = [
+            (post_save, 'post_save'),
+            (post_delete, 'post_delete'),
+        ]
 
         for model in [OrganizationUser, OrganizationOwner]:
             for signal, name in signal_tuples:
@@ -109,6 +113,13 @@ class OpenwispUsersConfig(AppConfig):
                         name, model.__name__
                     ),
                 )
+            pre_save.connect(
+                self.pre_save_update_organizations_dict,
+                sender=model,
+                dispatch_uid='{}_{}_pre_save_organizations_dict'.format(
+                    name, model.__name__
+                ),
+            )
         post_save.connect(
             self.create_organization_owner,
             sender=OrganizationUser,
@@ -116,15 +127,36 @@ class OpenwispUsersConfig(AppConfig):
         )
 
     @classmethod
-    def update_organizations_dict(cls, instance, **kwargs):
+    def pre_save_update_organizations_dict(cls, instance, **kwargs):
+        """
+        Invalidates user's organizations cache, if
+        OrganizationUser.user or OrganizationOwner.organization_user
+        field are changed.
+        """
+
+        def _invalidate_old_related_obj_cache(instance, check_field):
+            Model = instance._meta.model
+            try:
+                db_obj = Model.objects.select_related(check_field).get(pk=instance.pk)
+            except Model.DoesNotExist:
+                return
+            else:
+                if getattr(db_obj, check_field) != getattr(instance, check_field):
+                    cls._invalidate_user_cache(getattr(db_obj, check_field))
+
         if hasattr(instance, 'user'):
-            user = instance.user
+            _invalidate_old_related_obj_cache(instance, 'user')
         else:
-            user = instance.organization_user.user
+            _invalidate_old_related_obj_cache(instance, 'organization_user')
+
+    @classmethod
+    def _invalidate_user_cache(cls, user):
+        User = get_user_model()
+        if not isinstance(user, User):
+            user = user.user
+
         cache_key = 'user_{}_organizations'.format(user.pk)
         cache.delete(cache_key)
-        # forces caching
-        user.organizations_dict
         try:
             del user.organizations_managed
         except AttributeError:
@@ -133,6 +165,16 @@ class OpenwispUsersConfig(AppConfig):
             del user.organizations_owned
         except AttributeError:
             pass
+
+    @classmethod
+    def update_organizations_dict(cls, instance, signal, **kwargs):
+        if hasattr(instance, 'user'):
+            user = instance.user
+        else:
+            user = instance.organization_user.user
+        cls._invalidate_user_cache(user)
+        # forces caching
+        user.organizations_dict
 
     @classmethod
     def create_organization_owner(cls, instance, created, **kwargs):
