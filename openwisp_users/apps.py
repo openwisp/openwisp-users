@@ -113,10 +113,11 @@ class OpenwispUsersConfig(AppConfig):
                         name, model.__name__
                     ),
                 )
-            # If the user related field of these models change for an object,
-            # then we need to invalidate the organization dict cache of the
-            # old user. Otherwise, cache will show that the old user is
-            # still related to the organization.
+            # If the related user changes, eg: the OrganizationOwner
+            # changes from user A to user B, we need to invalidate
+            # the cache of user A before the user is changed to user B
+            # otherwise the cache of user A will continue claiming
+            # that user A is still the owner.
             pre_save.connect(
                 self.pre_save_update_organizations_dict,
                 sender=model,
@@ -133,9 +134,10 @@ class OpenwispUsersConfig(AppConfig):
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
         """
-        Invalidates user's organizations cache, if
-        OrganizationUser.user or OrganizationOwner.organization_user
-        field are changed.
+        Invalidates user's organizations cache when
+        OrganizationUser.user or
+        OrganizationOwner.organization_user
+        are changed.
         """
 
         def _invalidate_old_related_obj_cache(instance, check_field):
