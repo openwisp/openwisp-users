@@ -134,6 +134,50 @@ class TestUsers(TestOrganizationMixin, TestCase):
             self.assertTrue(user.is_owner(org1.pk))
             self.assertFalse(user.is_owner(str(org2.pk)))
 
+    def test_invalidate_cache_org_owner_user_changed(self):
+        org = self._get_org()
+        user1 = self._create_user(
+            username='user1',
+            email='user1@test.org',
+        )
+        user2 = self._create_user(
+            username='user2',
+            email='user2@test.org',
+        )
+        org_user1 = self._create_org_user(user=user1, organization=org, is_admin=True)
+        org_user2 = self._create_org_user(user=user2, organization=org, is_admin=True)
+        # The first organization admin automatically becomes
+        # organization owner.
+        self.assertEqual(OrganizationOwner.objects.count(), 1)
+        org_owner = OrganizationOwner.objects.first()
+        self.assertEqual(org_owner.organization_user, org_user1)
+        self.assertEqual(user1.is_owner(org), True)
+        org_owner.organization_user = org_user2
+        org_owner.full_clean()
+        org_owner.save()
+        self.assertEqual(org_owner.organization_user, org_user2)
+        self.assertEqual(user1.is_owner(org), False)
+        self.assertEqual(user2.is_owner(org), True)
+
+    def test_invalidate_cache_org_user_user_changed(self):
+        org = self._get_org()
+        user1 = self._create_user(
+            username='user1',
+            email='user1@test.org',
+        )
+        user2 = self._create_user(
+            username='user2',
+            email='user2@test.org',
+        )
+        org_user = self._create_org_user(user=user1, organization=org, is_admin=True)
+        self.assertEqual(user1.is_member(org), True)
+        self.assertEqual(user2.is_member(org), False)
+        org_user.user = user2
+        org_user.full_clean()
+        org_user.save()
+        self.assertEqual(user1.is_member(org), False)
+        self.assertEqual(user2.is_member(org), True)
+
     def test_organizations_managed(self):
         user = self._create_user(username='organizations_pk')
         self.assertEqual(user.organizations_managed, [])
