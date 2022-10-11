@@ -26,6 +26,9 @@ openwisp-users
 
 Implementation of user management and multi-tenancy for OpenWISP (built with python & django).
 
+**Need a quick overview?**
+`Try the OpenWISP Demo <https://openwisp.org/demo.html>`_.
+
 .. image:: https://raw.githubusercontent.com/openwisp/openwisp2-docs/master/assets/design/openwisp-logo-black.svg
   :target: http://openwisp.org
 
