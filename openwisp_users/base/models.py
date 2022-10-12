@@ -161,6 +161,20 @@ class AbstractUser(BaseUser):
                 {'email': _('User with this Email address already exists.')}
             )
 
+    def _invalidate_user_organizations_dict(self):
+        """
+        Invalidate the organizations cache of the user
+        """
+        cache.delete(f'user_{self.pk}_organizations')
+        try:
+            del self.organizations_managed
+        except AttributeError:
+            pass
+        try:
+            del self.organizations_owned
+        except AttributeError:
+            pass
+
 
 # on django 3.1, the max length of first_name has been changed, we need to
 # backport this change to the previous versions to avoid migration issues
