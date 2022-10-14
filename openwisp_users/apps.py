@@ -3,7 +3,6 @@ import logging
 from django.apps import AppConfig
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -160,17 +159,8 @@ class OpenwispUsersConfig(AppConfig):
         User = get_user_model()
         if not isinstance(user, User):
             user = user.user
-
-        cache_key = 'user_{}_organizations'.format(user.pk)
-        cache.delete(cache_key)
-        try:
-            del user.organizations_managed
-        except AttributeError:
-            pass
-        try:
-            del user.organizations_owned
-        except AttributeError:
-            pass
+        # Invalidate the organizations cache of the user
+        user._invalidate_user_organizations_dict()
 
     @classmethod
     def update_organizations_dict(cls, instance, signal, **kwargs):
