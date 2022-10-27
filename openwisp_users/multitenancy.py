@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from swapper import load_model
 
 User = get_user_model()
@@ -119,13 +120,24 @@ class MultitenantAdminMixin(object):
         return qs
 
 
-class MultitenantOrgFilter(admin.RelatedFieldListFilter):
+class MultitenantOrgFilter(AutocompleteFilter):
     """
     Admin filter that shows only organizations the current
     user is associated with in its available choices
     """
 
-    multitenant_lookup = 'pk__in'
+    field_name = 'organization'
+    parameter_name = 'organization_id'
+    title = _('Organization')
+
+
+class MultitenantRelatedOrgFilter(admin.RelatedFieldListFilter):
+    """
+    Admin filter that shows only objects which have a relation with
+    one of the organizations the current user is associated with
+    """
+
+    multitenant_lookup = 'organization__in'
 
     def field_choices(self, field, request, model_admin):
         if request.user.is_superuser:
@@ -135,12 +147,3 @@ class MultitenantOrgFilter(admin.RelatedFieldListFilter):
             include_blank=False,
             limit_choices_to={self.multitenant_lookup: organizations},
         )
-
-
-class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
-    """
-    Admin filter that shows only objects which have a relation with
-    one of the organizations the current user is associated with
-    """
-
-    multitenant_lookup = 'organization__in'

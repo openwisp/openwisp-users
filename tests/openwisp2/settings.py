@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'openwisp_users',
     'django.contrib.admin',
+    'admin_auto_filters',
     'django.contrib.sites',
     'drf_yasg',
     'testapp',

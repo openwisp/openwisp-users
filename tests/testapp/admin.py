@@ -15,14 +15,14 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
 
 class ShelfAdmin(BaseAdmin):
     list_display = ['name', 'organization']
-    list_filter = [('organization', MultitenantOrgFilter)]
+    list_filter = [MultitenantOrgFilter]
     fields = ['name', 'organization', 'created', 'modified']
 
 
 class BookAdmin(BaseAdmin):
     list_display = ['name', 'author', 'organization', 'shelf']
     list_filter = [
-        ('organization', MultitenantOrgFilter),
+        MultitenantOrgFilter,
         ('shelf', MultitenantRelatedOrgFilter),
     ]
     fields = ['name', 'author', 'organization', 'shelf', 'created', 'modified']
