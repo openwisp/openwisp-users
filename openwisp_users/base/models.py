@@ -1,7 +1,6 @@
 import logging
 import uuid
 
-import django
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser as BaseUser
@@ -174,14 +173,6 @@ class AbstractUser(BaseUser):
             del self.organizations_owned
         except AttributeError:
             pass
-
-
-# on django 3.1, the max length of first_name has been changed, we need to
-# backport this change to the previous versions to avoid migration issues
-# TODO: remove this when support to django < 3.1 is dropped
-if django.VERSION < (3, 1):
-    first_name = AbstractUser._meta.get_field('first_name')
-    first_name.max_length = 150
 
 
 class BaseGroup(object):
