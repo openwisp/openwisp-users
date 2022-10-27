@@ -1,4 +1,4 @@
-openwisp-utils[qa] @ https://github.com/openwisp/openwisp-utils/tarball/master
+openwisp-utils[qa] @ https://github.com/openwisp/openwisp-utils/tarball/fix-autocomplete-filter
 redis~=4.3.4
 django-redis~=5.0.0
 django-reversion~=4.0.1
