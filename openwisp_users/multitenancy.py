@@ -1,4 +1,3 @@
-from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -127,23 +126,15 @@ class MultitenantOrgFilter(AutocompleteFilter):
     """
 
     field_name = 'organization'
-    parameter_name = 'organization_id'
+    parameter_name = 'organization'
+    org_lookup = 'id__in'
     title = _('Organization')
 
 
-class MultitenantRelatedOrgFilter(admin.RelatedFieldListFilter):
+class MultitenantRelatedOrgFilter(AutocompleteFilter):
     """
     Admin filter that shows only objects which have a relation with
     one of the organizations the current user is associated with
     """
 
-    multitenant_lookup = 'organization__in'
-
-    def field_choices(self, field, request, model_admin):
-        if request.user.is_superuser:
-            return super().field_choices(field, request, model_admin)
-        organizations = request.user.organizations_managed
-        return field.get_choices(
-            include_blank=False,
-            limit_choices_to={self.multitenant_lookup: organizations},
-        )
+    org_lookup = 'organization__in'

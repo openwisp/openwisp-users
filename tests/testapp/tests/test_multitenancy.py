@@ -78,16 +78,6 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             administrator=True,
         )
 
-    def test_book_shelf_filter(self):
-        data = self._create_multitenancy_test_env()
-        s_special = self._create_shelf(name='special', organization=data['org1'])
-        self._test_multitenant_admin(
-            url=reverse('admin:testapp_book_changelist'),
-            visible=[data['s1'].name, s_special.name],
-            hidden=[data['s2'].name, data['s3_inactive'].name],
-            administrator=True,
-        )
-
     def test_book_shelf_fk_queryset(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
