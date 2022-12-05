@@ -49,7 +49,7 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse('users:organization_list')
         data = {'name': 'test-org', 'slug': 'test-org'}
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(4):
             r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
@@ -689,3 +689,17 @@ class TestUsersApi(
                 r = self.client.patch(path, data, content_type='application/json')
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data['username'], 'changetestuser')
+
+    def test_organization_slug_post_custom_validation_api(self):
+        path = reverse('users:organization_list')
+        data = {'name': 'test-org', 'slug': 'test-org'}
+        with self.assertNumQueries(4):
+            r = self.client.post(path, data, content_type='application/json')
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(Organization.objects.count(), 2)
+        # try to create a new organization with the same slug
+        data = {'name': 'test-org', 'slug': 'test-org'}
+        r = self.client.post(path, data, content_type='application/json')
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(Organization.objects.count(), 2)
+        self.assertListEqual(list(r.data.keys()), ['slug', 'org_id'])
