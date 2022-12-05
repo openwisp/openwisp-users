@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from openwisp_users.multitenancy import (
     MultitenantAdminMixin,
@@ -15,15 +16,22 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
 
 class ShelfAdmin(BaseAdmin):
     list_display = ['name', 'organization']
-    list_filter = [('organization', MultitenantOrgFilter)]
+    list_filter = [MultitenantOrgFilter]
     fields = ['name', 'organization', 'created', 'modified']
+    search_fields = ['name']
+
+
+class ShelfFilter(MultitenantRelatedOrgFilter):
+    field_name = 'shelf'
+    parameter_name = 'shelf'
+    title = _('Shelf')
 
 
 class BookAdmin(BaseAdmin):
     list_display = ['name', 'author', 'organization', 'shelf']
     list_filter = [
-        ('organization', MultitenantOrgFilter),
-        ('shelf', MultitenantRelatedOrgFilter),
+        MultitenantOrgFilter,
+        ShelfFilter,
     ]
     fields = ['name', 'author', 'organization', 'shelf', 'created', 'modified']
     multitenant_shared_relations = ['shelf']

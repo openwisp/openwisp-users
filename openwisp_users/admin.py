@@ -33,7 +33,7 @@ from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
 from . import settings as app_settings
-from .multitenancy import MultitenantAdminMixin
+from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
 from .utils import BaseAdmin
 
 Group = load_model('openwisp_users', 'Group')
@@ -459,27 +459,12 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             instance.save()
 
 
-class OrganizationUserFilter(admin.SimpleListFilter):
+class OrganizationUserFilter(MultitenantOrgFilter):
     """
     Allows filtering users by the organization they're related to
     """
 
-    title = _('organization')
-    parameter_name = 'organization'
-
-    def lookups(self, request, model_admin):
-        organizations = Organization.objects.all()
-        if not request.user.is_superuser:
-            organizations = organizations.filter(
-                pk__in=request.user.organizations_managed
-            )
-        lookups = []
-        for org in organizations:
-            lookups.append((str(org.pk), org.name))
-        # show filter only if multiple orgs are accessible
-        if len(lookups) > 1:
-            return lookups
-        return tuple()
+    field_name = f'{Organization._meta.app_label}_organization'
 
     def queryset(self, request, queryset):
         if self.value():

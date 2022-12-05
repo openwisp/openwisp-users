@@ -1779,30 +1779,30 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
     def test_organization_user_filter(self):
         data = self._create_multitenancy_test_env()
         self._make_org_manager(data['administrator'], data['org1'])
-        url = reverse(f'admin:{self.app_label}_user_changelist')
+        url = reverse('admin:ow-auto-filter')
+        payload = {
+            'app_label': self.app_label,
+            'model_name': 'user',
+            'field_name': f'{self.app_label}_organization',
+        }
 
         with self.subTest('test superadmin'):
             user = User.objects.filter(is_superuser=True, is_staff=True).first()
             self.client.force_login(user)
-            response = self.client.get(url)
-            for org in Organization.objects.all():
-                self.assertContains(response, f'href="?organization={org.pk}">')
+            response = self.client.get(url, payload)
+            self.assertEqual(response.status_code, 200)
+            for option in response.json()['results']:
+                assert option['id'] in [
+                    str(id) for id in Organization.objects.values_list('id', flat=True)
+                ]
 
         with self.subTest('test non superadmin'):
             user = User.objects.get(username='administrator')
             self.client.force_login(user)
-            response = self.client.get(url)
-            for pk in user.organizations_managed:
-                self.assertContains(response, f'href="?organization={pk}">')
-            for org in Organization.objects.exclude(pk__in=user.organizations_managed):
-                self.assertNotContains(response, f'href="?organization={org.pk}">')
-
-        with self.subTest('test only 1 org'):
-            OrganizationUser.objects.filter(
-                organization__slug__in=['organization2', 'organization3']
-            ).delete()
-            del user.organizations_managed
-            self.assertEqual(len(user.organizations_managed), 1)
-            response = self.client.get(url)
-            for pk in user.organizations_managed:
-                self.assertNotContains(response, f'href="?organization={pk}">')
+            response = self.client.get(url, payload)
+            self.assertEqual(response.status_code, 200)
+            for option in response.json()['results']:
+                assert option['id'] in [str(id) for id in user.organizations_managed]
+                assert option['id'] not in Organization.objects.exclude(
+                    pk__in=user.organizations_managed
+                )

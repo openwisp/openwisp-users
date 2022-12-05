@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # overrides some templates in django-allauth
     'openwisp_users.accounts',
-    'openwisp_utils.admin_theme',
     'django_extensions',
     'allauth',
     'allauth.account',
@@ -39,7 +38,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'openwisp_users',
+    'openwisp_utils.admin_theme',
     'django.contrib.admin',
+    'admin_auto_filters',
     'django.contrib.sites',
     'drf_yasg',
     'testapp',

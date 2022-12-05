@@ -12,3 +12,13 @@ USERS_AUTH_THROTTLE_RATE = getattr(
 AUTH_BACKEND_AUTO_PREFIXES = getattr(
     settings, 'OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES', tuple()
 )
+# Set the AutocompleteFilter view if it is not defined in the settings
+setattr(
+    settings,
+    'OPENWISP_AUTOCOMPLETE_FILTER_VIEW',
+    getattr(
+        settings,
+        'OPENWISP_AUTOCOMPLETE_FILTER_VIEW',
+        'openwisp_users.views.AutocompleteJsonView',
+    ),
+)

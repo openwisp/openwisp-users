@@ -97,6 +97,7 @@ Setup (integrate in an existing django project)
         # to override the admin login page
         'openwisp_users',
         'django.contrib.admin',
+        'admin_auto_filters',
         'django.contrib.sites',
         'drf_yasg',
     ]
