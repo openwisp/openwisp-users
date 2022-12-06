@@ -137,5 +137,4 @@ class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
     one of the organizations the current user is associated with
     """
 
-    parameter_name = None
     org_lookup = 'organization__in'
