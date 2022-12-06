@@ -128,10 +128,10 @@ class MultitenantOrgFilter(AutocompleteFilter):
     field_name = 'organization'
     parameter_name = 'organization'
     org_lookup = 'id__in'
-    title = _('Organization')
+    title = _('organization')
 
 
-class MultitenantRelatedOrgFilter(AutocompleteFilter):
+class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
     """
     Admin filter that shows only objects which have a relation with
     one of the organizations the current user is associated with
