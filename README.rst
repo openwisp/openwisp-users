@@ -1003,14 +1003,52 @@ Admin Multitenancy mixins
     <https://github.com/openwisp/openwisp-firmware-upgrader/search?q=multitenant_parent>`_
     for a real world example.
 
-* **MultitenantOrgFilter**: admin filter that shows only organizations
-  the current user can manage in its available choices.
+* **MultitenantOrgFilter**: an autocomplete admin filter that shows only organizations
+  the current user can manage in its available choices. The following example
+  adds the autocomplete organization filter in ``BookAdmin``:
+
+.. code-block:: python
+
+    from django.contrib import admin
+    from openwisp_users.multitenancy import MultitenantOrgFilter
+
+    class BookAdmin(admin.ModelAdmin):
+        list_filter = [
+            MultitenantOrgFilter,
+        ]
+        # other attributes
 
 * **MultitenantRelatedOrgFilter**: similar ``MultitenantOrgFilter`` but
   shows only objects which have a relation with one of the organizations
-  the current user can manage, this shall be used when the model does not
-  have its own organization field but relies on a parent model which
-  has the organization field.
+  the current user can manage, this shall be used for creating filters
+  for related multitenant models.
+
+  Consider the following example of `IpAddressAdmin from openwisp-ipam <https://github.com/openwisp/openwisp-ipam/blob/956d9d25fc1ac339cb148ec7faf80046cc14be37/openwisp_ipam/admin.py#L216-L227>`_ .
+  ``IpAddressAdmin`` allows filtering
+  `IpAddress <https://github.com/openwisp/openwisp-ipam/blob/956d9d25fc1ac339cb148ec7faf80046cc14be37/openwisp_ipam/base/models.py#L276-L281>`_
+  objects by ``Subnet`` that belongs to organizations managed by the user.
+
+.. code-block:: python
+
+    from django.contrib import admin
+    from openwisp_users.multitenancy import MultitenantRelatedOrgFilter
+    from swapper import load_model
+
+    Subnet = load_model('openwisp_ipam', 'Subnet')
+
+
+    class SubnetFilter(MultitenantRelatedOrgFilter):
+        field_name = 'subnet'
+        parameter_name = 'subnet_id'
+        title = _('subnet')
+
+
+    @admin.register(IpAddress)
+    class IpAddressAdmin(
+        VersionAdmin, MultitenantAdminMixin, TimeReadonlyAdminMixin, ModelAdmin
+    ):
+        list_filter = [SubnetFilter]
+        # other options
 
 Extend openwisp-users
 ---------------------
