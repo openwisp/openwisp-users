@@ -1,8 +1,12 @@
 import swapper
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
+
+from .authentication import BearerAuthentication
+from .permissions import DjangoModelPermissions
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
@@ -206,3 +210,15 @@ class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
     """
 
     _user_attr = 'organizations_owned'
+
+
+class ProtectedAPIMixin(object):
+    """
+    Contains authentication and permission classes for API views
+    """
+
+    authentication_classes = [BearerAuthentication, SessionAuthentication]
+    permission_classes = [
+        IsAuthenticated,
+        DjangoModelPermissions,
+    ]

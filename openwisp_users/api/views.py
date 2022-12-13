@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import pagination
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import NotFound
 from rest_framework.generics import (
@@ -19,9 +18,9 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from swapper import load_model
 
-from openwisp_users.api.authentication import BearerAuthentication
 from openwisp_users.api.permissions import DjangoModelPermissions
 
+from .mixins import ProtectedAPIMixin
 from .serializers import (
     ChangePasswordSerializer,
     EmailAddressSerializer,
@@ -60,14 +59,6 @@ class ObtainAuthTokenView(ObtainAuthToken):
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
-
-
-class ProtectedAPIMixin(object):
-    authentication_classes = [BearerAuthentication, SessionAuthentication]
-    permission_classes = [
-        IsAuthenticated,
-        DjangoModelPermissions,
-    ]
 
 
 class BaseOrganizationView(ProtectedAPIMixin):
