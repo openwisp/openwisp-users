@@ -20,7 +20,7 @@ from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
 
-from .mixins import ProtectedAPIMixin
+from .mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
 from .serializers import (
     ChangePasswordSerializer,
     EmailAddressSerializer,
@@ -39,6 +39,13 @@ Group = load_model('openwisp_users', 'Group')
 Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+
+
+class ProtectedAPIMixin(BaseProtectedAPIMixin):
+    permission_classes = (
+        IsAuthenticated,
+        DjangoModelPermissions,
+    )
 
 
 class ListViewPagination(pagination.PageNumberPagination):

@@ -6,7 +6,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 
 from .authentication import BearerAuthentication
-from .permissions import DjangoModelPermissions
+from .permissions import DjangoModelPermissions, IsOrganizationManager
 
 Organization = swapper.load_model('openwisp_users', 'Organization')
 
@@ -217,8 +217,11 @@ class ProtectedAPIMixin(object):
     Contains authentication and permission classes for API views
     """
 
-    authentication_classes = [BearerAuthentication, SessionAuthentication]
-    permission_classes = [
-        IsAuthenticated,
+    authentication_classes = (
+        BearerAuthentication,
+        SessionAuthentication,
+    )
+    permission_classes = (
+        IsOrganizationManager,
         DjangoModelPermissions,
-    ]
+    )
