@@ -502,6 +502,7 @@ class OrganizationAdmin(
     inlines = [OrganizationOwnerInline]
     readonly_fields = ['uuid', 'created', 'modified']
     ordering = ['name']
+    list_display = ['name', 'is_active', 'created', 'modified']
 
     def get_inline_instances(self, request, obj=None):
         """
