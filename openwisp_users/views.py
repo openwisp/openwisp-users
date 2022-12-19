@@ -29,3 +29,13 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         if not self.request.user.is_superuser and org_lookup:
             return qs.filter(**{org_lookup: self.request.user.organizations_managed})
         return qs
+
+    def get_empty_label(self):
+        if self.object_list.model == Organization:
+            return 'Shared systemwide (no organization)'
+        return super().get_empty_label()
+
+    def get_allow_null(self):
+        if self.object_list.model == Organization:
+            return self.request.user.is_superuser
+        return super().get_allow_null()

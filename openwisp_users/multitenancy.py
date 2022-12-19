@@ -4,6 +4,8 @@ from django.utils.translation import gettext_lazy as _
 from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from swapper import load_model
 
+from .widgets import OrganizationAutocompleteSelect
+
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
@@ -117,6 +119,13 @@ class MultitenantAdminMixin(object):
         else:
             qs = super().get_queryset(request)
         return qs
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'organization':
+            kwargs['widget'] = OrganizationAutocompleteSelect(
+                db_field, self.admin_site, using=kwargs.get('using')
+            )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 class MultitenantOrgFilter(AutocompleteFilter):
