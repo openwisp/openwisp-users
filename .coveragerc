@@ -6,3 +6,6 @@ omit =
     /*/__init__.py
     /setup.py
     /*/migrations/*
+source = openwisp_users
+parallel = true
+concurrency = multiprocessing
