@@ -138,7 +138,8 @@ class MultitenantOrgFilter(AutocompleteFilter):
     parameter_name = 'organization'
     org_lookup = 'id__in'
     title = _('organization')
-    widget_attrs = {'data-empty-label': _('Shared systemwide (no organization)')}
+    widget_attrs = AutocompleteFilter.widget_attrs.copy()
+    widget_attrs.update({'data-empty-label': _('Shared systemwide (no organization)')})
 
 
 class MultitenantRelatedOrgFilter(MultitenantOrgFilter):

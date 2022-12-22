@@ -14,7 +14,10 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         Loops over all filter classes of ModelAdmin and
         returns filter with matching field_name.
         """
-        source_model_admin = self.admin_site._registry[self.source_field.model]
+        try:
+            source_model_admin = self.admin_site._registry[self.source_field.model]
+        except KeyError:
+            return None
         for filter in source_model_admin.list_filter:
             if getattr(filter, 'field_name', None) == self.source_field.name:
                 return filter

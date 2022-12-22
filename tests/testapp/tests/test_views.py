@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+from django.contrib.admin import site
 from django.test import TestCase
 from django.urls import reverse
 from openwisp_utils.tests import capture_stderr
@@ -6,6 +9,7 @@ from swapper import load_model
 from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
 Organization = load_model('openwisp_users', 'Organization')
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 class TestAutocompleteJsonView(
@@ -76,3 +80,19 @@ class TestAutocompleteJsonView(
                     break
             else:
                 self.fail('Null option not found in response')
+
+    def test_autocomplete_view_for_inline_admin(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        path = reverse('admin:ow-auto-filter')
+        with patch.object(site, '_registry', site._registry) as mocked_registry:
+            mocked_registry.pop(OrganizationUser)
+            response = self.client.get(
+                path,
+                data={
+                    'app_label': 'openwisp_users',
+                    'model_name': 'OrganizationUser',
+                    'field_name': 'organization',
+                },
+            )
+        self.assertEqual(len(response.json()['results']), Organization.objects.count())

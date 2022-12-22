@@ -1,5 +1,6 @@
 from django.contrib.admin.widgets import AutocompleteSelect as BaseAutocompleteSelect
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 
 class OrganizationAutocompleteSelect(BaseAutocompleteSelect):
@@ -8,3 +9,18 @@ class OrganizationAutocompleteSelect(BaseAutocompleteSelect):
 
     def get_url(self):
         return reverse('admin:ow-auto-filter')
+
+    def optgroups(self, name, value, attrs=None):
+        groups = super().optgroups(name, value, attrs)
+        if value == [''] and len(groups[0][1]) == 1:
+            groups[0][1].append(
+                self.create_option(
+                    name=name,
+                    value='null',
+                    label=_('Shared systemwide (no organization)'),
+                    selected=False,
+                    index=2,
+                    attrs=attrs,
+                )
+            )
+        return groups
