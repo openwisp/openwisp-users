@@ -70,7 +70,7 @@ jobs:
 
       - name: Tests
         run: |
-          coverage run ./runtests.py --parallel
+          coverage run ./runtests.py
           SAMPLE_APP=1 coverage run ./runtests.py --parallel
           coverage combine
           # basic tests without allauth.socialaccount
