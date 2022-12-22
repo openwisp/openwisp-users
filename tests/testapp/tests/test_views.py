@@ -90,8 +90,8 @@ class TestAutocompleteJsonView(
             response = self.client.get(
                 path,
                 data={
-                    'app_label': 'openwisp_users',
-                    'model_name': 'OrganizationUser',
+                    'app_label': OrganizationUser._meta.app_label,
+                    'model_name': OrganizationUser._meta.model_name,
                     'field_name': 'organization',
                 },
             )
