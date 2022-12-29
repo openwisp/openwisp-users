@@ -3,6 +3,8 @@ from openwisp_utils.admin_theme.views import (
 )
 from swapper import load_model
 
+from .widgets import SHARED_SYSTEMWIDE_LABEL
+
 Organization = load_model('openwisp_users', 'Organization')
 
 
@@ -13,7 +15,10 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         Loops over all filter classes of ModelAdmin and
         returns filter with matching field_name.
         """
-        source_model_admin = self.admin_site._registry[self.source_field.model]
+        try:
+            source_model_admin = self.admin_site._registry[self.source_field.model]
+        except KeyError:
+            return None
         for filter in source_model_admin.list_filter:
             if getattr(filter, 'field_name', None) == self.source_field.name:
                 return filter
@@ -29,3 +34,13 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         if not self.request.user.is_superuser and org_lookup:
             return qs.filter(**{org_lookup: self.request.user.organizations_managed})
         return qs
+
+    def get_empty_label(self):
+        if self.object_list.model == Organization:
+            return SHARED_SYSTEMWIDE_LABEL
+        return super().get_empty_label()
+
+    def get_allow_null(self):
+        if self.object_list.model == Organization:
+            return self.request.user.is_superuser
+        return super().get_allow_null()

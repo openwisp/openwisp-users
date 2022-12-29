@@ -44,7 +44,9 @@ class Shelf(ShareableOrgMixin, TimeStampedEditableModel):
 class Book(OrgMixin, TimeStampedEditableModel):
     name = models.CharField(_('name'), max_length=64)
     author = models.CharField(_('author'), max_length=64)
-    shelf = models.ForeignKey('testapp.Shelf', on_delete=models.CASCADE)
+    shelf = models.ForeignKey(
+        'testapp.Shelf', on_delete=models.CASCADE, blank=True, null=True
+    )
 
     def __str__(self):
         return self.name

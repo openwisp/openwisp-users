@@ -133,6 +133,13 @@ class TestMultitenantAdminMixin(object):
         )
         self.assertEqual(response.status_code, 403)
 
+    def _get_autocomplete_view_path(self, app_label, model_name, field_name):
+        path = reverse('admin:ow-auto-filter')
+        return (
+            f'{path}?app_label={app_label}'
+            f'&model_name={model_name}&field_name={field_name}'
+        )
+
 
 class TestOrganizationMixin(object):
     def _create_user(self, **kwargs):
