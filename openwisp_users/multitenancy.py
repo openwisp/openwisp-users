@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from swapper import load_model
 
-from .widgets import OrganizationAutocompleteSelect
+from .widgets import SHARED_SYSTEMWIDE_LABEL, OrganizationAutocompleteSelect
 
 User = get_user_model()
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -70,7 +70,7 @@ class MultitenantAdminMixin(object):
         user = request.user
         org_field = fields.get('organization')
         if user.is_superuser and org_field and not org_field.required:
-            org_field.empty_label = _('Shared systemwide (no organization)')
+            org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
             orgs_pk = user.organizations_managed
             # organizations relation;
@@ -139,7 +139,7 @@ class MultitenantOrgFilter(AutocompleteFilter):
     org_lookup = 'id__in'
     title = _('organization')
     widget_attrs = AutocompleteFilter.widget_attrs.copy()
-    widget_attrs.update({'data-empty-label': _('Shared systemwide (no organization)')})
+    widget_attrs.update({'data-empty-label': SHARED_SYSTEMWIDE_LABEL})
 
 
 class MultitenantRelatedOrgFilter(MultitenantOrgFilter):

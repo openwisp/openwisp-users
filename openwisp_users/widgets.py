@@ -2,6 +2,8 @@ from django.contrib.admin.widgets import AutocompleteSelect as BaseAutocompleteS
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+SHARED_SYSTEMWIDE_LABEL = _('Shared systemwide (no organization)')
+
 
 class OrganizationAutocompleteSelect(BaseAutocompleteSelect):
     class Media:
@@ -17,7 +19,7 @@ class OrganizationAutocompleteSelect(BaseAutocompleteSelect):
                 self.create_option(
                     name=name,
                     value='null',
-                    label=_('Shared systemwide (no organization)'),
+                    label=SHARED_SYSTEMWIDE_LABEL,
                     selected=False,
                     index=2,
                     attrs=attrs,

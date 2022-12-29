@@ -1,8 +1,9 @@
-from django.utils.translation import gettext_lazy as _
 from openwisp_utils.admin_theme.views import (
     AutocompleteJsonView as BaseAutocompleteJsonView,
 )
 from swapper import load_model
+
+from .widgets import SHARED_SYSTEMWIDE_LABEL
 
 Organization = load_model('openwisp_users', 'Organization')
 
@@ -36,7 +37,7 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
 
     def get_empty_label(self):
         if self.object_list.model == Organization:
-            return _('Shared systemwide (no organization)')
+            return SHARED_SYSTEMWIDE_LABEL
         return super().get_empty_label()
 
     def get_allow_null(self):
