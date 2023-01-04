@@ -19,12 +19,6 @@ OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
-    slug = serializers.SlugField(
-        allow_unicode=False,
-        help_text=_('The name in all lowercase, suitable for URL identification'),
-        max_length=200,
-    )
-
     class Meta:
         model = Organization
         fields = (
@@ -38,6 +32,7 @@ class OrganizationSerializer(ValidatedModelSerializer):
             'created',
             'modified',
         )
+        extra_kwargs = {'slug': {'validators': []}}
 
     def validate(self, data):
         """
@@ -48,8 +43,8 @@ class OrganizationSerializer(ValidatedModelSerializer):
         if org:
             raise serializers.ValidationError(
                 {
-                    'slug': [_('organization with this slug already exists.')],
-                    'org_id': [org.id],
+                    'slug': _('organization with this slug already exists.'),
+                    'organization': org.pk,
                 }
             )
         return data

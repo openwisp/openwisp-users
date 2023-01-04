@@ -698,8 +698,7 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
         # try to create a new organization with the same slug
-        data = {'name': 'test-org', 'slug': 'test-org'}
         r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 400)
         self.assertEqual(Organization.objects.count(), 2)
-        self.assertListEqual(list(r.data.keys()), ['slug', 'org_id'])
+        self.assertListEqual(list(r.data.keys()), ['slug', 'organization'])
