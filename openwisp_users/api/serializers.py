@@ -39,7 +39,7 @@ class OrganizationSerializer(ValidatedModelSerializer):
         Custom validation error if an organization
         already exists with the given slug.
         """
-        org = Organization.objects.filter(slug=data.get('slug')).first()
+        org = Organization.objects.filter(slug__exact=data.get('slug')).first()
         if org:
             raise serializers.ValidationError(
                 {
@@ -47,7 +47,7 @@ class OrganizationSerializer(ValidatedModelSerializer):
                     'organization': org.pk,
                 }
             )
-        return data
+        return super().validate(data)
 
 
 class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
