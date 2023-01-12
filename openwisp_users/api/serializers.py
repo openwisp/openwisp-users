@@ -32,6 +32,8 @@ class OrganizationSerializer(ValidatedModelSerializer):
             'created',
             'modified',
         )
+        # This allows replacing the default "UniqueValidator" for
+        # the slug field with the custom validation defined below.
         extra_kwargs = {'slug': {'validators': []}}
 
     def validate(self, data):
