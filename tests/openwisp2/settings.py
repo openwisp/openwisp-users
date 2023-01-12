@@ -33,12 +33,14 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'openwisp_users',
+    # openwisp2 admin theme
+    # (must be loaded here)
+    'openwisp_utils.admin_theme',
     # must come before the django admin
     # to override the admin login page
     'rest_framework',
     'rest_framework.authtoken',
-    'openwisp_users',
-    'openwisp_utils.admin_theme',
     'django.contrib.admin',
     'admin_auto_filters',
     'django.contrib.sites',
