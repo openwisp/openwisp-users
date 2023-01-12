@@ -32,6 +32,24 @@ class OrganizationSerializer(ValidatedModelSerializer):
             'created',
             'modified',
         )
+        # This allows replacing the default "UniqueValidator" for
+        # the slug field with the custom validation defined below.
+        extra_kwargs = {'slug': {'validators': []}}
+
+    def validate(self, data):
+        """
+        Custom validation error if an organization
+        already exists with the given slug.
+        """
+        org = Organization.objects.filter(slug__exact=data.get('slug')).first()
+        if org:
+            raise serializers.ValidationError(
+                {
+                    'slug': _('organization with this slug already exists.'),
+                    'organization': org.pk,
+                }
+            )
+        return super().validate(data)
 
 
 class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
