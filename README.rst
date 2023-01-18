@@ -1050,6 +1050,26 @@ Admin Multitenancy mixins
         list_filter = [SubnetFilter]
         # other options
 
+ProtectedAPIMixin
+~~~~~~~~~~~~~~~~~
+
+This mixin provides a set of authentication and permission classes 
+that are used across various OpenWISP modules API views.
+
+Usage example:
+
+.. code-block:: python
+
+    # Used in openwisp-ipam
+    from openwisp_users.api.mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
+
+    class ProtectedAPIMixin(BaseProtectedAPIMixin):
+        throttle_scope = 'ipam'
+
+    class SubnetView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
+        serializer_class = SubnetSerializer
+        queryset = Subnet.objects.all()
+
 Extend openwisp-users
 ---------------------
 
