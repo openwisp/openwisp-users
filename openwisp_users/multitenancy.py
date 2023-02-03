@@ -112,7 +112,7 @@ class MultitenantAdminMixin(object):
                         f'{User._meta.app_label}_organizationuser__organization__in'
                     ): user.organizations_managed
                 }
-            )
+            ).distinct()
             # hide superusers from organization operators
             # so they can't edit nor delete them
             qs = qs.filter(is_superuser=False)
