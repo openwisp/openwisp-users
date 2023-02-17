@@ -37,4 +37,6 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
     def test_accounts_login(self):
         r = self.client.get(reverse('account_login'), follow=True)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, '<button class="primaryAction" type="submit">')
+        self.assertContains(
+            r, '<input type="submit" class="button" value="Sign In" />', html=True
+        )
