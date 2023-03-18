@@ -8,7 +8,6 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.actions import delete_selected
-from django.contrib.admin.sites import NotRegistered
 from django.contrib.admin.utils import model_ngettext
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
@@ -646,22 +645,25 @@ admin.site.register(Group, GroupAdmin)
 
 # unregister some admin components to keep the admin interface simple
 # we can re-enable these models later when they will be really needed
-admin.site.unregister(apps.get_model('account', 'EmailAddress'))
+EmailAddress = apps.get_model('account', 'EmailAddress')
+if admin.site.is_registered(EmailAddress):
+    admin.site.unregister(EmailAddress)
+
 if allauth_settings.SOCIALACCOUNT_ENABLED:
     for model in [
         ('socialaccount', 'SocialApp'),
         ('socialaccount', 'SocialToken'),
         ('socialaccount', 'SocialAccount'),
     ]:
-        admin.site.unregister(apps.get_model(*model))
+        model_class = apps.get_model(*model)
+        if admin.site.is_registered(model_class):
+            admin.site.unregister(model_class)
 
 if 'rest_framework.authtoken' in settings.INSTALLED_APPS:  # pragma: no cover
     TokenProxy = apps.get_model('authtoken', 'TokenProxy')
 
-    try:
+    if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)
-    except NotRegistered:
-        pass
 
 
 def user_not_allowed_to_change_owner(user, obj):
