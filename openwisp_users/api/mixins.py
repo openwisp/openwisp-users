@@ -1,6 +1,8 @@
 import swapper
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import ForeignKey, Q
+from django_filters import rest_framework as filters
+from django_filters.filters import QuerySetRequestMixin
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -207,6 +209,72 @@ class FilterSerializerByOrgManaged(FilterSerializerByOrganization):
 class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
     """
     Filter serializer by organizations owned by user
+    """
+
+    _user_attr = 'organizations_owned'
+
+
+class DjangoOrganizationFilter(filters.ModelChoiceFilter, QuerySetRequestMixin):
+    def get_queryset(self, request):
+        user = request.user
+        queryset = super().get_queryset(request)
+        # superuser can see everything
+        if user.is_superuser or user.is_anonymous:
+            return queryset
+        # non superusers can see only items
+        # of organizations they're related to
+        organization_filter = getattr(user, self._user_attr)
+        # if field_name organization then just organization_filter
+        if self.field_name == 'organization':
+            return queryset.filter(pk__in=organization_filter)
+        # for field_name other than organization
+        conditions = Q(**{'organization__in': organization_filter})
+        return queryset.filter(conditions)
+
+    def __init__(self, *args, **kwargs):
+        self._user_attr = kwargs.get('user_attr')
+        kwargs.pop('user_attr')
+        super().__init__(*args, **kwargs)
+
+
+class FilterDjangoOrganization(filters.FilterSet):
+    """
+    A custom filter set class that applies
+    DjangoOrganizationFilter to all ModelChoiceFilter filters.
+    """
+
+    @classmethod
+    def filter_for_field(cls, field, name, lookup_expr='exact'):
+        print(cls._user_attr)
+        if isinstance(field, ForeignKey) and field.name != 'user':
+            return DjangoOrganizationFilter(
+                queryset=field.remote_field.model.objects.all(),
+                label=field.verbose_name.capitalize(),
+                field_name=field.name,
+                user_attr=cls._user_attr,
+            )
+        return super().filter_for_field(field, name, lookup_expr)
+
+
+class FilterDjangoByOrgMembership(FilterDjangoOrganization):
+    """
+    Filter django-filters by organizations the user is member of
+    """
+
+    _user_attr = 'organizations_dict'
+
+
+class FilterDjangoByOrgManaged(FilterDjangoOrganization):
+    """
+    Filter django-filters by organizations managed by user
+    """
+
+    _user_attr = 'organizations_managed'
+
+
+class FilterDjangoByOrgOwned(FilterDjangoOrganization):
+    """
+    Filter django-filters by organizations owned by user
     """
 
     _user_attr = 'organizations_owned'
