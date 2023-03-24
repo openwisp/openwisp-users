@@ -1,8 +1,8 @@
 import swapper
 from django.core.exceptions import ValidationError
-from django.db.models import ForeignKey, Q
+from django.db.models import ForeignKey, ManyToManyField, Q
 from django_filters import rest_framework as filters
-from django_filters.filters import QuerySetRequestMixin
+from django_filters.filters import QuerySetRequestMixin as BaseQuerySetRequestMixin
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -214,7 +214,7 @@ class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
     _user_attr = 'organizations_owned'
 
 
-class DjangoOrganizationFilter(filters.ModelChoiceFilter, QuerySetRequestMixin):
+class QuerySetRequestMixin(BaseQuerySetRequestMixin):
     def get_queryset(self, request):
         user = request.user
         queryset = super().get_queryset(request)
@@ -237,17 +237,33 @@ class DjangoOrganizationFilter(filters.ModelChoiceFilter, QuerySetRequestMixin):
         super().__init__(*args, **kwargs)
 
 
+class DjangoOrganizationFilter(filters.ModelChoiceFilter, QuerySetRequestMixin):
+    pass
+
+
+class DjangoOrganizationM2MFilter(
+    filters.ModelMultipleChoiceFilter, QuerySetRequestMixin
+):
+    pass
+
+
 class FilterDjangoOrganization(filters.FilterSet):
     """
-    A custom filter set class that applies
-    DjangoOrganizationFilter to all ModelChoiceFilter filters.
+    A custom filter set class that applies DjangoOrganizationFilter
+    to all ModelChoiceFilter & ModelMultipleChoiceFilterfilters.
     """
 
     @classmethod
     def filter_for_field(cls, field, name, lookup_expr='exact'):
-        print(cls._user_attr)
         if isinstance(field, ForeignKey) and field.name != 'user':
             return DjangoOrganizationFilter(
+                queryset=field.remote_field.model.objects.all(),
+                label=field.verbose_name.capitalize(),
+                field_name=field.name,
+                user_attr=cls._user_attr,
+            )
+        if isinstance(field, ManyToManyField) and field.name != 'user':
+            return DjangoOrganizationM2MFilter(
                 queryset=field.remote_field.model.objects.all(),
                 label=field.verbose_name.capitalize(),
                 field_name=field.name,
