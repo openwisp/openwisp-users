@@ -222,12 +222,20 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
     queryset = Template.objects.all()
 
 
+class LibraryListFilter(FilterDjangoByOrgManaged):
+    class Meta:
+        model = Library
+        fields = ('book',)
+
+
 class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     serializer_class = LibrarySerializer
     organization_field = 'book__organization'
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     queryset = Library.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = LibraryListFilter
 
 
 class LibraryDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView):
