@@ -11,6 +11,7 @@ from .mixins import TestMultitenancyMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+Organization = load_model('openwisp_users', 'Organization')
 User = get_user_model()
 
 
@@ -34,6 +35,19 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.book2 = self._create_book(
             name='book2', organization=self._get_org('org_a'), shelf=self.shelf_b
         )
+
+    def _assert_django_filters_options(self, response, shelf_a, shelf_b):
+        self.assertEqual(response.data[0]['id'], str(shelf_a.id))
+        self.assertNotContains(response, str(shelf_b.id))
+        # make sure only correct organization is
+        # visible in the django filters select options
+        self.assertContains(response, 'org_a</option>')
+        self.assertNotContains(response, 'org_b</option>')
+        self.assertNotContains(response, 'org_b</option>')
+        self.assertNotContains(response, 'default</option>')
+        self.assertNotContains(response, 'test org</option>')
+        self.assertNotContains(response, 'test-shelf-a</option>')
+        self.assertNotContains(response, 'test-shelf-b</option>')
 
     def test_browsable_api_filter_manager(self):
         operator = self._get_operator()
@@ -282,3 +296,41 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['organization'], org1.pk)
         self.assertNotContains(response, 'org1</option>')
+
+    def test_django_filter_by_org_membership(self):
+        operator = self._get_operator()
+        self._create_org_user(user=operator, organization=self._get_org('org_a'))
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_shelf_list_member_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+
+        self._assert_django_filters_options(response, self.shelf_a, self.shelf_b)
+
+    def test_django_filter_by_org_managed(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=self._get_user(), is_admin=True, organization=self._get_org('org_a')
+        )
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_shelf_list_manager_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self._assert_django_filters_options(response, self.shelf_a, self.shelf_b)
+
+    def test_django_filter_by_org_owned(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token()
+        url = reverse('test_shelf_list_owner_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self._assert_django_filters_options(response, self.shelf_a, self.shelf_b)

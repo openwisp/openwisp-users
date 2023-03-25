@@ -262,7 +262,9 @@ class FilterDjangoOrganization(filters.FilterSet):
                 field_name=field.name,
                 user_attr=cls._user_attr,
             )
-        if isinstance(field, ManyToManyField) and field.name != 'user':
+        if (
+            isinstance(field, ManyToManyField) and field.name != 'user'
+        ):  # pragma: no cover
             return DjangoOrganizationM2MFilter(
                 queryset=field.remote_field.model.objects.all(),
                 label=field.verbose_name.capitalize(),

@@ -1,4 +1,5 @@
 import swapper
+from django_filters import rest_framework as filters
 from rest_framework.generics import (
     ListAPIView,
     ListCreateAPIView,
@@ -15,6 +16,9 @@ from openwisp_users.api.mixins import (
     FilterByParentManaged,
     FilterByParentMembership,
     FilterByParentOwned,
+    FilterDjangoByOrgManaged,
+    FilterDjangoByOrgMembership,
+    FilterDjangoByOrgOwned,
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
@@ -59,6 +63,12 @@ class BaseGetApiView(APIView):
         return Response({})
 
 
+class BaseShelfListFilter:
+    class Meta:
+        model = Shelf
+        fields = ('organization',)
+
+
 class ApiMemberView(BaseGetApiView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
@@ -99,11 +109,21 @@ class ErrorOrganizationFieldView(BaseGetApiView):
     organization_field = 'error__organization'
 
 
+class ShelfListMemberFilter(BaseShelfListFilter, FilterDjangoByOrgMembership):
+    pass
+
+
 class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListMemberFilter
+
+
+class ShelfListManagerFilter(BaseShelfListFilter, FilterDjangoByOrgManaged):
+    pass
 
 
 class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
@@ -111,6 +131,12 @@ class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
     permission_classes = (IsOrganizationManager,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListManagerFilter
+
+
+class ShelfListOwnerFilter(BaseShelfListFilter, FilterDjangoByOrgOwned):
+    pass
 
 
 class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
@@ -118,6 +144,8 @@ class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
     permission_classes = (IsOrganizationOwner,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListOwnerFilter
 
 
 class BooksListMemberView(BookOrgMixin, FilterByParentMembership, ListCreateAPIView):

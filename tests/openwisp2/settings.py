@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'testapp',
     'reversion',
+    'django_filters',
 ]
 
 AUTH_USER_MODEL = 'openwisp_users.User'
