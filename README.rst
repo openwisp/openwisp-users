@@ -977,16 +977,16 @@ which is inheriting any of the mixin classes.
 Usage example: `organization_field
 <https://github.com/openwisp/openwisp-users#organization_field>`_.
 
-Django filters multi-tenant capabilities for the browsable web UI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Multi-tenant filters capabilities for the browsable web UI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Integration of `Django filters <https://django-filter.readthedocs.io/en/stable/guide/rest_framework.html>`_
 with `Django REST Framework <https://www.django-rest-framework.org/>`_
 is provided through a DRF-specific ``FilterSet`` and a ``filter backend``.
 
-The relationship fields in ``django-filters`` options interface shows all the
-relationships, without filtering by the organization the user has access to, which
-breaks multi-tenancy.
+The relationship fields of ``django-filters`` show all the available results,
+without filtering by the organization the user has access to,
+which breaks multi-tenancy.
 
 The ``FilterDjangoByOrgMembership``, ``FilterDjangoByOrgManaged``
 and ``FilterDjangoByOrgOwned`` can be used to solve this issue.
@@ -995,6 +995,7 @@ Usage example:
 
 .. code-block:: python
 
+   from django_filters import rest_framework as filters
    from openwisp_users.api.mixins import FilterDjangoByOrgManaged
    from ..models import FloorPlan
 
