@@ -232,8 +232,7 @@ class QuerySetRequestMixin(BaseQuerySetRequestMixin):
         return queryset.filter(conditions)
 
     def __init__(self, *args, **kwargs):
-        self._user_attr = kwargs.get('user_attr')
-        kwargs.pop('user_attr')
+        self._user_attr = kwargs.pop('user_attr')
         super().__init__(*args, **kwargs)
 
 
@@ -255,23 +254,18 @@ class FilterDjangoOrganization(filters.FilterSet):
 
     @classmethod
     def filter_for_field(cls, field, name, lookup_expr='exact'):
-        if isinstance(field, ForeignKey) and field.name != 'user':
-            return DjangoOrganizationFilter(
-                queryset=field.remote_field.model.objects.all(),
-                label=field.verbose_name.capitalize(),
-                field_name=field.name,
-                user_attr=cls._user_attr,
-            )
-        if (
-            isinstance(field, ManyToManyField) and field.name != 'user'
-        ):  # pragma: no cover
-            return DjangoOrganizationM2MFilter(
-                queryset=field.remote_field.model.objects.all(),
-                label=field.verbose_name.capitalize(),
-                field_name=field.name,
-                user_attr=cls._user_attr,
-            )
-        return super().filter_for_field(field, name, lookup_expr)
+        opts = dict(
+            queryset=field.remote_field.model.objects.all(),
+            label=field.verbose_name.capitalize(),
+            field_name=field.name,
+            user_attr=cls._user_attr,
+        )
+        not_user = field.name != 'user'
+
+        if isinstance(field, ForeignKey) and not_user:
+            return DjangoOrganizationFilter(**opts)
+        if isinstance(field, ManyToManyField) and not_user:
+            return DjangoOrganizationM2MFilter(**opts)
 
 
 class FilterDjangoByOrgMembership(FilterDjangoOrganization):
