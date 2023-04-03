@@ -67,7 +67,7 @@ class BaseGetApiView(APIView):
 class BaseShelfListFilter:
     class Meta:
         model = Shelf
-        fields = ('organization',)
+        fields = ('organization', 'tags')
 
 
 class ApiMemberView(BaseGetApiView):
@@ -126,6 +126,7 @@ class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
 class ShelfListManagerFilter(BaseOrganizationManagedFilter):
     class Meta(BaseOrganizationManagedFilter.Meta):
         model = Shelf
+        fields = BaseOrganizationManagedFilter.Meta.fields + ['tags']
 
 
 class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):

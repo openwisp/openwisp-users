@@ -21,6 +21,7 @@ def update_administrator_permissions(apps, schema_editor):
             Q(codename__endswith='template')
             | Q(codename__endswith='shelf')
             | Q(codename__endswith='book')
+            | Q(codename__endswith='tag')
         ).values_list('pk', flat=True)
         operator.permissions.add(*permissions)
     except ObjectDoesNotExist:

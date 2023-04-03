@@ -6,7 +6,7 @@ from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
 
-from ..models import Book, Library, Shelf
+from ..models import Book, Library, Shelf, Tag
 from .mixins import TestMultitenancyMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -20,14 +20,23 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.shelf_model = Shelf
         self.book_model = Book
         self.library_model = Library
+        self.tag_model = Tag
         self._create_org(name='org_a', slug='org_a')
         self._create_org(name='org_b', slug='org_b')
+        self.tag_a = self._create_tag(
+            name='test-tag-a', organization=self._get_org('org_a')
+        )
+        self.tag_b = self._create_tag(
+            name='test-tag-b', organization=self._get_org('org_b')
+        )
         self.shelf_a = self._create_shelf(
             name='test-shelf-a', organization=self._get_org('org_a')
         )
         self.shelf_b = self._create_shelf(
             name='test-shelf-b', organization=self._get_org('org_b')
         )
+        self.shelf_a.tags.add(self.tag_a)
+        self.shelf_b.tags.add(self.tag_b)
         self.book1 = self._create_book(
             name='book1', organization=self._get_org('org_a'), shelf=self.shelf_a
         )
@@ -41,10 +50,12 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         # make sure only correct organization is
         # visible in the django filters select options
         self.assertContains(response, 'org_a</option>')
+        self.assertContains(response, 'test-tag-a</option>')
         self.assertNotContains(response, 'org_b</option>')
         self.assertNotContains(response, 'default</option>')
         self.assertNotContains(response, 'test-shelf-a</option>')
         self.assertNotContains(response, 'test-shelf-b</option>')
+        self.assertNotContains(response, 'test-tag-b</option>')
 
     def test_browsable_api_filter_manager(self):
         operator = self._get_operator()
@@ -252,7 +263,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         )
         token = self._obtain_auth_token(administrator)
         url = reverse('test_book_nested_shelf')
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(8):
             response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.status_code, 200)
 
@@ -270,7 +281,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
             'author': 'test-auther',
             'organization': org1.pk,
         }
-        with self.assertNumQueries(12):
+        with self.assertNumQueries(13):
             response = self.client.post(
                 url,
                 data,
@@ -288,7 +299,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.client.force_login(operator)
         self._create_shelf(name='test-shelf-a', organization=org1)
         path = reverse('test_shelf_list_with_read_only_org')
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(7):
             response = self.client.get(path, {'format': 'api'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['organization'], org1.pk)
@@ -308,6 +319,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertContains(response, 'org_a</option>')
         self.assertContains(response, 'org_b</option>')
         self.assertContains(response, 'default</option>')
+        self.assertContains(response, 'id="id_tags" multiple>')
 
     def test_django_filters_by_field_other_than_organization(self):
         org1 = self._create_org(name='org1')

@@ -111,4 +111,38 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE, to='testapp.Shelf'
             ),
         ),
+        migrations.CreateModel(
+            name='Tag',
+            fields=[
+                (
+                    'id',
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                ('name', models.CharField(max_length=50)),
+                (
+                    'organization',
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=swapper.get_model_name('openwisp_users', 'Organization'),
+                        verbose_name='organization',
+                    ),
+                ),
+            ],
+            options={
+                'abstract': False,
+            },
+            bases=(openwisp_users.mixins.ValidateOrgMixin, models.Model),
+        ),
+        migrations.AddField(
+            model_name='shelf',
+            name='tags',
+            field=models.ManyToManyField(blank=True, to='testapp.Tag'),
+        ),
     ]
