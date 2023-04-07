@@ -46,7 +46,6 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
 
     def _assert_django_filters_shelf_options(self, response, shelf_a, shelf_b):
         self.assertEqual(response.data[0]['id'], str(shelf_a.id))
-        self.assertNotContains(response, str(shelf_b.id))
         # make sure only correct organization is
         # visible in the django filters select options
         self.assertContains(response, 'org_a</option>')
@@ -64,6 +63,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
             html=True,
         )
         self.assertContains(response, 'test-tag-a</option>')
+        self.assertNotContains(response, str(shelf_b.id))
         self.assertNotContains(response, 'org_b</option>')
         self.assertNotContains(response, 'default</option>')
         self.assertNotContains(response, 'test-shelf-a</option>')
@@ -337,8 +337,8 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
     def test_django_filters_by_field_other_than_organization(self):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')
-        book_org1 = self._create_book(name='book_org1', organization=org1)
-        book_org2 = self._create_book(name='book_org2', organization=org2)
+        book_org1 = self._create_book(name='book_o1', organization=org1)
+        book_org2 = self._create_book(name='book_o2', organization=org2)
         lib1 = self._create_library(name='lib1', book=book_org1)
         self._create_library(name='lib2', book=book_org2)
         operator = self._get_operator()
@@ -352,7 +352,9 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(len(response.data), 1)
         # ensure that only the 'books' belonging to 'org1'
         # are visible in the django-filters select options
-        self.assertContains(response, 'book_org1</option>')
+        self.assertContains(response, 'book_o1</option>')
+        self.assertNotContains(response, 'book_o2</option>')
+        self.assertNotContains(response, 'org1</option>')
         self.assertNotContains(response, 'org2</option>')
         self.assertNotContains(response, 'default</option>')
         self.assertNotContains(response, 'lib1</option>')
