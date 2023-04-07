@@ -254,18 +254,20 @@ class FilterDjangoOrganization(filters.FilterSet):
 
     @classmethod
     def filter_for_field(cls, field, name, lookup_expr='exact'):
-        opts = dict(
-            queryset=field.remote_field.model.objects.all(),
-            label=field.verbose_name.capitalize(),
-            field_name=field.name,
-            user_attr=cls._user_attr,
-        )
-        not_user = field.name != 'user'
-
-        if isinstance(field, ForeignKey) and not_user:
-            return DjangoOrganizationFilter(**opts)
-        if isinstance(field, ManyToManyField) and not_user:
-            return DjangoOrganizationM2MFilter(**opts)
+        if isinstance(field, ForeignKey) or isinstance(field, ManyToManyField):
+            if field.name == 'user':
+                return super().filter_for_field(field, name, lookup_expr)
+            opts = dict(
+                queryset=field.remote_field.model.objects.all(),
+                label=field.verbose_name.capitalize(),
+                field_name=field.name,
+                user_attr=cls._user_attr,
+            )
+            if isinstance(field, ForeignKey):
+                return DjangoOrganizationFilter(**opts)
+            if isinstance(field, ManyToManyField):
+                return DjangoOrganizationM2MFilter(**opts)
+        return super().filter_for_field(field, name, lookup_expr)
 
 
 class FilterDjangoByOrgMembership(FilterDjangoOrganization):
