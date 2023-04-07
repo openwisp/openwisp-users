@@ -1015,6 +1015,32 @@ Usage example:
        filter_backends = [filters.DjangoFilterBackend]
        filterset_class = FloorPlanOrganizationFilter
 
+You can also use the organization filter classes
+such as ``OrganizationManagedFilter`` from ``openwisp_users.api.filters``
+which includes ``organization`` and ``organization_slug`` filter fields by default.
+
+Usage example:
+
+.. code-block:: python
+
+   from django_filters import rest_framework as filters
+   from openwisp_users.api.filters import OrganizationManagedFilter
+   from ..models import FloorPlan
+
+
+   class FloorPlanFilter(OrganizationManagedFilter):
+
+       class Meta(OrganizationManagedFilter.Meta):
+           model = FloorPlan
+
+
+   class FloorPlanListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
+       serializer_class = FloorPlanSerializer
+       queryset = FloorPlan.objects.select_related().order_by('-created')
+       pagination_class = ListViewPagination
+       filter_backends = [filters.DjangoFilterBackend]
+       filterset_class = FloorPlanFilter
+
 Admin Multitenancy mixins
 -------------------------
 

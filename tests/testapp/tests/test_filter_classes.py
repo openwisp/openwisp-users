@@ -50,6 +50,19 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         # make sure only correct organization is
         # visible in the django filters select options
         self.assertContains(response, 'org_a</option>')
+        # As Shelf API Views use reusable OrganizationFilter classes,
+        # the response should include both organization
+        # and organization slug filter options
+        self.assertContains(
+            response,
+            """
+            <p>
+                <label for="id_organization_slug">Organization slug:</label>
+                <input type="text" name="organization_slug" id="id_organization_slug">
+            </p>
+            """,
+            html=True,
+        )
         self.assertContains(response, 'test-tag-a</option>')
         self.assertNotContains(response, 'org_b</option>')
         self.assertNotContains(response, 'default</option>')
@@ -370,18 +383,6 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
             url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
         )
         self._assert_django_filters_shelf_options(response, self.shelf_a, self.shelf_b)
-        # Because this API view utilizes BaseOrganizationManagedFilter,
-        # it is expected to include both organization
-        # and organization slug filter options
-        self.assertContains(
-            response,
-            """
-            <p><label for="id_organization_slug">Organization slug:</label>
-                <input type="text" name="organization_slug" id="id_organization_slug">
-            </p>
-            """,
-            html=True,
-        )
 
     def test_django_filters_by_org_owned(self):
         operator = self._get_operator()

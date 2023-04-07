@@ -9,7 +9,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from openwisp_users.api.authentication import BearerAuthentication
-from openwisp_users.api.filters import BaseOrganizationManagedFilter
+from openwisp_users.api.filters import (
+    OrganizationManagedFilter,
+    OrganizationMembershipFilter,
+    OrganizationOwnedFilter,
+)
 from openwisp_users.api.mixins import (
     FilterByOrganizationManaged,
     FilterByOrganizationMembership,
@@ -18,8 +22,6 @@ from openwisp_users.api.mixins import (
     FilterByParentMembership,
     FilterByParentOwned,
     FilterDjangoByOrgManaged,
-    FilterDjangoByOrgMembership,
-    FilterDjangoByOrgOwned,
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
@@ -64,12 +66,6 @@ class BaseGetApiView(APIView):
         return Response({})
 
 
-class BaseShelfListFilter:
-    class Meta:
-        model = Shelf
-        fields = ('organization', 'tags')
-
-
 class ApiMemberView(BaseGetApiView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
@@ -110,8 +106,10 @@ class ErrorOrganizationFieldView(BaseGetApiView):
     organization_field = 'error__organization'
 
 
-class ShelfListMemberFilter(BaseShelfListFilter, FilterDjangoByOrgMembership):
-    pass
+class ShelfListMemberFilter(OrganizationMembershipFilter):
+    class Meta(OrganizationMembershipFilter.Meta):
+        model = Shelf
+        fields = OrganizationMembershipFilter.Meta.fields + ['tags']
 
 
 class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
@@ -123,10 +121,10 @@ class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
     filterset_class = ShelfListMemberFilter
 
 
-class ShelfListManagerFilter(BaseOrganizationManagedFilter):
-    class Meta(BaseOrganizationManagedFilter.Meta):
+class ShelfListManagerFilter(OrganizationManagedFilter):
+    class Meta(OrganizationManagedFilter.Meta):
         model = Shelf
-        fields = BaseOrganizationManagedFilter.Meta.fields + ['tags']
+        fields = OrganizationManagedFilter.Meta.fields + ['tags']
 
 
 class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
@@ -138,8 +136,10 @@ class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
     filterset_class = ShelfListManagerFilter
 
 
-class ShelfListOwnerFilter(BaseShelfListFilter, FilterDjangoByOrgOwned):
-    pass
+class ShelfListOwnerFilter(OrganizationOwnedFilter):
+    class Meta(OrganizationOwnedFilter.Meta):
+        model = Shelf
+        fields = OrganizationOwnedFilter.Meta.fields + ['tags']
 
 
 class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
