@@ -26,8 +26,16 @@ class Config(OrgMixin):
         self._validate_org_relation('template')
 
 
+class Tag(ShareableOrgMixin):
+    name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+
 class Shelf(ShareableOrgMixin, TimeStampedEditableModel):
     name = models.CharField(_('name'), max_length=64)
+    tags = models.ManyToManyField(Tag, blank=True)
 
     def __str__(self):
         return self.name

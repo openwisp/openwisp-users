@@ -1,4 +1,5 @@
 import swapper
+from django_filters import rest_framework as filters
 from rest_framework.generics import (
     ListAPIView,
     ListCreateAPIView,
@@ -8,6 +9,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from openwisp_users.api.authentication import BearerAuthentication
+from openwisp_users.api.filters import (
+    OrganizationManagedFilter,
+    OrganizationMembershipFilter,
+    OrganizationOwnedFilter,
+)
 from openwisp_users.api.mixins import (
     FilterByOrganizationManaged,
     FilterByOrganizationMembership,
@@ -15,6 +21,7 @@ from openwisp_users.api.mixins import (
     FilterByParentManaged,
     FilterByParentMembership,
     FilterByParentOwned,
+    FilterDjangoByOrgManaged,
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
@@ -99,11 +106,25 @@ class ErrorOrganizationFieldView(BaseGetApiView):
     organization_field = 'error__organization'
 
 
+class ShelfListMemberFilter(OrganizationMembershipFilter):
+    class Meta(OrganizationMembershipFilter.Meta):
+        model = Shelf
+        fields = OrganizationMembershipFilter.Meta.fields + ['tags']
+
+
 class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListMemberFilter
+
+
+class ShelfListManagerFilter(OrganizationManagedFilter):
+    class Meta(OrganizationManagedFilter.Meta):
+        model = Shelf
+        fields = OrganizationManagedFilter.Meta.fields + ['tags']
 
 
 class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
@@ -111,6 +132,14 @@ class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
     permission_classes = (IsOrganizationManager,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListManagerFilter
+
+
+class ShelfListOwnerFilter(OrganizationOwnedFilter):
+    class Meta(OrganizationOwnedFilter.Meta):
+        model = Shelf
+        fields = OrganizationOwnedFilter.Meta.fields + ['tags']
 
 
 class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
@@ -118,6 +147,8 @@ class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
     permission_classes = (IsOrganizationOwner,)
     serializer_class = ShelfSerializer
     queryset = Shelf.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ShelfListOwnerFilter
 
 
 class BooksListMemberView(BookOrgMixin, FilterByParentMembership, ListCreateAPIView):
@@ -194,12 +225,20 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
     queryset = Template.objects.all()
 
 
+class LibraryListFilter(FilterDjangoByOrgManaged):
+    class Meta:
+        model = Library
+        fields = ('book',)
+
+
 class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     serializer_class = LibrarySerializer
     organization_field = 'book__organization'
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     queryset = Library.objects.all()
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = LibraryListFilter
 
 
 class LibraryDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView):

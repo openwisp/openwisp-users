@@ -30,3 +30,11 @@ class CreateMixin(object):
         lib.full_clean()
         lib.save()
         return lib
+
+    def _create_tag(self, **kwargs):
+        options = dict(name='test-tag')
+        options.update(kwargs)
+        tag = self.tag_model(**options)
+        tag.full_clean()
+        tag.save()
+        return tag

@@ -7,7 +7,7 @@ from openwisp_users.multitenancy import (
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Book, Library, Shelf, Template
+from .models import Book, Library, Shelf, Tag, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -17,8 +17,9 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
 class ShelfAdmin(BaseAdmin):
     list_display = ['name', 'organization']
     list_filter = [MultitenantOrgFilter]
-    fields = ['name', 'organization', 'created', 'modified']
+    fields = ['name', 'organization', 'tags', 'created', 'modified']
     search_fields = ['name']
+    multitenant_shared_relations = ['tags']
 
 
 class ShelfFilter(MultitenantRelatedOrgFilter):
@@ -63,7 +64,12 @@ class TemplateAdmin(BaseAdmin):
     pass
 
 
+class TagAdmin(BaseAdmin):
+    pass
+
+
 admin.site.register(Shelf, ShelfAdmin)
 admin.site.register(Book, BookAdmin)
 admin.site.register(Template, TemplateAdmin)
 admin.site.register(Library)
+admin.site.register(Tag, TagAdmin)

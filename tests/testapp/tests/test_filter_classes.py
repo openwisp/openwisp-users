@@ -6,7 +6,7 @@ from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
 
-from ..models import Book, Library, Shelf
+from ..models import Book, Library, Shelf, Tag
 from .mixins import TestMultitenancyMixin
 
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
@@ -20,20 +20,55 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.shelf_model = Shelf
         self.book_model = Book
         self.library_model = Library
+        self.tag_model = Tag
         self._create_org(name='org_a', slug='org_a')
         self._create_org(name='org_b', slug='org_b')
+        self.tag_a = self._create_tag(
+            name='test-tag-a', organization=self._get_org('org_a')
+        )
+        self.tag_b = self._create_tag(
+            name='test-tag-b', organization=self._get_org('org_b')
+        )
         self.shelf_a = self._create_shelf(
             name='test-shelf-a', organization=self._get_org('org_a')
         )
         self.shelf_b = self._create_shelf(
             name='test-shelf-b', organization=self._get_org('org_b')
         )
+        self.shelf_a.tags.add(self.tag_a)
+        self.shelf_b.tags.add(self.tag_b)
         self.book1 = self._create_book(
             name='book1', organization=self._get_org('org_a'), shelf=self.shelf_a
         )
         self.book2 = self._create_book(
             name='book2', organization=self._get_org('org_a'), shelf=self.shelf_b
         )
+
+    def _assert_django_filters_shelf_options(self, response, shelf_a, shelf_b):
+        self.assertEqual(response.data[0]['id'], str(shelf_a.id))
+        # make sure only correct organization is
+        # visible in the django filters select options
+        self.assertContains(response, 'org_a</option>')
+        # As Shelf API Views use reusable OrganizationFilter classes,
+        # the response should include both organization
+        # and organization slug filter options
+        self.assertContains(
+            response,
+            """
+            <p>
+                <label for="id_organization_slug">Organization slug:</label>
+                <input type="text" name="organization_slug" id="id_organization_slug">
+            </p>
+            """,
+            html=True,
+        )
+        self.assertContains(response, 'test-tag-a</option>')
+        self.assertNotContains(response, str(shelf_b.id))
+        self.assertNotContains(response, 'org_b</option>')
+        self.assertNotContains(response, 'default</option>')
+        self.assertNotContains(response, 'test-shelf-a</option>')
+        self.assertNotContains(response, 'test-shelf-b</option>')
+        self.assertNotContains(response, 'test-tag-b</option>')
 
     def test_browsable_api_filter_manager(self):
         operator = self._get_operator()
@@ -241,7 +276,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         )
         token = self._obtain_auth_token(administrator)
         url = reverse('test_book_nested_shelf')
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(8):
             response = self.client.get(url, HTTP_AUTHORIZATION=f'Bearer {token}')
         self.assertEqual(response.status_code, 200)
 
@@ -259,7 +294,7 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
             'author': 'test-auther',
             'organization': org1.pk,
         }
-        with self.assertNumQueries(12):
+        with self.assertNumQueries(13):
             response = self.client.post(
                 url,
                 data,
@@ -277,8 +312,88 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.client.force_login(operator)
         self._create_shelf(name='test-shelf-a', organization=org1)
         path = reverse('test_shelf_list_with_read_only_org')
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(7):
             response = self.client.get(path, {'format': 'api'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['organization'], org1.pk)
         self.assertNotContains(response, 'org1</option>')
+
+    def test_django_filters_superuser(self):
+        admin = self._get_admin()
+        token = self._obtain_auth_token(admin)
+        url = reverse('test_shelf_list_member_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+
+        self.assertEqual(response.data[0]['id'], str(self.shelf_a.id))
+        # superuser can see every filter options
+        self.assertContains(response, str(self.shelf_b.id))
+        self.assertContains(response, 'org_a</option>')
+        self.assertContains(response, 'org_b</option>')
+        self.assertContains(response, 'default</option>')
+        self.assertContains(response, 'id="id_tags" multiple>')
+
+    def test_django_filters_by_field_other_than_organization(self):
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        book_org1 = self._create_book(name='book_o1', organization=org1)
+        book_org2 = self._create_book(name='book_o2', organization=org2)
+        lib1 = self._create_library(name='lib1', book=book_org1)
+        self._create_library(name='lib2', book=book_org2)
+        operator = self._get_operator()
+        self._create_org_user(user=operator, is_admin=True, organization=org1)
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_library_list')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertEqual(response.data[0]['id'], lib1.id)
+        self.assertEqual(len(response.data), 1)
+        # ensure that only the 'books' belonging to 'org1'
+        # are visible in the django-filters select options
+        self.assertContains(response, 'book_o1</option>')
+        self.assertNotContains(response, 'book_o2</option>')
+        self.assertNotContains(response, 'org1</option>')
+        self.assertNotContains(response, 'org2</option>')
+        self.assertNotContains(response, 'default</option>')
+        self.assertNotContains(response, 'lib1</option>')
+        self.assertNotContains(response, 'lib2</option>')
+
+    def test_django_filters_by_org_membership(self):
+        operator = self._get_operator()
+        self._create_org_user(user=operator, organization=self._get_org('org_a'))
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_shelf_list_member_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+
+        self._assert_django_filters_shelf_options(response, self.shelf_a, self.shelf_b)
+
+    def test_django_filters_by_org_managed(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=self._get_user(), is_admin=True, organization=self._get_org('org_a')
+        )
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token(operator)
+        url = reverse('test_shelf_list_manager_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self._assert_django_filters_shelf_options(response, self.shelf_a, self.shelf_b)
+
+    def test_django_filters_by_org_owned(self):
+        operator = self._get_operator()
+        self._create_org_user(
+            user=operator, is_admin=True, organization=self._get_org('org_a')
+        )
+        token = self._obtain_auth_token()
+        url = reverse('test_shelf_list_owner_view')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self._assert_django_filters_shelf_options(response, self.shelf_a, self.shelf_b)
