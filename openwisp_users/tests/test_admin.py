@@ -1773,11 +1773,8 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
         self._create_org_user(organization=other_org, user=staff, is_admin=True)
         self._create_org_user(organization=staff_org, user=staff, is_admin=True)
         self._login(staff.username)
-        self._test_multitenant_admin(
-            url=reverse(f'admin:{self.app_label}_user_change', args=[staff.pk]),
-            hidden=[],
-            visible=[staff.username],
-        )
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
+        self.assertContains(response, staff.email, count=1)
 
     def test_class_attr_regression(self):
         class TestAdmin(MultitenantAdminMixin):

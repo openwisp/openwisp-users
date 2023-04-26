@@ -105,20 +105,27 @@ class MultitenantAdminMixin(object):
         if superuser is logged in - show all users
         """
         user = request.user
-        if not user.is_superuser:
-            qs = User.objects.filter(
-                **{
-                    (
-                        f'{User._meta.app_label}_organizationuser__organization__in'
-                    ): user.organizations_managed
-                }
-            ).distinct()
-            # hide superusers from organization operators
-            # so they can't edit nor delete them
-            qs = qs.filter(is_superuser=False)
-        else:
-            qs = super().get_queryset(request)
-        return qs
+        qs = super().get_queryset(request)
+        if user.is_superuser:
+            return qs
+        # Instead of querying the User model using the many-to-many relation
+        # openwisp_users__organizationuser__organization, a separate query is
+        # made to fetch users of organizations managed by the logged-in user.
+        # This approach avoids duplicate objects for users that are admin of
+        # multiple organizations managed by the logged-in user.
+        # See https://github.com/openwisp/openwisp-users/issues/324.
+        # We cannot use .distinct() on the User query directly, because
+        # it causes issues when performing delete action from the admin.
+        user_ids = (
+            OrganizationUser.objects.filter(
+                organization_id__in=user.organizations_managed
+            )
+            .values_list('user_id')
+            .distinct()
+        )
+        # hide superusers from organization operators
+        # so they can't edit nor delete them
+        return qs.filter(id__in=user_ids, is_superuser=False)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == 'organization':
