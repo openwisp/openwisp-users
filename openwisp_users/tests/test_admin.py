@@ -1762,6 +1762,20 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
             visible=[staff.username],
         )
 
+    def test_staff_user_manager_of_multiple_orgs_bug(self):
+        staff = self._create_user(
+            username='staff__user', email='staff@staff.org', is_staff=True
+        )
+        staff_org = self._create_org(name='staff_org')
+        other_org = Organization.objects.create(name='other org', slug='other-org')
+        admin_group = Group.objects.get(name='Administrator')
+        staff.groups.add(admin_group)
+        self._create_org_user(organization=other_org, user=staff, is_admin=True)
+        self._create_org_user(organization=staff_org, user=staff, is_admin=True)
+        self._login(staff.username)
+        response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
+        self.assertContains(response, staff.email, count=1)
+
     def test_class_attr_regression(self):
         class TestAdmin(MultitenantAdminMixin):
             multitenant_parent = 'test'
