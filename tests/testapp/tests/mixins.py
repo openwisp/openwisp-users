@@ -1,3 +1,5 @@
+from selenium.webdriver.common.by import By
+
 from openwisp_users.tests.test_api import AuthenticationMixin
 from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
@@ -43,6 +45,6 @@ class SeleniumTestMixin:
             password = self.admin_password
         driver.get(f'{self.live_server_url}/admin/login/')
         if 'admin/login' in driver.current_url:
-            driver.find_element_by_name('username').send_keys(username)
-            driver.find_element_by_name('password').send_keys(password)
-            driver.find_element_by_xpath('//input[@type="submit"]').click()
+            driver.find_element(By.NAME, 'username').send_keys(username)
+            driver.find_element(By.NAME, 'password').send_keys(password)
+            driver.find_element(By.XPATH, '//input[@type="submit"]').click()

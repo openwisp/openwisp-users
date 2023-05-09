@@ -52,16 +52,16 @@ class TestOrganizationAutocompleteField(
     ):
         self.login(username=username, password=password)
         self.open(path)
-        self.web_driver.find_element_by_css_selector(
-            '#select2-id_organization-container'
+        self.web_driver.find_element(
+            By.CSS_SELECTOR, '#select2-id_organization-container'
         ).click()
         WebDriverWait(self.web_driver, 2).until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, '.select2-results__option.loading-results')
             )
         )
-        options = self.web_driver.find_elements_by_css_selector(
-            '.select2-results__option'
+        options = self.web_driver.find_elements(
+            By.CSS_SELECTOR, '.select2-results__option'
         )
         for option in options:
             self.assertIn(option.text, visible)
@@ -102,7 +102,7 @@ class TestOrganizationAutocompleteField(
                 ),
             )
             org_select = Select(
-                self.web_driver.find_element_by_css_selector('#id_organization')
+                self.web_driver.find_element(By.CSS_SELECTOR, '#id_organization')
             )
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
@@ -121,7 +121,7 @@ class TestOrganizationAutocompleteField(
                 ).values_list('name', flat=True),
             )
             org_select = Select(
-                self.web_driver.find_element_by_css_selector('#id_organization')
+                self.web_driver.find_element(By.CSS_SELECTOR, '#id_organization')
             )
             self.assertEqual(len(org_select.all_selected_options), 0)
         self.open(reverse('admin:logout'))
@@ -163,7 +163,7 @@ class TestOrganizationAutocompleteField(
                 + ['Shared systemwide (no organization)'],
             )
             org_select = Select(
-                self.web_driver.find_element_by_css_selector('#id_organization')
+                self.web_driver.find_element(By.CSS_SELECTOR, '#id_organization')
             )
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
