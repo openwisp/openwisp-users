@@ -2,4 +2,4 @@ openwisp-utils[qa] @ https://github.com/openwisp/openwisp-utils/tarball/master
 redis~=4.3.4
 django-redis~=5.0.0
 django-reversion~=4.0.1
-selenium~=3.141.0
+selenium~=4.9.0
