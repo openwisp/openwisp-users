@@ -228,7 +228,10 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
 class LibraryListFilter(FilterDjangoByOrgManaged):
     class Meta:
         model = Library
-        fields = ('book',)
+        fields = (
+            'book',
+            'book__organization',
+        )
 
 
 class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
