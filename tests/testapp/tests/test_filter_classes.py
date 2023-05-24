@@ -351,14 +351,55 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(response.data[0]['id'], lib1.id)
         self.assertEqual(len(response.data), 1)
         # ensure that only the 'books' belonging to 'org1'
-        # are visible in the django-filters select options
+        # and 'org1' are visible in the django-filters select options
         self.assertContains(response, 'book_o1</option>')
+        self.assertContains(response, 'org1</option>')
         self.assertNotContains(response, 'book_o2</option>')
-        self.assertNotContains(response, 'org1</option>')
         self.assertNotContains(response, 'org2</option>')
         self.assertNotContains(response, 'default</option>')
         self.assertNotContains(response, 'lib1</option>')
         self.assertNotContains(response, 'lib2</option>')
+
+    def test_django_filters_related_organization_field(self):
+        org1 = self._create_org(name='org1')
+        org2 = self._create_org(name='org2')
+        book_org1 = self._create_book(name='book_o1', organization=org1)
+        book_org2 = self._create_book(name='book_o2', organization=org2)
+        lib1 = self._create_library(name='lib1', book=book_org1)
+        self._create_library(name='lib2', book=book_org2)
+        operator = self._get_operator()
+        self._create_org_user(user=operator, is_admin=True, organization=org1)
+        token = self._obtain_auth_token(operator)
+        # The 'LibraryListFilter' field includes
+        # related organization field ('book__organization')
+        url = reverse('test_library_list')
+        response = self.client.get(
+            url, {'format': 'api'}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertEqual(response.data[0]['id'], lib1.id)
+        self.assertEqual(len(response.data), 1)
+        # ensure that only the 'books' belonging to 'org1'
+        # and 'org1' are visible in the django-filters select options
+        self.assertContains(response, 'book_o1</option>')
+        self.assertContains(response, 'org1</option>')
+        self.assertNotContains(response, 'book_o2</option>')
+        self.assertNotContains(response, 'org2</option>')
+        self.assertNotContains(response, 'default</option>')
+        self.assertNotContains(response, 'lib1</option>')
+        self.assertNotContains(response, 'lib2</option>')
+        # Now ensure that filtering with the
+        # related organization field is properly working or not
+        response = self.client.get(
+            url, {'book__organization': org1.pk}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        self.assertEqual(response.data[0]['id'], lib1.id)
+        self.assertEqual(len(response.data), 1)
+        response = self.client.get(
+            url, {'book__organization': org2.pk}, HTTP_AUTHORIZATION=f'Bearer {token}'
+        )
+        err = 'That choice is not one of the available choices'
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(err, str(response.data['book__organization'][0]))
 
     def test_django_filters_by_org_membership(self):
         operator = self._get_operator()

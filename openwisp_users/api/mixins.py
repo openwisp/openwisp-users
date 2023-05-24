@@ -225,7 +225,7 @@ class QuerySetRequestMixin(BaseQuerySetRequestMixin):
         # of organizations they're related to
         organization_filter = getattr(user, self._user_attr)
         # if field_name organization then just organization_filter
-        if self.field_name == 'organization':
+        if self._filter_field == 'organization':
             return queryset.filter(pk__in=organization_filter)
         # for field_name other than organization
         conditions = Q(**{'organization__in': organization_filter})
@@ -233,6 +233,7 @@ class QuerySetRequestMixin(BaseQuerySetRequestMixin):
 
     def __init__(self, *args, **kwargs):
         self._user_attr = kwargs.pop('user_attr')
+        self._filter_field = kwargs.pop('filter_field')
         super().__init__(*args, **kwargs)
 
 
@@ -260,8 +261,9 @@ class FilterDjangoOrganization(filters.FilterSet):
             opts = dict(
                 queryset=field.remote_field.model.objects.all(),
                 label=field.verbose_name.capitalize(),
-                field_name=field.name,
+                field_name=name,
                 user_attr=cls._user_attr,
+                filter_field=field.name,
             )
             if isinstance(field, ForeignKey):
                 return DjangoOrganizationFilter(**opts)
