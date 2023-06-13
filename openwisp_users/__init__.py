@@ -1,8 +1,6 @@
 VERSION = (1, 1, 0, 'alpha')
 __version__ = VERSION  # alias
 
-default_app_config = 'openwisp_users.apps.OpenwispUsersConfig'
-
 
 def get_version():
     version = '%s.%s.%s' % (VERSION[0], VERSION[1], VERSION[2])
