@@ -12,6 +12,26 @@ USERS_AUTH_THROTTLE_RATE = getattr(
 AUTH_BACKEND_AUTO_PREFIXES = getattr(
     settings, 'OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES', tuple()
 )
+EXPORT_USERS_COMMAND_CONFIG = {
+    'fields': [
+        'id',
+        'username',
+        'email',
+        'password',
+        'first_name',
+        'last_name',
+        'is_staff',
+        'is_active',
+        'date_joined',
+        'phone_number',
+        'birth_date',
+        'location',
+        'notes',
+        'language',
+        'organizations',
+    ],
+    'select_related': [],
+}
 # Set the AutocompleteFilter view if it is not defined in the settings
 setattr(
     settings,
