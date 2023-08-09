@@ -1157,19 +1157,20 @@ Management Commands
 
 This command exports user data to a CSV file, including related data such as organizations.
 
+**Arguments**:
+
+- `--exclude-fields`: Optional, comma-separated list of fields to exclude from the export.
+- `--filename`: Optional, filename for the exported CSV, defaults to "openwisp_exported_users.csv".
+
 Example usage:
 
 .. code-block:: shell
 
-    ./manage.py export_users
+    ./manage.py export_users --exclude-fields birth_date,location --filename users.csv
 
-**Arguments**:
-
-- `--exclude-fields`: Comma-separated list of fields to exclude from the export.
-- `--filename`: Filename for the exported CSV, defaults to "openwisp_exported_users.csv".
-
-You can change the exported fields using the `OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG
-<#openwisp_users_export_users_command_config>`_ setting.
+For advance customizations (e.g. adding fields for export), you can use the
+`OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG <#openwisp_users_export_users_command_config>`_
+setting.
 
 ProtectedAPIMixin
 ~~~~~~~~~~~~~~~~~
