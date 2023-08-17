@@ -273,6 +273,41 @@ is a valid number of not.
 This allows users to log in by using only the national phone number,
 without having to specify the international prefix.
 
+``OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+--------------------------+
+| **type**:    | ``dict``                 |
++--------------+--------------------------+
+| **default**: | .. code-block:: python   |
+|              |                          |
+|              |    {                     |
+|              |    'fields': [           |
+|              |        'id',             |
+|              |        'username',       |
+|              |        'email',          |
+|              |        'password',       |
+|              |        'first_name',     |
+|              |        'last_name',      |
+|              |        'is_staff',       |
+|              |        'is_active',      |
+|              |        'date_joined',    |
+|              |        'phone_number',   |
+|              |        'birth_date',     |
+|              |        'location',       |
+|              |        'notes',          |
+|              |        'language',       |
+|              |        'organizations',  |
+|              |    ],                    |
+|              |    'select_related': [], |
+|              |    }                     |
++--------------+--------------------------+
+
+This setting can be used to configure the exported fields for the `"export_users" <#export_users>`_
+command.
+
+The ``select_related`` property can be used to optimize the database query.
+
 REST API
 --------
 
@@ -1114,10 +1149,33 @@ Admin Multitenancy mixins
         list_filter = [SubnetFilter]
         # other options
 
+Management Commands
+-------------------
+
+``export_users``
+~~~~~~~~~~~~~~~~
+
+This command exports user data to a CSV file, including related data such as organizations.
+
+**Arguments**:
+
+- `--exclude-fields`: Optional, comma-separated list of fields to exclude from the export.
+- `--filename`: Optional, filename for the exported CSV, defaults to "openwisp_exported_users.csv".
+
+Example usage:
+
+.. code-block:: shell
+
+    ./manage.py export_users --exclude-fields birth_date,location --filename users.csv
+
+For advance customizations (e.g. adding fields for export), you can use the
+`OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG <#openwisp_users_export_users_command_config>`_
+setting.
+
 ProtectedAPIMixin
 ~~~~~~~~~~~~~~~~~
 
-This mixin provides a set of authentication and permission classes 
+This mixin provides a set of authentication and permission classes
 that are used across various OpenWISP modules API views.
 
 Usage example:
