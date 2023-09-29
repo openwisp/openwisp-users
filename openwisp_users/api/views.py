@@ -20,6 +20,7 @@ from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
 
+from .mixins import FilterByParent
 from .mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
 from .serializers import (
     ChangePasswordSerializer,
@@ -198,7 +199,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
+class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
     model = EmailAddress
     serializer_class = EmailAddressSerializer
 
