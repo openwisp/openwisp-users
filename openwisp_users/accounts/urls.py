@@ -14,12 +14,17 @@ from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic import RedirectView
 from django.views.generic.base import TemplateView
 
+from .views import post_login_redirect
+
 redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 
 
 urlpatterns = [
     path('signup/', redirect_view, name='account_signup'),
     path('login/', views.login, name='account_login'),
+    path(
+        'post-login-redirect/', post_login_redirect, name='account_post_login_redirect'
+    ),
     path('logout/', views.logout, name='account_logout'),
     path('inactive/', views.account_inactive, name='account_inactive'),
     # E-mail
@@ -32,6 +37,12 @@ urlpatterns = [
         r'^confirm-email/(?P<key>[-:\w]+)/$',
         views.confirm_email,
         name='account_confirm_email',
+    ),
+    # password change
+    path(
+        "password/change/",
+        views.password_change,
+        name="account_change_password",
     ),
     # password reset
     path('password/reset/', views.password_reset, name='account_reset_password'),

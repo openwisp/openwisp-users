@@ -39,7 +39,7 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 .coverage
-# When running coverage testing 
+# When running coverage testing
 # it creates .coverage-username.123x* files
 .coverage.*
 .cache
@@ -52,6 +52,9 @@ coverage.xml
 
 # Django stuff:
 *.log
+
+# celery
+tests/celerybeat*
 
 # Sphinx documentation
 docs/_build/

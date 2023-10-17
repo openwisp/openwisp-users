@@ -1,9 +1,16 @@
+from unittest.mock import patch
+
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.timezone import now, timedelta
 from swapper import load_model
 
+from .. import settings as app_settings
+from ..tasks import password_expiration_email
 from .utils import TestOrganizationMixin
 
 Organization = load_model('openwisp_users', 'Organization')
@@ -340,3 +347,63 @@ class TestUsers(TestOrganizationMixin, TestCase):
         org_user = org.add_user(user)
         self.assertIsInstance(org_user, OrganizationUser)
         self.assertTrue(org_user.is_admin)
+
+    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 90)
+    def test_password_expiration_mail(self):
+        user_expiry_date = now().today() - timedelta(
+            days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
+        )
+        staff_user_expiry_date = now().today() - timedelta(
+            days=(app_settings.STAFF_USER_PASSWORD_EXPIRATION - 7)
+        )
+        staff_user = self._create_operator()
+        end_user = self._create_user()
+
+        with self.subTest(
+            'Test end-user and staff user has different expiration dates'
+        ):
+            User.objects.filter(is_staff=False).update(
+                password_updated=user_expiry_date
+            )
+            User.objects.filter(is_staff=True).update(
+                password_updated=staff_user_expiry_date
+            )
+            password_expiration_email.delay()
+            self.assertEqual(len(mail.outbox), 2)
+            self.assertEqual(mail.outbox.pop().to, [end_user.email])
+            self.assertEqual(mail.outbox.pop().to, [staff_user.email])
+
+        staff_user.delete()
+
+        with self.subTest('Test email is sent to users with verified email'):
+            unverified_email_user = self._create_user(
+                username='unverified_email',
+                email='unverified_email@example.com',
+            )
+            # Re-using object to make tests run quickly
+            verified_email_user = end_user
+            EmailAddress.objects.filter(user_id=unverified_email_user.id).update(
+                verified=False
+            )
+            User.objects.filter(is_staff=False).update(
+                password_updated=user_expiry_date
+            )
+            password_expiration_email.delay()
+            self.assertEqual(len(mail.outbox), 1)
+            email = mail.outbox.pop()
+            self.assertEqual(email.to, [verified_email_user.email])
+            self.assertEqual(email.subject, 'Your password is about to expire')
+            self.assertNotEqual(email.to, [unverified_email_user.email])
+
+    def test_password_expiration_mail_settings_disabled(self):
+        """
+        Tests that email are not sent when password expiration feature is disabled
+        """
+        self.assertEqual(app_settings.USER_PASSWORD_EXPIRATION, 0)
+        self.assertEqual(app_settings.STAFF_USER_PASSWORD_EXPIRATION, 0)
+        self._create_user()
+        User.objects.update(password_updated=now().date() - timedelta(days=180))
+        with patch('openwisp_utils.admin_theme.email.send_email') as mocked_send_email:
+            password_expiration_email.delay()
+        mocked_send_email.assert_not_called()

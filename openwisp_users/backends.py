@@ -2,14 +2,16 @@ import phonenumbers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
+from django.utils import timezone
 from phonenumbers.phonenumberutil import NumberParseException
 
 from . import settings as app_settings
+from .exceptions import UserPasswordExpired
 
 User = get_user_model()
 
 
-class UsersAuthenticationBackend(ModelBackend):
+class BaseBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         queryset = self.get_users(username)
         try:
@@ -40,3 +42,35 @@ class UsersAuthenticationBackend(ModelBackend):
             except NumberParseException:
                 pass
         return False
+
+
+class UsersAuthenticationBackend(BaseBackend):
+    def user_can_authenticate(self, user, raise_exception=False):
+        can_authenticate = super().user_can_authenticate(user)
+        if user.is_staff or not app_settings.USER_PASSWORD_EXPIRATION:
+            return can_authenticate
+        today = timezone.now().date()
+        if user.password_updated is None:
+            User.objects.filter(id=user.pk).update(password_updated=today)
+            user.password_updated = today
+        password_expiry = user.password_updated + timezone.timedelta(
+            days=app_settings.USER_PASSWORD_EXPIRATION
+        )
+        can_authenticate = (
+            can_authenticate and user.has_usable_password() and password_expiry > today
+        )
+        if not can_authenticate and raise_exception:
+            raise UserPasswordExpired(user=user)
+        return can_authenticate
+
+
+class UsersAllowExpiredPassBackend(UsersAuthenticationBackend):
+    def user_can_authenticate(self, user):
+        return super().user_can_authenticate(user, raise_exception=True)
+
+    def get_user(self, user_id):
+        try:
+            user = User._default_manager.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+        return user if super(BaseBackend, self).user_can_authenticate(user) else None

@@ -12,9 +12,11 @@ from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.timezone import now, timedelta
 from openwisp_utils.tests import capture_any_output
 from swapper import load_model
 
+from .. import settings as app_settings
 from ..admin import OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
 from ..multitenancy import MultitenantAdminMixin
@@ -128,6 +130,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         # inline emails
         params.update(self.add_user_inline_params)
@@ -514,6 +517,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = user.__dict__
         params['username'] = 'user2'
         params.pop('last_login')
+        params.pop('password_updated')
         params.pop('phone_number')
         params.pop('password', None)
         params.pop('_password', None)
@@ -554,6 +558,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
         params.update(
@@ -584,6 +589,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.pop('phone_number')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -609,6 +615,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -674,6 +681,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user2, org))
@@ -1569,6 +1577,7 @@ class TestBasicUsersIntegration(
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params['birth_date'] = user.date_joined.date()
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -1598,6 +1607,7 @@ class TestBasicUsersIntegration(
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
         params.update({f'{self.app_label}_organizationuser-0-DELETE': 'on'})
@@ -1820,3 +1830,56 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
                 assert option['id'] not in Organization.objects.exclude(
                     pk__in=user.organizations_managed
                 )
+
+
+class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_expired_password_user_redirected(self):
+        self.client.logout()
+        user = self._create_admin()
+        user.password_updated = now() - timedelta(days=31)
+        user.save()
+        login_response = self.client.post(
+            reverse('admin:login'),
+            data={'username': user.username, 'password': 'tester'},
+        )
+        self.assertEqual(login_response.status_code, 302)
+        self.assertEqual(login_response.url, reverse('account_post_login_redirect'))
+
+        post_redirect_response = self.client.get(login_response.url)
+        self.assertEqual(post_redirect_response.status_code, 302)
+        self.assertEqual(
+            post_redirect_response.url,
+            reverse('admin:auth_user_password_change', args=[user.pk]),
+        )
+
+        change_password_response = self.client.get(post_redirect_response.url)
+        self.assertEqual(change_password_response.status_code, 200)
+        self.assertContains(
+            change_password_response,
+            'Your password has expired, please update your password.',
+        )
+
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_non_expired_user_django_redirection(self):
+        self.client.logout()
+        redirect_url = reverse('admin:sites_site_changelist')
+        user = self._create_admin()
+        user.set_password('tester')
+        user.save()
+        login_response = self.client.post(
+            '{0}?next={1}'.format(reverse('admin:login'), redirect_url),
+            data={'username': user.username, 'password': 'tester'},
+        )
+        self.assertEqual(login_response.status_code, 302)
+        self.assertEqual(
+            login_response.url,
+            '/accounts/post-login-redirect/?post_login_redirect=/admin/sites/site/',
+        )
+
+        post_redirect_response = self.client.get(login_response.url)
+        self.assertEqual(post_redirect_response.status_code, 302)
+        self.assertEqual(
+            post_redirect_response.url,
+            '/admin/sites/site/',
+        )
