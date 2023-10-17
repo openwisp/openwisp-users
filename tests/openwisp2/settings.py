@@ -1,6 +1,8 @@
 import os
 import sys
 
+from celery.schedules import crontab
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
 TESTING = sys.argv[1] == 'test'
@@ -103,6 +105,7 @@ TEMPLATES = [
 
 AUTHENTICATION_BACKENDS = [
     'openwisp_users.backends.UsersAuthenticationBackend',
+    'openwisp_users.backends.UsersAllowExpiredPassBackend',
 ]
 
 if not TESTING and SHELL:
@@ -134,9 +137,24 @@ if not TESTING and SHELL:
         },
     }
 
+
+if not TESTING:
+    CELERY_BROKER_URL = 'redis://localhost/6'
+else:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_BROKER_URL = 'memory://'
+
+CELERY_BEAT_SCHEDULE = {
+    'delete_old_notifications': {
+        'task': 'openwisp_users.tasks.password_expiration_email',
+        'schedule': crontab(hour=1, minute=0),
+    },
+}
+
 # during development only
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-LOGIN_REDIRECT_URL = 'admin:index'
+LOGIN_REDIRECT_URL = 'account_post_login_redirect'
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'email_confirmation_success'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'email_confirmation_success'
 

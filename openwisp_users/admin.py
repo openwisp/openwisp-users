@@ -193,7 +193,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
     ordering = ['-date_joined']
-    readonly_fields = ['last_login', 'date_joined']
+    readonly_fields = ['last_login', 'date_joined', 'password_updated']
     list_display = [
         'username',
         'email',
