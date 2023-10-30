@@ -122,7 +122,7 @@ Configure celery (you may use a different broker if you want):
     # use other brokers if you want, consult the celery docs
     CELERY_BROKER_URL = 'redis://localhost/1'
     CELERY_BEAT_SCHEDULE = {
-        'delete_old_notifications': {
+        'password_expiry_email': {
             'task': 'openwisp_users.tasks.password_expiration_email',
             'schedule': crontab(hour=1, minute=0),
         },
