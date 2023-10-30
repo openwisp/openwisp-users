@@ -111,7 +111,29 @@ to your ``settings.py``:
     SITE_ID = 1
     AUTHENTICATION_BACKENDS = [
         'openwisp_users.backends.UsersAuthenticationBackend',
+        'openwisp_users.backends.UsersAllowExpiredPassBackend',
     ]
+
+Configure celery (you may use a different broker if you want):
+
+.. code-block:: python
+
+    # here we show how to configure celery with redis but you can
+    # use other brokers if you want, consult the celery docs
+    CELERY_BROKER_URL = 'redis://localhost/1'
+    CELERY_BEAT_SCHEDULE = {
+        'delete_old_notifications': {
+            'task': 'openwisp_users.tasks.password_expiration_email',
+            'schedule': crontab(hour=1, minute=0),
+        },
+    }
+
+If you decide to use Redis (as shown in these examples),
+install the following python packages.
+
+.. code-block:: shell
+
+    pip install redis django-redis
 
 ``urls.py``:
 
@@ -178,6 +200,15 @@ Create database:
     ./manage.py migrate
     ./manage.py createsuperuser
 
+
+Run celery and celery-beat with the following commands (separate terminal windows are needed):
+
+.. code-block:: shell
+
+    cd tests/
+    celery -A openwisp2 worker -l info
+    celery -A openwisp2 beat -l info
+
 Launch development server:
 
 .. code-block:: shell
@@ -195,6 +226,30 @@ Run tests with:
 
 Settings
 --------
+
+``OPENWISP_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Number of days after which user's password would expire,
+i.e. user would be required to change their password.
+
+``OPENWISP_STAFF_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Number of days after which **staff** user's password would expire,
+i.e. **staff** user would be required to change their password.
 
 ``OPENWISP_ORGANIZATION_USER_ADMIN``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -763,6 +818,28 @@ The authentication backend can also be used as follows:
 
     backend = UsersAuthenticationBackend()
     backend.authenticate(request, identifier, password)
+
+Password Validators
+-------------------
+
+``openwisp_users.password_validation.PasswordReuseValidator``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On password change views, the ``PasswordReuseValidator``
+ensures that users cannot use their current password as the new password.
+
+You need to add the validator to ``AUTH_PASSWORD_VALIDATORS`` Django
+setting as shown below:
+
+.. code-block:: python
+
+    # in your-project/settings.py
+    AUTH_PASSWORD_VALIDATORS = [
+        # Other password validators
+        {
+            "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
+        },
+    ]
 
 Django REST Framework Authentication Classes
 --------------------------------------------
