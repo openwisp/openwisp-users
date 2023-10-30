@@ -72,9 +72,7 @@ MIDDLEWARE = [
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
-    },
+    {'NAME': 'openwisp_users.password_validation.PasswordReuseValidator'}
 ]
 
 ROOT_URLCONF = 'openwisp2.urls'
@@ -152,7 +150,7 @@ else:
     CELERY_BROKER_URL = 'memory://'
 
 CELERY_BEAT_SCHEDULE = {
-    'delete_old_notifications': {
+    'password_expiry_email': {
         'task': 'openwisp_users.tasks.password_expiration_email',
         'schedule': crontab(hour=1, minute=0),
     },

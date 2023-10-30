@@ -22,7 +22,6 @@ class BaseBackend(ModelBackend):
             return None
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
-        return None
 
     def get_users(self, identifier):
         conditions = Q(email=identifier) | Q(username=identifier)
@@ -50,9 +49,6 @@ class UsersAuthenticationBackend(BaseBackend):
         if user.is_staff or not app_settings.USER_PASSWORD_EXPIRATION:
             return can_authenticate
         today = timezone.now().date()
-        if user.password_updated is None:
-            User.objects.filter(id=user.pk).update(password_updated=today)
-            user.password_updated = today
         password_expiry = user.password_updated + timezone.timedelta(
             days=app_settings.USER_PASSWORD_EXPIRATION
         )
