@@ -15,8 +15,6 @@ from openwisp_utils.base import FallbackModelMixin
 from phonenumber_field.modelfields import PhoneNumberField
 from swapper import load_model
 
-from .. import settings as app_settings
-
 logger = logging.getLogger(__name__)
 
 
@@ -90,10 +88,7 @@ class AbstractUser(BaseUser):
         return str(pk)
 
     def set_password(self, *args, **kwargs):
-        if app_settings.USER_PASSWORD_EXPIRATION or (
-            self.is_staff and app_settings.STAFF_USER_PASSWORD_EXPIRATION
-        ):
-            self.password_updated = timezone.now().date()
+        self.password_updated = timezone.now().date()
         return super().set_password(*args, **kwargs)
 
     def is_member(self, organization):
