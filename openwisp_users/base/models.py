@@ -206,6 +206,22 @@ class BaseOrganization(models.Model):
     class Meta:
         abstract = True
 
+    def add_user(self, user, is_admin=False, **kwargs):
+        """
+        We override this method from the upstream dependency to
+        skip the creation of the organization owner, which we perform
+        automatically via a signal receiver.
+        Without this change, the add_user method would throw IntegrityError.
+        """
+
+        if not self.users.all().exists():
+            is_admin = True
+
+        OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+        return OrganizationUser.objects.create(
+            user=user, organization=self, is_admin=is_admin
+        )
+
 
 class BaseOrganizationUser(models.Model):
     """

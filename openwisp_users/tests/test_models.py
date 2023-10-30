@@ -333,3 +333,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
         with self.subTest('Test user first and last names are empty'):
             self.assertEqual(str(org_user), f'{user.username} ({org.name})')
+
+    def test_add_user(self):
+        org = self._get_org()
+        user = self._create_user()
+        org_user = org.add_user(user)
+        self.assertIsInstance(org_user, OrganizationUser)
+        self.assertTrue(org_user.is_admin)
