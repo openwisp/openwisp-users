@@ -71,6 +71,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
+    },
+]
+
 ROOT_URLCONF = 'openwisp2.urls'
 
 TIME_ZONE = 'Europe/Rome'

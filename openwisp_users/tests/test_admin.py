@@ -11,7 +11,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.template.defaultfilters import date
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from openwisp_utils.tests import capture_any_output
@@ -222,6 +222,52 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             ),
             html=True,
         )
+
+    def test_admin_change_user_reuse_password(self):
+        admin = self._create_admin(password='tester')
+        self.client.force_login(admin)
+        path = reverse('admin:auth_user_password_change', args=[admin.pk])
+        data = {'password1': 'tester', 'password2': 'tester'}
+        with override_settings(
+            AUTH_PASSWORD_VALIDATORS=[
+                {
+                    "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
+                },
+            ]
+        ):
+            response = self.client.post(
+                path,
+                data=data,
+                follow=True,
+            )
+            self.assertNotContains(
+                response, '<li class="success">Password changed successfully.</li>'
+            )
+            self.assertContains(
+                response,
+                (
+                    '<ul class="errorlist"><li>'
+                    'You cannot re-use your current password. '
+                    'Enter a new password.</li></ul>'
+                ),
+            )
+        with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
+            response = self.client.post(
+                path,
+                data=data,
+                follow=True,
+            )
+            self.assertNotContains(
+                response,
+                (
+                    '<ul class="errorlist"><li>'
+                    'You cannot re-use your current password. '
+                    'Enter a new password.</li></ul>'
+                ),
+            )
+            self.assertContains(
+                response, '<li class="success">Password changed successfully.</li>'
+            )
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()
