@@ -13,6 +13,7 @@ class PostLoginRedirectView(RedirectView):
         if (
             app_settings.STAFF_USER_PASSWORD_EXPIRATION
             and user.is_staff
+            and user.has_usable_password()
             and timezone.now().date()
             > user.password_updated
             + timezone.timedelta(days=app_settings.STAFF_USER_PASSWORD_EXPIRATION)
