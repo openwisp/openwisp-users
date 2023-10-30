@@ -10,6 +10,7 @@ from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
+from django.template.defaultfilters import date
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
@@ -202,6 +203,25 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             )
             content = f'User with ID “{id}” doesn’t exist. Perhaps it was deleted?'
             self.assertContains(response, content, status_code=200)
+
+    def test_admin_change_user_password_updated(self):
+        admin = self._create_admin()
+        # User.objects.create_user does not execute User.set_password
+        # which is required for setting User.password_updated field
+        admin.set_password('tester')
+        admin.save()
+        self.client.force_login(admin)
+        response = self.client.get(
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk]),
+        )
+        self.assertContains(
+            response,
+            (
+                '<label>Password updated:</label>\n\n'
+                f'<div class="readonly">{date(now())}</div>'
+            ),
+            html=True,
+        )
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()
