@@ -2,7 +2,6 @@ import phonenumbers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
-from django.utils import timezone
 from phonenumbers.phonenumberutil import NumberParseException
 
 from . import settings as app_settings
@@ -48,13 +47,7 @@ class UsersAuthenticationBackend(BaseBackend):
         can_authenticate = super().user_can_authenticate(user)
         if user.is_staff or not app_settings.USER_PASSWORD_EXPIRATION:
             return can_authenticate
-        today = timezone.now().date()
-        password_expiry = user.password_updated + timezone.timedelta(
-            days=app_settings.USER_PASSWORD_EXPIRATION
-        )
-        can_authenticate = (
-            can_authenticate and user.has_usable_password() and password_expiry > today
-        )
+        can_authenticate = can_authenticate and not user.has_password_expired()
         if not can_authenticate and raise_exception:
             raise UserPasswordExpired(user=user)
         return can_authenticate
