@@ -1,8 +1,12 @@
+from openwisp_users.tests.test_accounts import TestAccountView as BaseTestAccountView
 from openwisp_users.tests.test_admin import (
     TestBasicUsersIntegration as BaseTestBasicUsersIntegration,
 )
 from openwisp_users.tests.test_admin import (
     TestMultitenantAdmin as BaseTestMultitenantAdmin,
+)
+from openwisp_users.tests.test_admin import (
+    TestUserPasswordExpiration as BaseTestUserPasswordExpiration,
 )
 from openwisp_users.tests.test_admin import TestUsersAdmin as BaseTestUsersAdmin
 from openwisp_users.tests.test_api.test_api import TestUsersApi as BaseTestUsersApi
@@ -75,6 +79,10 @@ class TestUsersAdmin(GetEditFormInlineMixin, BaseTestUsersAdmin):
     _additional_user_fields = additional_fields
 
 
+class TestUserPasswordExpiration(BaseTestUserPasswordExpiration):
+    pass
+
+
 class TestBasicUsersIntegration(GetEditFormInlineMixin, BaseTestBasicUsersIntegration):
     app_label = 'sample_users'
     _additional_user_fields = additional_fields
@@ -104,11 +112,16 @@ class TestBackends(BaseTestBackends):
     pass
 
 
+class TestAccountView(BaseTestAccountView):
+    pass
+
+
 class TestUsersApi(BaseTestUsersApi):
     pass
 
 
 del BaseTestUsersAdmin
+del BaseTestUserPasswordExpiration
 del BaseTestBasicUsersIntegration
 del BaseTestMultitenantAdmin
 del BaseTestUsers
@@ -117,3 +130,4 @@ del BaseRatelimitTests
 del BaseTestRestFrameworkViews
 del BaseTestBackends
 del BaseTestUsersApi
+del BaseTestAccountView
