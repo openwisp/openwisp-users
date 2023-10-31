@@ -6,7 +6,7 @@ from django.template import TemplateDoesNotExist
 from django.test import TestCase
 from django.urls import reverse
 
-from ..accounts.adapter import EmailAdapter
+from ..accounts.adapter import EmailAdapter, authenticate
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -43,3 +43,23 @@ class TestEmailAdapter(TestOrganizationMixin, TestCase):
         self.assertFalse(email.alternatives)
         self.assertIn('Password Reset E-mail', email.subject)
         self.assertIn('Click the link below to reset your password', email.body)
+
+    @mock.patch('openwisp_users.accounts.adapter.django_authenticate')
+    def test_authenticate_method(self, mocked_django_authenticate):
+        authenticate_kwargs = dict(phone_number='987643210', otp='123456')
+
+        from inspect import Signature
+
+        def patched_bind(self, *args, **kwargs):
+            if kwargs == authenticate_kwargs:
+                raise TypeError
+            return self._original_bind(*args, **kwargs)
+
+        Signature._original_bind = Signature.bind
+        Signature.bind = patched_bind
+
+        authenticate(**authenticate_kwargs)
+        mocked_django_authenticate.assert_called_once_with(None, **authenticate_kwargs)
+
+        Signature.bind = Signature._original_bind
+        del Signature._original_bind

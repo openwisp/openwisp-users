@@ -75,7 +75,7 @@ class EmailAdapter(DefaultAccountAdapter):
         """
         This method has been adapted from
         'allauth.account.adapter.DefaultAccountAdapter'
-        to use UsersAllowExpiredPassBackend for authentication.
+        to use the "authenticate" method defined in this file.
         """
         from allauth.account.auth_backends import AuthenticationBackend
 

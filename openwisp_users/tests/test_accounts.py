@@ -1,26 +1,32 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from .. import settings as app_settings
+from ..backends import UsersAllowExpiredPassBackend
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
 
 
 class TestAccountView(TestOrganizationMixin, TestCase):
+    def _login_user(self, username='tester', password='tester'):
+        response = self.client.post(
+            reverse('account_login'),
+            data={'login': username, 'password': password},
+            follow=True,
+        )
+        return response
+
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
     def test_password_expired_user_logins(self):
         self._create_org_user()
         User.objects.update(password_updated=now() - timedelta(days=60))
-        response = self.client.post(
-            reverse('account_login'),
-            data={'login': 'tester', 'password': 'tester'},
-            follow=True,
-        )
+        response = self._login_user()
         self.assertContains(
             response,
             (
@@ -41,11 +47,7 @@ class TestAccountView(TestOrganizationMixin, TestCase):
     def _test_login_flow(self):
         self._create_org_user()
         User.objects.update(password_updated=now() - timedelta(days=60))
-        response = self.client.post(
-            reverse('account_login'),
-            data={'login': 'tester', 'password': 'tester'},
-            follow=True,
-        )
+        response = self._login_user()
         self.assertContains(
             response,
             (
@@ -69,3 +71,21 @@ class TestAccountView(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 90)
     def test_user_login_password_expiration_enabled(self):
         self._test_login_flow()
+
+    def test_inactive_user_login(self):
+        self._create_org_user()
+        User.objects.update(is_active=False)
+        response = self._login_user()
+        self.assertContains(
+            response, 'The username and/or password you specified are not correct.'
+        )
+
+    def test_login_permission_denied(self):
+        self._create_org_user()
+        with patch.object(
+            UsersAllowExpiredPassBackend, 'authenticate', side_effect=PermissionDenied
+        ):
+            response = self._login_user()
+        self.assertContains(
+            response, 'The username and/or password you specified are not correct.'
+        )
