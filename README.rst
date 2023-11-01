@@ -111,7 +111,6 @@ to your ``settings.py``:
     SITE_ID = 1
     AUTHENTICATION_BACKENDS = [
         'openwisp_users.backends.UsersAuthenticationBackend',
-        'openwisp_users.backends.UsersAllowExpiredPassBackend',
     ]
 
 Configure celery (you may use a different broker if you want):
@@ -227,30 +226,6 @@ Run tests with:
 Settings
 --------
 
-``OPENWISP_USER_PASSWORD_EXPIRATION``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-+--------------+-------------+
-| **type**:    | ``integer`` |
-+--------------+-------------+
-| **default**: | ``0``       |
-+--------------+-------------+
-
-Number of days after which user's password would expire,
-i.e. user would be required to change their password.
-
-``OPENWISP_STAFF_USER_PASSWORD_EXPIRATION``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-+--------------+-------------+
-| **type**:    | ``integer`` |
-+--------------+-------------+
-| **default**: | ``0``       |
-+--------------+-------------+
-
-Number of days after which **staff** user's password would expire,
-i.e. **staff** user would be required to change their password.
-
 ``OPENWISP_ORGANIZATION_USER_ADMIN``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -359,6 +334,34 @@ This setting can be used to configure the exported fields for the `"export_users
 command.
 
 The ``select_related`` property can be used to optimize the database query.
+
+``OPENWISP_USERS_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Number of days after which a user's password will expire.
+In other words, it determines when users will be prompted to
+change their passwords.
+
+If set to ``0``, this feature is disabled, and users are not
+required to change their passwords.
+
+``OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Similar to `OPENWISP_USERS_USER_PASSWORD_EXPIRATION <#openwisp-users-user-password-expiration>`_,
+but for **staff users**.
 
 REST API
 --------
