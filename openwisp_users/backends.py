@@ -5,12 +5,11 @@ from django.db.models import Q
 from phonenumbers.phonenumberutil import NumberParseException
 
 from . import settings as app_settings
-from .exceptions import UserPasswordExpired
 
 User = get_user_model()
 
 
-class BaseBackend(ModelBackend):
+class UsersAuthenticationBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
         queryset = self.get_users(username)
         try:
@@ -40,26 +39,3 @@ class BaseBackend(ModelBackend):
             except NumberParseException:
                 pass
         return False
-
-
-class UsersAuthenticationBackend(BaseBackend):
-    def user_can_authenticate(self, user, raise_exception=False):
-        can_authenticate = super().user_can_authenticate(user)
-        if user.is_staff or not app_settings.USER_PASSWORD_EXPIRATION:
-            return can_authenticate
-        can_authenticate = can_authenticate and not user.has_password_expired()
-        if not can_authenticate and raise_exception:
-            raise UserPasswordExpired(user=user)
-        return can_authenticate
-
-
-class UsersAllowExpiredPassBackend(UsersAuthenticationBackend):
-    def user_can_authenticate(self, user):
-        return super().user_can_authenticate(user, raise_exception=True)
-
-    def get_user(self, user_id):
-        try:
-            user = User._default_manager.get(pk=user_id)
-        except User.DoesNotExist:
-            return None
-        return user if super(BaseBackend, self).user_can_authenticate(user) else None

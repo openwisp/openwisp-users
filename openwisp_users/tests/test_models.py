@@ -396,6 +396,8 @@ class TestUsers(TestOrganizationMixin, TestCase):
             self.assertEqual(email.subject, 'Your password is about to expire')
             self.assertNotEqual(email.to, [unverified_email_user.email])
 
+    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 0)
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 0)
     def test_password_expiration_mail_settings_disabled(self):
         """
         Tests that email are not sent when password expiration feature is disabled

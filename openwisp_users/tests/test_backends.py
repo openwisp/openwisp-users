@@ -1,14 +1,11 @@
 from unittest import mock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from django.test import TestCase
 from django.test.utils import override_settings
 
 from openwisp_users import settings as users_settings
-from openwisp_users.backends import (
-    UsersAllowExpiredPassBackend,
-    UsersAuthenticationBackend,
-)
+from openwisp_users.backends import UsersAuthenticationBackend
 
 from .utils import TestOrganizationMixin
 
@@ -152,8 +149,3 @@ class TestBackends(TestOrganizationMixin, TestCase):
                 password='tester2',
             )
             self.assertEqual(auth_backend.get_users('911524370').count(), 0)
-
-    def test_usersallowexpiredpassbackend(self):
-        with self.subTest('Test get_user for non-existing user'):
-            user = UsersAllowExpiredPassBackend().get_user(uuid4())
-            self.assertEqual(user, None)

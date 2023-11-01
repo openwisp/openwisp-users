@@ -109,7 +109,6 @@ TEMPLATES = [
 
 AUTHENTICATION_BACKENDS = [
     'openwisp_users.backends.UsersAuthenticationBackend',
-    'openwisp_users.backends.UsersAllowExpiredPassBackend',
 ]
 
 if not TESTING and SHELL:

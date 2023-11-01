@@ -1,13 +1,11 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from .. import settings as app_settings
-from ..backends import UsersAllowExpiredPassBackend
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -31,9 +29,9 @@ class TestAccountView(TestOrganizationMixin, TestCase):
             response,
             (
                 '<ul class="messagelist">\n'
+                '<li class="success">Successfully signed in as tester.</li>\n\n'
                 '<li class="warning">Your password has expired, please update '
-                'your password at http://testserver/accounts/password/change/</li>\n\n'
-                '<li class="success">Successfully signed in as tester.</li>\n</ul>'
+                'your password.</li>\n</ul>'
             ),
             html=True,
         )
@@ -76,16 +74,6 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         self._create_org_user()
         User.objects.update(is_active=False)
         response = self._login_user()
-        self.assertContains(
-            response, 'The username and/or password you specified are not correct.'
-        )
-
-    def test_login_permission_denied(self):
-        self._create_org_user()
-        with patch.object(
-            UsersAllowExpiredPassBackend, 'authenticate', side_effect=PermissionDenied
-        ):
-            response = self._login_user()
         self.assertContains(
             response, 'The username and/or password you specified are not correct.'
         )
