@@ -102,7 +102,7 @@ Setup (integrate in an existing django project)
         'drf_yasg',
     ]
 
-also add ``AUTH_USER_MODEL``, ``SITE_ID`` and ``AUTHENTICATION_BACKENDS``
+also add ``AUTH_USER_MODEL``, ``SITE_ID``, ``AUTHENTICATION_BACKENDS`` and ``MIDDLEWARE``
 to your ``settings.py``:
 
 .. code-block:: python
@@ -111,6 +111,10 @@ to your ``settings.py``:
     SITE_ID = 1
     AUTHENTICATION_BACKENDS = [
         'openwisp_users.backends.UsersAuthenticationBackend',
+    ]
+    MIDDLEWARE = [
+        # Other middlewares
+        'openwisp_users.middleware.PasswordExpirationMiddleware',
     ]
 
 Configure celery (you may use a different broker if you want):
@@ -842,6 +846,29 @@ setting as shown below:
         {
             "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
         },
+    ]
+
+Middlewares
+-----------
+
+``openwisp_users.middleware.PasswordExpirationMiddleware``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When password expiration feature is on
+(see `OPENWISP_USERS_USER_PASSWORD_EXPIRATION <#openwisp-users-user-password-expiration>`_
+and `OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION <#openwisp-users-staff-user-password-expiration>`_),
+this middleware confines the user to the *password change view* until they change their password.
+
+This middleware should come after ``AuthenticationMiddleware`` and ``MessageMiddleware``, as following:
+
+.. code-block:: python
+
+    # in your_project/settings.py
+    MIDDLEWARE = [
+        # Other middlewares
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'openwisp_users.middleware.PasswordExpirationMiddleware',
     ]
 
 Django REST Framework Authentication Classes

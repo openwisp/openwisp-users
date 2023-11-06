@@ -1,21 +1,26 @@
-from django.contrib import messages
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-from django.views.generic import RedirectView
+from allauth.account.forms import ChangePasswordForm as BaseChangePasswordForm
+from allauth.account.views import PasswordChangeView as BasePasswordChangeView
+from django import forms
+from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.contrib.auth.decorators import login_required
 
 
-class PostLoginRedirectView(RedirectView):
-    def get_redirect_url(self, *args, **kwargs):
-        user = self.request.user
-        if user.has_password_expired():
-            messages.warning(
-                self.request,
-                _('Your password has expired, please update your password.'),
-            )
-            if user.is_staff:
-                return reverse('admin:auth_user_password_change', args=[user.id])
-            return reverse('account_change_password')
-        return self.request.GET.get('post_login_redirect', reverse('admin:index'))
+class ChangePasswordForm(BaseChangePasswordForm):
+    next = forms.CharField(widget=forms.HiddenInput, required=False)
 
 
-post_login_redirect = PostLoginRedirectView.as_view()
+class PasswordChangeView(BasePasswordChangeView):
+    form_class = ChangePasswordForm
+
+    def get_success_url(self):
+        if self.request.POST.get(REDIRECT_FIELD_NAME):
+            return self.request.POST.get(REDIRECT_FIELD_NAME)
+        return super().get_success_url()
+
+    def get_initial(self):
+        data = super().get_initial()
+        data['next'] = self.request.GET.get(REDIRECT_FIELD_NAME)
+        return data
+
+
+password_change = login_required(PasswordChangeView.as_view())

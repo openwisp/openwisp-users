@@ -11,7 +11,6 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
-from openwisp_utils.base import FallbackModelMixin
 from phonenumber_field.modelfields import PhoneNumberField
 from swapper import load_model
 
@@ -211,7 +210,7 @@ class BaseGroup(object):
         verbose_name_plural = _('groups')
 
 
-class BaseOrganization(FallbackModelMixin, models.Model):
+class BaseOrganization(models.Model):
     """
     OpenWISP Organization model
     """

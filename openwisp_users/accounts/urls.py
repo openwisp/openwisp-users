@@ -14,7 +14,7 @@ from django.urls import include, path, re_path, reverse_lazy
 from django.views.generic import RedirectView
 from django.views.generic.base import TemplateView
 
-from .views import post_login_redirect
+from .views import password_change
 
 redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 
@@ -22,9 +22,6 @@ redirect_view = RedirectView.as_view(url=reverse_lazy('admin:index'))
 urlpatterns = [
     path('signup/', redirect_view, name='account_signup'),
     path('login/', views.login, name='account_login'),
-    path(
-        'post-login-redirect/', post_login_redirect, name='account_post_login_redirect'
-    ),
     path('logout/', views.logout, name='account_logout'),
     path('inactive/', views.account_inactive, name='account_inactive'),
     # E-mail
@@ -40,8 +37,8 @@ urlpatterns = [
     ),
     # password change
     path(
-        "password/change/",
-        views.password_change,
+        'password/change/',
+        password_change,
         name="account_change_password",
     ),
     # password reset
