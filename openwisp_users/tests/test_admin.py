@@ -5,7 +5,7 @@ import uuid
 from unittest.mock import patch
 
 from django.contrib import admin
-from django.contrib.auth import get_user_model
+from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -1910,16 +1910,9 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
             data={'username': user.username, 'password': 'tester'},
         )
         self.assertEqual(login_response.status_code, 302)
-        self.assertEqual(login_response.url, reverse('account_post_login_redirect'))
+        self.assertEqual(login_response.url, '/accounts/password/change/?next=/admin/')
 
-        post_redirect_response = self.client.get(login_response.url)
-        self.assertEqual(post_redirect_response.status_code, 302)
-        self.assertEqual(
-            post_redirect_response.url,
-            reverse('admin:auth_user_password_change', args=[user.pk]),
-        )
-
-        change_password_response = self.client.get(post_redirect_response.url)
+        change_password_response = self.client.get(login_response.url)
         self.assertEqual(change_password_response.status_code, 200)
         self.assertContains(
             change_password_response,
@@ -1940,12 +1933,54 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
         self.assertEqual(login_response.status_code, 302)
         self.assertEqual(
             login_response.url,
-            '/accounts/post-login-redirect/?post_login_redirect=/admin/sites/site/',
+            redirect_url,
         )
 
-        post_redirect_response = self.client.get(login_response.url)
-        self.assertEqual(post_redirect_response.status_code, 302)
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_redirection_for_expired_user_after_password_update(self):
+        """
+        This test ensures that user is confined to change password
+        page until they change thier password.
+        """
+        self.client.logout()
+        user = self._create_admin()
+        user.password_updated = now() - timedelta(days=31)
+        user.save()
+        self.client.force_login(user)
+        site_changelist_path = reverse('admin:sites_site_changelist')
+        password_change_redirect_response = self.client.get(site_changelist_path)
+        self.assertEqual(password_change_redirect_response.status_code, 302)
         self.assertEqual(
-            post_redirect_response.url,
-            '/admin/sites/site/',
+            password_change_redirect_response.url,
+            '{0}?{1}={2}'.format(
+                reverse('account_change_password'),
+                REDIRECT_FIELD_NAME,
+                site_changelist_path,
+            ),
+        )
+        response = self.client.get(password_change_redirect_response.url)
+        self.assertContains(
+            response, 'Your password has expired, please update your password.'
+        )
+        change_password_response = self.client.post(
+            password_change_redirect_response.url,
+            data={
+                'oldpassword': 'tester',
+                'password1': 'newpassword',
+                'password2': 'newpassword',
+                'next': site_changelist_path,
+            },
+            follow=True,
+        )
+        self.assertContains(
+            change_password_response,
+            (
+                '<ul class="messagelist">\n'
+                '<li class="success">Password successfully changed.</li>\n'
+                '</ul>'
+            ),
+            html=True,
+        )
+        self.assertEqual(
+            change_password_response.request.get('PATH_INFO'), site_changelist_path
         )

@@ -27,17 +27,6 @@ class OpenwispUsersConfig(AppConfig):
         self.set_default_settings()
         self.connect_receivers()
 
-        # Monkey-patching of 'AdminSite.login' is required because the
-        # default login method does not respect 'LOGIN_REDIRECT_URL'
-        # which is required for working of password expiration.
-        from django.utils.module_loading import import_string
-        from openwisp_utils.admin_theme.settings import ADMIN_SITE_CLASS
-
-        from .site import patched_admin_login
-
-        OpenwispAdminSite = import_string(ADMIN_SITE_CLASS)
-        OpenwispAdminSite.login = patched_admin_login
-
     def register_menu_group(self):
         items = {
             1: {

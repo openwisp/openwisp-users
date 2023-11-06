@@ -348,6 +348,44 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertIsInstance(org_user, OrganizationUser)
         self.assertTrue(org_user.is_admin)
 
+    def test_has_password_expired(self):
+        staff_user = self._create_operator()
+        end_user = self._create_user()
+
+        # User.objects.create_user does not call User.set_password.
+        # Therefore, we set the password_updated field manually.
+        User.objects.update(password_updated=now().date())
+        staff_user.refresh_from_db()
+        end_user.refresh_from_db()
+
+        with self.subTest('Test password expiration disabled'):
+            with patch.object(
+                app_settings, 'USER_PASSWORD_EXPIRATION', 0
+            ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 0):
+                self.assertEqual(staff_user.has_password_expired(), False)
+                self.assertEqual(end_user.has_password_expired(), False)
+
+        with self.subTest(
+            'Test password expiration enabled, but user password not expired'
+        ):
+            with patch.object(
+                app_settings, 'USER_PASSWORD_EXPIRATION', 10
+            ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 10):
+                self.assertEqual(staff_user.has_password_expired(), False)
+                self.assertEqual(end_user.has_password_expired(), False)
+
+        with self.subTest(
+            'Test password expiration enabled, but user password is expired'
+        ):
+            User.objects.update(password_updated=now().date() - timedelta(days=180))
+            staff_user.refresh_from_db()
+            end_user.refresh_from_db()
+            with patch.object(
+                app_settings, 'USER_PASSWORD_EXPIRATION', 10
+            ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 10):
+                self.assertEqual(staff_user.has_password_expired(), True)
+                self.assertEqual(end_user.has_password_expired(), True)
+
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
     @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 90)
     def test_password_expiration_mail(self):

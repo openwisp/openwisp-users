@@ -35,8 +35,10 @@ class TestAccountView(TestOrganizationMixin, TestCase):
             ),
             html=True,
         )
+        self.assertEqual(
+            response.request.get('PATH_INFO'), reverse('account_change_password')
+        )
         # Password expired users can browse accounts views
-        response = self.client.get(reverse('account_change_password'))
         self.assertContains(
             response, '<label for="id_oldpassword">Current Password:</label>'
         )
