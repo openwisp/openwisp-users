@@ -72,6 +72,21 @@ class TestAccountView(TestOrganizationMixin, TestCase):
     def test_user_login_password_expiration_enabled(self):
         self._test_login_flow()
 
+    def test_redirection_to_success_page_after_password_update(self):
+        user = self._create_operator()
+        self.client.force_login(user)
+        response = self.client.post(
+            reverse('account_change_password'),
+            data={
+                'oldpassword': 'tester',
+                'password1': 'newpassword',
+                'password2': 'newpassword',
+            },
+            follow=True,
+        )
+        self.assertContains(response, 'Your password has been changed successfully.')
+        self.assertContains(response, 'This web page can be closed.')
+
     def test_inactive_user_login(self):
         self._create_org_user()
         User.objects.update(is_active=False)
