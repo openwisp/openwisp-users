@@ -58,7 +58,7 @@ def password_expiration_email():
             extra_context={
                 'call_to_action_url': 'https://{0}{1}'.format(
                     current_site.domain,
-                    reverse('admin:auth_user_password_change', args=[user.id]),
+                    reverse('account_change_password'),
                 ),
                 'call_to_action_text': _('Change password'),
             },

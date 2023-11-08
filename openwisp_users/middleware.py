@@ -30,16 +30,13 @@ class PasswordExpirationMiddleware:
                 request,
                 _('Your password has expired, please update your password.'),
             )
-            next_path = (
-                request.path
-                if request.path != self.admin_login_path
-                else self.admin_index_path
-            )
-            return redirect(
-                '{0}?{1}={2}'.format(
-                    self.account_change_password_path,
-                    REDIRECT_FIELD_NAME,
-                    next_path,
+            redirect_path = self.account_change_password_path
+            if request.user.is_staff:
+                next_path = (
+                    request.path
+                    if request.path != self.admin_login_path
+                    else self.admin_index_path
                 )
-            )
+                redirect_path = f'{redirect_path}?{REDIRECT_FIELD_NAME}={next_path}'
+            return redirect(redirect_path)
         return response
