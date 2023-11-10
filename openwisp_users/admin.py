@@ -83,8 +83,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
 class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
-    if app_settings.ORGANIZATION_USER_ADMIN and app_settings.ORGANIZATION_OWNER_ADMIN:
-        autocomplete_fields = ('organization_user',)
+    autocomplete_fields = ('organization_user',)
 
     def has_change_permission(self, request, obj=None):
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
@@ -498,7 +497,9 @@ class OrganizationAdmin(
     MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, UUIDAdmin
 ):
     view_on_site = False
-    inlines = [OrganizationOwnerInline]
+    # this inline has an autocomplete field pointing to OrganizationUserAdmin
+    if app_settings.ORGANIZATION_USER_ADMIN and app_settings.ORGANIZATION_OWNER_ADMIN:
+        inlines = [OrganizationOwnerInline]
     readonly_fields = ['uuid', 'created', 'modified']
     ordering = ['name']
     list_display = ['name', 'is_active', 'created', 'modified']

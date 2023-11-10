@@ -41,7 +41,7 @@ class OpenwispUsersConfig(AppConfig):
                 'name': 'changelist',
                 'icon': 'ow-org',
             },
-            5: {
+            3: {
                 'label': _('Groups & Permissions'),
                 'model': get_model_name(self.app_label, 'Group'),
                 'name': 'changelist',
@@ -49,14 +49,14 @@ class OpenwispUsersConfig(AppConfig):
             },
         }
         if app_settings.ORGANIZATION_OWNER_ADMIN:
-            items[3] = {
+            items[4] = {
                 'label': _('Organization Owners'),
                 'model': get_model_name(self.app_label, 'OrganizationOwner'),
                 'name': 'changelist',
                 'icon': 'ow-org-owner',
             }
         if app_settings.ORGANIZATION_USER_ADMIN:
-            items[4] = {
+            items[5] = {
                 'label': _('Organization Users'),
                 'model': get_model_name(self.app_label, 'OrganizationUser'),
                 'name': 'changelist',

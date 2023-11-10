@@ -163,8 +163,6 @@ else:
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
 
-OPENWISP_ORGANIZATION_USER_ADMIN = True
-
 if SAMPLE_APP:
     users_index = INSTALLED_APPS.index('openwisp_users')
     INSTALLED_APPS.insert(users_index, 'openwisp2.sample_users')
