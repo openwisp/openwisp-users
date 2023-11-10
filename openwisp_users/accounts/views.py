@@ -10,9 +10,6 @@ from django.views.generic.base import TemplateView
 class ChangePasswordForm(BaseChangePasswordForm):
     next = forms.CharField(widget=forms.HiddenInput, required=False)
 
-    class Media:
-        css = {"all": ("openwisp-users/accounts/css/change-password.css",)}
-
 
 class PasswordChangeView(BasePasswordChangeView):
     form_class = ChangePasswordForm
