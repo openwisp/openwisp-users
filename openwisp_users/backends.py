@@ -20,7 +20,6 @@ class UsersAuthenticationBackend(ModelBackend):
             return None
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
-        return None
 
     def get_users(self, identifier):
         conditions = Q(email=identifier) | Q(username=identifier)

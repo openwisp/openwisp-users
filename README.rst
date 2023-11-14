@@ -102,7 +102,7 @@ Setup (integrate in an existing django project)
         'drf_yasg',
     ]
 
-also add ``AUTH_USER_MODEL``, ``SITE_ID`` and ``AUTHENTICATION_BACKENDS``
+also add ``AUTH_USER_MODEL``, ``SITE_ID``, ``AUTHENTICATION_BACKENDS`` and ``MIDDLEWARE``
 to your ``settings.py``:
 
 .. code-block:: python
@@ -112,6 +112,31 @@ to your ``settings.py``:
     AUTHENTICATION_BACKENDS = [
         'openwisp_users.backends.UsersAuthenticationBackend',
     ]
+    MIDDLEWARE = [
+        # Other middlewares
+        'openwisp_users.middleware.PasswordExpirationMiddleware',
+    ]
+
+Configure celery (you may use a different broker if you want):
+
+.. code-block:: python
+
+    # here we show how to configure celery with redis but you can
+    # use other brokers if you want, consult the celery docs
+    CELERY_BROKER_URL = 'redis://localhost/1'
+    CELERY_BEAT_SCHEDULE = {
+        'password_expiry_email': {
+            'task': 'openwisp_users.tasks.password_expiration_email',
+            'schedule': crontab(hour=1, minute=0),
+        },
+    }
+
+If you decide to use Redis (as shown in these examples),
+install the following python packages.
+
+.. code-block:: shell
+
+    pip install redis django-redis
 
 ``urls.py``:
 
@@ -177,6 +202,15 @@ Create database:
     cd tests/
     ./manage.py migrate
     ./manage.py createsuperuser
+
+
+Run celery and celery-beat with the following commands (separate terminal windows are needed):
+
+.. code-block:: shell
+
+    cd tests/
+    celery -A openwisp2 worker -l info
+    celery -A openwisp2 beat -l info
 
 Launch development server:
 
@@ -304,6 +338,34 @@ This setting can be used to configure the exported fields for the `"export_users
 command.
 
 The ``select_related`` property can be used to optimize the database query.
+
+``OPENWISP_USERS_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Number of days after which a user's password will expire.
+In other words, it determines when users will be prompted to
+change their passwords.
+
+If set to ``0``, this feature is disabled, and users are not
+required to change their passwords.
+
+``OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++--------------+-------------+
+| **type**:    | ``integer`` |
++--------------+-------------+
+| **default**: | ``0``       |
++--------------+-------------+
+
+Similar to `OPENWISP_USERS_USER_PASSWORD_EXPIRATION <#openwisp-users-user-password-expiration>`_,
+but for **staff users**.
 
 REST API
 --------
@@ -763,6 +825,51 @@ The authentication backend can also be used as follows:
 
     backend = UsersAuthenticationBackend()
     backend.authenticate(request, identifier, password)
+
+Password Validators
+-------------------
+
+``openwisp_users.password_validation.PasswordReuseValidator``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On password change views, the ``PasswordReuseValidator``
+ensures that users cannot use their current password as the new password.
+
+You need to add the validator to ``AUTH_PASSWORD_VALIDATORS`` Django
+setting as shown below:
+
+.. code-block:: python
+
+    # in your-project/settings.py
+    AUTH_PASSWORD_VALIDATORS = [
+        # Other password validators
+        {
+            "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
+        },
+    ]
+
+Middlewares
+-----------
+
+``openwisp_users.middleware.PasswordExpirationMiddleware``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When password expiration feature is on
+(see `OPENWISP_USERS_USER_PASSWORD_EXPIRATION <#openwisp-users-user-password-expiration>`_
+and `OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION <#openwisp-users-staff-user-password-expiration>`_),
+this middleware confines the user to the *password change view* until they change their password.
+
+This middleware should come after ``AuthenticationMiddleware`` and ``MessageMiddleware``, as following:
+
+.. code-block:: python
+
+    # in your_project/settings.py
+    MIDDLEWARE = [
+        # Other middlewares
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'openwisp_users.middleware.PasswordExpirationMiddleware',
+    ]
 
 Django REST Framework Authentication Classes
 --------------------------------------------

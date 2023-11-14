@@ -5,16 +5,19 @@ import uuid
 from unittest.mock import patch
 
 from django.contrib import admin
-from django.contrib.auth import get_user_model
+from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
-from django.test import TestCase
+from django.template.defaultfilters import date
+from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.timezone import now, timedelta
 from openwisp_utils.tests import capture_any_output
 from swapper import load_model
 
+from .. import settings as app_settings
 from ..admin import OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
 from ..multitenancy import MultitenantAdminMixin
@@ -128,6 +131,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         # inline emails
         params.update(self.add_user_inline_params)
@@ -199,6 +203,71 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             )
             content = f'User with ID “{id}” doesn’t exist. Perhaps it was deleted?'
             self.assertContains(response, content, status_code=200)
+
+    def test_admin_change_user_password_updated(self):
+        admin = self._create_admin()
+        # User.objects.create_user does not execute User.set_password
+        # which is required for setting User.password_updated field
+        admin.set_password('tester')
+        admin.save()
+        self.client.force_login(admin)
+        response = self.client.get(
+            reverse(f'admin:{self.app_label}_user_change', args=[admin.pk]),
+        )
+        self.assertContains(
+            response,
+            (
+                '<label>Password updated:</label>\n\n'
+                f'<div class="readonly">{date(now())}</div>'
+            ),
+            html=True,
+        )
+
+    def test_admin_change_user_reuse_password(self):
+        admin = self._create_admin(password='tester')
+        self.client.force_login(admin)
+        path = reverse('admin:auth_user_password_change', args=[admin.pk])
+        data = {'password1': 'tester', 'password2': 'tester'}
+        with override_settings(
+            AUTH_PASSWORD_VALIDATORS=[
+                {
+                    "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
+                },
+            ]
+        ):
+            response = self.client.post(
+                path,
+                data=data,
+                follow=True,
+            )
+            self.assertNotContains(
+                response, '<li class="success">Password changed successfully.</li>'
+            )
+            self.assertContains(
+                response,
+                (
+                    '<ul class="errorlist"><li>'
+                    'You cannot re-use your current password. '
+                    'Enter a new password.</li></ul>'
+                ),
+            )
+        with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
+            response = self.client.post(
+                path,
+                data=data,
+                follow=True,
+            )
+            self.assertNotContains(
+                response,
+                (
+                    '<ul class="errorlist"><li>'
+                    'You cannot re-use your current password. '
+                    'Enter a new password.</li></ul>'
+                ),
+            )
+            self.assertContains(
+                response, '<li class="success">Password changed successfully.</li>'
+            )
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()
@@ -514,6 +583,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = user.__dict__
         params['username'] = 'user2'
         params.pop('last_login')
+        params.pop('password_updated')
         params.pop('phone_number')
         params.pop('password', None)
         params.pop('_password', None)
@@ -554,6 +624,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
         params.update(
@@ -584,6 +655,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.pop('phone_number')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -609,6 +681,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -674,6 +747,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user2, org))
@@ -1569,6 +1643,7 @@ class TestBasicUsersIntegration(
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params['birth_date'] = user.date_joined.date()
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -1598,6 +1673,7 @@ class TestBasicUsersIntegration(
         params.pop('password', None)
         params.pop('_password', None)
         params.pop('last_login')
+        params.pop('password_updated')
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
         params.update({f'{self.app_label}_organizationuser-0-DELETE': 'on'})
@@ -1820,3 +1896,91 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, Tes
                 assert option['id'] not in Organization.objects.exclude(
                     pk__in=user.organizations_managed
                 )
+
+
+class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_expired_password_user_redirected(self):
+        self.client.logout()
+        user = self._create_admin()
+        user.password_updated = now() - timedelta(days=31)
+        user.save()
+        login_response = self.client.post(
+            reverse('admin:login'),
+            data={'username': user.username, 'password': 'tester'},
+        )
+        self.assertEqual(login_response.status_code, 302)
+        self.assertEqual(login_response.url, '/accounts/password/change/?next=/admin/')
+
+        change_password_response = self.client.get(login_response.url)
+        self.assertEqual(change_password_response.status_code, 200)
+        self.assertContains(
+            change_password_response,
+            'Your password has expired, please update your password.',
+        )
+
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_non_expired_user_django_redirection(self):
+        self.client.logout()
+        redirect_url = reverse('admin:sites_site_changelist')
+        user = self._create_admin()
+        user.set_password('tester')
+        user.save()
+        login_response = self.client.post(
+            '{0}?next={1}'.format(reverse('admin:login'), redirect_url),
+            data={'username': user.username, 'password': 'tester'},
+        )
+        self.assertEqual(login_response.status_code, 302)
+        self.assertEqual(
+            login_response.url,
+            redirect_url,
+        )
+
+    @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 30)
+    def test_redirection_for_expired_user_after_password_update(self):
+        """
+        This test ensures that user is confined to change password
+        page until they change thier password.
+        """
+        self.client.logout()
+        user = self._create_admin()
+        user.password_updated = now() - timedelta(days=31)
+        user.save()
+        self.client.force_login(user)
+        site_changelist_path = reverse('admin:sites_site_changelist')
+        password_change_redirect_response = self.client.get(site_changelist_path)
+        self.assertEqual(password_change_redirect_response.status_code, 302)
+        self.assertEqual(
+            password_change_redirect_response.url,
+            '{0}?{1}={2}'.format(
+                reverse('account_change_password'),
+                REDIRECT_FIELD_NAME,
+                site_changelist_path,
+            ),
+        )
+        response = self.client.get(password_change_redirect_response.url)
+        self.assertContains(
+            response, 'Your password has expired, please update your password.'
+        )
+        change_password_response = self.client.post(
+            password_change_redirect_response.url,
+            data={
+                'oldpassword': 'tester',
+                'password1': 'newpassword',
+                'password2': 'newpassword',
+                'next': site_changelist_path,
+            },
+            follow=True,
+        )
+        self.assertContains(
+            change_password_response,
+            (
+                '<ul class="messagelist">\n'
+                '<li class="success">Password successfully changed.</li>\n'
+                '</ul>'
+            ),
+            html=True,
+        )
+        self.assertEqual(
+            change_password_response.request.get('PATH_INFO'), site_changelist_path
+        )

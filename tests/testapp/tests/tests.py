@@ -67,6 +67,8 @@ class TestIntegration(TestOrganizationMixin, TestCase):
         self.assertEqual(resolver.view_name, 'account_logout')
         resolver = resolve('/accounts/password/reset/')
         self.assertEqual(resolver.view_name, 'account_reset_password')
+        resolver = resolve('/accounts/password/change/')
+        self.assertEqual(resolver.view_name, 'account_change_password')
 
     def test_account_email_verification_sent(self):
         r = self.client.get(reverse('account_email_verification_sent'))
@@ -85,3 +87,9 @@ class TestIntegration(TestOrganizationMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, 'Change E-mail</a></li>')
         self.assertNotContains(r, 'Sign Up</a></li>')
+
+    def test_account_change_password(self):
+        response = self.client.get(reverse('account_change_password'))
+        self.assertRedirects(
+            response, '/accounts/login/?next=/accounts/password/change/'
+        )

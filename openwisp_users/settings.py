@@ -32,6 +32,12 @@ EXPORT_USERS_COMMAND_CONFIG = {
     ],
     'select_related': [],
 }
+USER_PASSWORD_EXPIRATION = getattr(
+    settings, 'OPENWISP_USERS_USER_PASSWORD_EXPIRATION', 0
+)
+STAFF_USER_PASSWORD_EXPIRATION = getattr(
+    settings, 'OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION', 0
+)
 # Set the AutocompleteFilter view if it is not defined in the settings
 setattr(
     settings,

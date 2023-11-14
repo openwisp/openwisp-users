@@ -1,6 +1,8 @@
 import os
 import sys
 
+from celery.schedules import crontab
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEBUG = True
 TESTING = sys.argv[1] == 'test'
@@ -67,6 +69,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'openwisp_users.middleware.PasswordExpirationMiddleware',
+]
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'openwisp_users.password_validation.PasswordReuseValidator'}
 ]
 
 ROOT_URLCONF = 'openwisp2.urls'
@@ -133,6 +140,21 @@ if not TESTING and SHELL:
             },
         },
     }
+
+
+if not TESTING:
+    CELERY_BROKER_URL = 'redis://localhost/6'
+else:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    CELERY_BROKER_URL = 'memory://'
+
+CELERY_BEAT_SCHEDULE = {
+    'password_expiry_email': {
+        'task': 'openwisp_users.tasks.password_expiration_email',
+        'schedule': crontab(hour=1, minute=0),
+    },
+}
 
 # during development only
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
