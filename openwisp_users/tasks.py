@@ -1,8 +1,11 @@
+from time import sleep
+
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
 from django.contrib.sites.models import Site
 from django.db.models import Q
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_lazy as _
@@ -49,11 +52,18 @@ def password_expiration_email():
         )
         .filter(query)
     )
+    email_counts = 0
     for user in qs.iterator():
         send_email(
-            subject=_('Your password is about to expire'),
-            body_text=_('Your password is about to expire in 7 days'),
-            body_html=_('You password is about to expire in 7 days.'),
+            subject=_('Action Required: Password Expiry Notice'),
+            body_text=render_to_string(
+                'account/email/password_expiration_message.txt',
+                context={'username': user.username, 'expiry_date': expiry_date},
+            ).strip(),
+            body_html=render_to_string(
+                'account/email/password_expiration_message.html',
+                context={'username': user.username, 'expiry_date': expiry_date},
+            ).strip(),
             recipients=[user.email],
             extra_context={
                 'call_to_action_url': 'https://{0}{1}'.format(
@@ -63,3 +73,10 @@ def password_expiration_email():
                 'call_to_action_text': _('Change password'),
             },
         )
+        # Avoid overloading the SMTP server by sending multiple
+        # emails continuously.
+        if email_counts > 10:
+            email_counts = 0
+            sleep(10)
+        else:
+            email_counts += 1
