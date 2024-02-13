@@ -19,3 +19,11 @@ msgstr "Новый пароль не может совпадать с вашим
 #: views.py:198
 msgid "Password updated successfully"
 msgstr "Пароль успешно обновлен"
+
+#: tasks.py:58
+msgid "Action Required: Password Expiry Notice"
+msgstr "Требуется действие: Уведомление о сроке действия пароля"
+
+#: tasks.py:73
+msgid "Change password"
+msgstr "Изменить пароль"

@@ -19,3 +19,11 @@ msgstr "Novo geslo ne more biti enako staremu."
 #: views.py:198
 msgid "Password updated successfully"
 msgstr "Geslo je bilo uspešno posodobljeno"
+
+#: tasks.py:58
+msgid "Action Required: Password Expiry Notice"
+msgstr "Potrebno dejanje: Obvestilo o poteku gesla"
+
+#: tasks.py:73
+msgid "Change password"
+msgstr "Spremeni geslo"

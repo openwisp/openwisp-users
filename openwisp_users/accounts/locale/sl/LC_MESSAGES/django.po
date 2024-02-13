@@ -40,3 +40,19 @@ msgstr "Lahko zaprete stran."
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
 msgstr "Odjava uspešna."
+
+#: accounts/templates/account/email/password_expiration_message.html:3
+#: accounts/templates/account/email/password_expiration_message.txt:3
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"Obveščamo vas, da bo geslo za vaš račun %(username)s poteklo v 7 dneh, natančneje dne %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:5
+#: accounts/templates/account/email/password_expiration_message.txt:5
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr ""
+"Prosimo, da nadaljujete z posodabljanjem svojega gesla tako, da kliknete na spodnji gumb."

@@ -19,3 +19,11 @@ msgstr "La gnove password no pues jessi compagne de vecje password."
 #: views.py:198
 msgid "Password updated successfully"
 msgstr "Password inzornade cun sucès"
+
+#: tasks.py:58
+msgid "Action Required: Password Expiry Notice"
+msgstr "Aziòn richieste: Notifiche di scadenze de password"
+
+#: tasks.py:73
+msgid "Change password"
+msgstr "Canbia la password"

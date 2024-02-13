@@ -69,3 +69,20 @@ msgstr "Подтверждать"
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
 msgstr "Выход прошел успешно."
+
+#: accounts/templates/account/email/password_expiration_message.html:3
+#: accounts/templates/account/email/password_expiration_message.txt:3
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"Мы информируем вас о том, что пароль для вашей учетной записи %(username)s "
+"истекает через 7 дней, точно %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:5
+#: accounts/templates/account/email/password_expiration_message.txt:5
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr ""
+"Просим вас обновить ваш пароль, нажав на кнопку ниже."
