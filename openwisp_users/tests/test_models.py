@@ -458,12 +458,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user_expiry_date = now().today() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
-        for i in range(12):
+        for i in range(11):
             self._create_user(username=f'user{i}', email=f'user{i}@example.com')
         EmailAddress.objects.update(verified=True)
         User.objects.update(password_updated=user_expiry_date)
         password_expiration_email.delay()
-        mocked_sleep.assert_called_with(10)
+        mocked_sleep.assert_called()
+        self.assertGreaterEqual(mocked_sleep.call_args[0][0], 1)
+        self.assertLessEqual(mocked_sleep.call_args[0][0], 2)
 
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 0)
     @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 0)

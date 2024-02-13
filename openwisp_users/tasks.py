@@ -1,3 +1,4 @@
+import random
 from time import sleep
 
 from celery import shared_task
@@ -77,8 +78,7 @@ def password_expiration_email():
             )
         # Avoid overloading the SMTP server by sending multiple
         # emails continuously.
+        email_counts += 1
         if email_counts > 10:
             email_counts = 0
-            sleep(10)
-        else:
-            email_counts += 1
+            sleep(random.randint(1, 2))
