@@ -428,7 +428,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 password_updated=user_expiry_date
             )
             password_expiration_email.delay()
-            formatted_expiry_date = (now() + timedelta(days=7)).strftime('%Y-%m-%d')
+            formatted_expiry_date = (now() + timedelta(days=7)).strftime('%d %b %Y')
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox.pop()
             self.assertEqual(email.to, [verified_email_user.email])
