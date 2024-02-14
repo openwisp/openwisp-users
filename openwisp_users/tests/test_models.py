@@ -458,7 +458,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user_expiry_date = now().today() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
-        for i in range(11):
+        for i in range(10):
             self._create_user(username=f'user{i}', email=f'user{i}@example.com')
         EmailAddress.objects.update(verified=True)
         User.objects.update(password_updated=user_expiry_date)

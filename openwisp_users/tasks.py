@@ -79,6 +79,6 @@ def password_expiration_email():
         # Avoid overloading the SMTP server by sending multiple
         # emails continuously.
         email_counts += 1
-        if email_counts > 10:
+        if email_counts >= 10:
             email_counts = 0
             sleep(random.randint(1, 2))
