@@ -428,11 +428,45 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 password_updated=user_expiry_date
             )
             password_expiration_email.delay()
+            formatted_expiry_date = (now() + timedelta(days=7)).strftime('%d %b %Y')
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox.pop()
             self.assertEqual(email.to, [verified_email_user.email])
-            self.assertEqual(email.subject, 'Your password is about to expire')
+            self.assertEqual(email.subject, 'Action Required: Password Expiry Notice')
+            self.assertEqual(
+                email.body,
+                'We inform you that the password for your account tester will expire'
+                f' in 7 days, precisely on {formatted_expiry_date}.\n\n'
+                'Kindly proceed with updating your password by clicking on the'
+                ' button below.',
+            )
+            self.assertIn(
+                '<p>We inform you that the password for your account tester will expire'
+                f' in 7 days, precisely on {formatted_expiry_date}.<p>\n\n<p>',
+                email.alternatives[0][0],
+            )
+            self.assertIn(
+                'Kindly proceed with updating your password by clicking on the button'
+                ' below.<p>',
+                email.alternatives[0][0],
+            )
             self.assertNotEqual(email.to, [unverified_email_user.email])
+
+    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    @patch('openwisp_users.tasks.sleep')
+    def test_password_expiration_mail_sleep(self, mocked_sleep):
+        user_expiry_date = now().today() - timedelta(
+            days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
+        )
+        for i in range(10):
+            self._create_user(username=f'user{i}', email=f'user{i}@example.com')
+        EmailAddress.objects.update(verified=True)
+        self.assertEqual(User.objects.count(), 10)
+        User.objects.update(password_updated=user_expiry_date)
+        password_expiration_email.delay()
+        mocked_sleep.assert_called()
+        self.assertGreaterEqual(mocked_sleep.call_args[0][0], 1)
+        self.assertLessEqual(mocked_sleep.call_args[0][0], 2)
 
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 0)
     @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 0)

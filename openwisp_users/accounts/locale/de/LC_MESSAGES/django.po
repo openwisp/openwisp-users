@@ -40,3 +40,21 @@ msgstr "Die Seite kann geschlossen werden."
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
 msgstr "Sie wurden erfolgreich abgemeldet."
+
+#: accounts/templates/account/email/password_expiration_message.html:3
+#: accounts/templates/account/email/password_expiration_message.txt:3
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"Wir informieren Sie darüber, dass das Passwort für Ihr Konto %(username)s in "
+"7 Tagen abläuft, genau am %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:5
+#: accounts/templates/account/email/password_expiration_message.txt:5
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr ""
+"Bitte aktualisieren Sie Ihr Passwort, indem Sie auf die Schaltfläche unten "
+"klicken."

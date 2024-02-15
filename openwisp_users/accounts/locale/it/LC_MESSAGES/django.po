@@ -84,3 +84,21 @@ msgstr "La pagina può essere chiusa."
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
 msgstr "Logout effettuato con successo."
+
+#: accounts/templates/account/email/password_expiration_message.html:3
+#: accounts/templates/account/email/password_expiration_message.txt:3
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"Ti informiamo che la password per il tuo account %(username)s scadrà tra "
+"7 giorni, precisamente il %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:5
+#: accounts/templates/account/email/password_expiration_message.txt:5
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr ""
+"Ti preghiamo di procedere con l'aggiornamento della tua password cliccando "
+"sul pulsante qui sotto."

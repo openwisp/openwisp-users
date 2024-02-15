@@ -69,3 +69,20 @@ msgstr "O confermi"
 #: accounts/templates/account/logout_success.html:18
 msgid "Logout successful."
 msgstr "Logout fat cun sucès."
+
+#: accounts/templates/account/email/password_expiration_message.html:3
+#: accounts/templates/account/email/password_expiration_message.txt:3
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"O ditin che la password pal to cont %(username)s e je sulecite a finî in "
+"7 dîs, precisament il %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:5
+#: accounts/templates/account/email/password_expiration_message.txt:5
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr ""
+"Va dongje par aggiornâ la tô password cliccand sul buton sot. "

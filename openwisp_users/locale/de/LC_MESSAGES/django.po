@@ -19,3 +19,11 @@ msgstr "Neues Passwort darf nicht mit Ihrem alten Passwort identisch sein."
 #: views.py:198
 msgid "Password updated successfully"
 msgstr "Passwort erfolgreich aktualisiert"
+
+#: tasks.py:58
+msgid "Action Required: Password Expiry Notice"
+msgstr "Aktion erforderlich: Passwortablaufbenachrichtigung"
+
+#: tasks.py:73
+msgid "Change password"
+msgstr "Passwort ändern"
