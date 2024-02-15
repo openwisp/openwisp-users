@@ -54,7 +54,7 @@ def password_expiration_email():
         )
         .filter(query)
     )
-    email_counts = 0
+    email_counts = 1
     for user in qs.iterator():
         with translation.override(user.language):
             send_email(
@@ -78,7 +78,8 @@ def password_expiration_email():
             )
         # Avoid overloading the SMTP server by sending multiple
         # emails continuously.
-        email_counts += 1
         if email_counts >= 10:
             email_counts = 0
             sleep(random.randint(1, 2))
+        else:
+            email_counts += 1

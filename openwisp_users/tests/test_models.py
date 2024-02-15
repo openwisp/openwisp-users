@@ -461,6 +461,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         for i in range(10):
             self._create_user(username=f'user{i}', email=f'user{i}@example.com')
         EmailAddress.objects.update(verified=True)
+        self.assertEqual(User.objects.count(), 10)
         User.objects.update(password_updated=user_expiry_date)
         password_expiration_email.delay()
         mocked_sleep.assert_called()
