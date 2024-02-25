@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'openwisp_users.middleware.PasswordExpirationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
