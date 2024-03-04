@@ -2,6 +2,7 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from swapper import load_model
 
@@ -139,6 +140,64 @@ class TestMultitenantAdminMixin(object):
             f'{path}?app_label={app_label}'
             f'&model_name={model_name}&field_name={field_name}'
         )
+
+
+class TestActionPermissionMixin(object):
+    def _test_action_shown_shown_with_permission(
+        self, model, actions, permissions=('change',)
+    ):
+        model_name = model._meta.model_name
+        operator = self._create_operator()
+        self._create_org_user(user=operator, is_admin=True)
+        model_permissions = (
+            Permission.objects.filter(
+                codename__endswith=model_name,
+            )
+            # Keep the view permission, otherwise the request will return 403 response
+            .exclude(codename__startswith='view').values_list('id', flat=True)
+        )
+        # Remove all permissions related to the model from the user.
+        Group.objects.get(name='Operator').permissions.remove(*model_permissions)
+        operator.user_permissions.remove(*model_permissions)
+        # Add view permissions to the user
+        operator.user_permissions.add(
+            *Permission.objects.filter(codename=f'view_{model_name}').values_list(
+                'id', flat=True
+            )
+        )
+
+        self.client.force_login(operator)
+        path = reverse(f'admin:{model._meta.app_label}_{model_name}_changelist')
+
+        with self.subTest(
+            'Test actions are not shown if user does not have permission'
+        ):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(
+                response, f'<h1>Select {model._meta.verbose_name} to view</h1>'
+            )
+            self.assertNotContains(
+                response,
+                '<select name="action" required>',
+                html=True,
+            )
+
+        with self.subTest('Test actions are shown if user has permissions'):
+            for permission in permissions:
+                perm = Permission.objects.get(
+                    content_type=ContentType.objects.get_for_model(model),
+                    codename=f'{permission}_{model_name}',
+                )
+                operator.user_permissions.add(perm)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(
+                response,
+                '<select name="action" required>',
+            )
+            for action in actions:
+                self.assertContains(response, f'<option value="{action}">')
 
 
 class TestOrganizationMixin(object):

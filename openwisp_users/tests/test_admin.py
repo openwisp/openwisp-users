@@ -22,6 +22,7 @@ from ..admin import OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
 from ..multitenancy import MultitenantAdminMixin
 from .utils import (
+    TestActionPermissionMixin,
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
     TestUserAdditionalFieldsMixin,
@@ -34,7 +35,12 @@ User = get_user_model()
 Group = load_model('openwisp_users', 'Group')
 
 
-class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase):
+class TestUsersAdmin(
+    TestOrganizationMixin,
+    TestUserAdditionalFieldsMixin,
+    TestActionPermissionMixin,
+    TestCase,
+):
     """test admin site"""
 
     app_label = 'openwisp_users'
@@ -1070,6 +1076,24 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         response = self.client.get(reverse(f'admin:{self.app_label}_organization_add'))
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
+
+    def test_make_active_inactive_user_action_require_change_permission(self):
+        self._test_action_shown_shown_with_permission(
+            model=User,
+            actions=('make_active', 'make_inactive'),
+        )
+
+    def test_delete_user_action_require_delete_permission(self):
+        self._test_action_shown_shown_with_permission(
+            model=User, actions=('delete_selected_overridden',), permissions=('delete',)
+        )
+
+    def test_delete_org_user_action_require_delete_perm(self):
+        self._test_action_shown_shown_with_permission(
+            model=OrganizationUser,
+            actions=('delete_selected_overridden',),
+            permissions=('delete',),
+        )
 
     def test_action_active(self):
         user = User.objects.create(
