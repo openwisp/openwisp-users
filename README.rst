@@ -606,6 +606,12 @@ Create User
 
     POST /api/v1/users/user/
 
+**Note**: Passing ``true`` to the optional  
+``is_verified`` field allows creating users with
+their email address flagged as verified. This will
+also skip sending the verification link to their
+email address.
+
 Get User detail
 ^^^^^^^^^^^^^^^
 
