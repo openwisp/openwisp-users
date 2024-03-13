@@ -281,7 +281,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
                 if email_verified:
                     email.primary = True
                     email.verified = True
-                    email.save()
+                    email.save(update_fields=['primary', 'verified'])
             except Exception as e:
                 logger.exception(
                     'Got exception {} while sending '
