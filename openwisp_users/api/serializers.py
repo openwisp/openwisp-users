@@ -217,12 +217,15 @@ class BaseSuperUserSerializer(serializers.ModelSerializer):
 
 
 class SuperUserListSerializer(BaseSuperUserSerializer):
+    email_verified = serializers.BooleanField(default=False, write_only=True)
+
     class Meta:
         model = User
         fields = (
             'id',
             'username',
             'email',
+            'email_verified',
             'password',
             'first_name',
             'last_name',
@@ -248,9 +251,10 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
     def create(self, validated_data):
         group_data = validated_data.pop('groups', None)
         org_user_data = validated_data.pop('organization_users', None)
+        password = validated_data.pop('password')
+        email_verified = validated_data.pop('email_verified', False)
 
         instance = self.instance or self.Meta.model(**validated_data)
-        password = validated_data.pop('password')
         instance.set_password(password)
         instance.full_clean()
         instance.save()
@@ -267,13 +271,17 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
 
         if instance.email:
             try:
-                EmailAddress.objects.add_email(
+                email = EmailAddress.objects.add_email(
                     self.context['request'],
                     user=instance,
                     email=instance.email,
-                    confirm=True,
+                    confirm=not email_verified,
                     signup=True,
                 )
+                if email_verified:
+                    email.primary = True
+                    email.verified = True
+                    email.save(update_fields=['primary', 'verified'])
             except Exception as e:
                 logger.exception(
                     'Got exception {} while sending '

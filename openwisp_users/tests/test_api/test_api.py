@@ -2,6 +2,7 @@ from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
@@ -500,21 +501,47 @@ class TestUsersApi(
         self.assertEqual(r.data['count'], 1)
 
     def test_create_user_list_api(self):
-        self.assertEqual(User.objects.count(), 1)
-        path = reverse('users:user_list')
-        data = {
-            'username': 'tester',
-            'email': 'tester@test.com',
-            'password': 'password123',
-        }
-        r = self.client.post(path, data, content_type='application/json')
-        self.assertEqual(r.status_code, 201)
-        self.assertEqual(User.objects.count(), 2)
-        self.assertEqual(r.data['groups'], [])
-        self.assertEqual(r.data['organization_users'], [])
-        self.assertEqual(r.data['username'], 'tester')
-        self.assertEqual(r.data['email'], 'tester@test.com')
-        self.assertEqual(r.data['is_active'], True)
+        with self.subTest('create user, standard case'):
+            mail_sent = len(mail.outbox)
+            self.assertEqual(User.objects.count(), 1)
+            path = reverse('users:user_list')
+            data = {
+                'username': 'tester',
+                'email': 'tester@test.com',
+                'password': 'password123',
+            }
+            r = self.client.post(path, data, content_type='application/json')
+            self.assertEqual(r.status_code, 201)
+            self.assertEqual(User.objects.count(), 2)
+            self.assertEqual(r.data['groups'], [])
+            self.assertEqual(r.data['organization_users'], [])
+            self.assertEqual(r.data['username'], 'tester')
+            self.assertEqual(r.data['email'], 'tester@test.com')
+            self.assertEqual(r.data['is_active'], True)
+            # ensure email address object is created but not verified
+            user = User.objects.filter(email=data['email']).first()
+            self.assertIsNotNone(user)
+            self.assertEqual(user.emailaddress_set.count(), 1)
+            email = user.emailaddress_set.first()
+            self.assertFalse(email.verified)
+            self.assertFalse(email.primary)
+            # ensure the email verification link is sent
+            self.assertEqual(len(mail.outbox), mail_sent + 1)
+
+        with self.subTest('create user and flag email as verified'):
+            mail_sent = len(mail.outbox)
+            User.objects.filter(email=data['email']).delete()
+            data['email_verified'] = True
+            r = self.client.post(path, data, content_type='application/json')
+            self.assertEqual(r.status_code, 201)
+            user = User.objects.filter(email=data['email']).first()
+            self.assertIsNotNone(user)
+            self.assertEqual(user.emailaddress_set.count(), 1)
+            email = user.emailaddress_set.first()
+            self.assertTrue(email.verified)
+            self.assertTrue(email.primary)
+            # ensure the email verification link is not sent
+            self.assertEqual(len(mail.outbox), mail_sent)
 
     def test_post_with_empty_form_api_400(self):
         path = reverse('users:user_list')
