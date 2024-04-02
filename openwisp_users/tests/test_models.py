@@ -358,25 +358,21 @@ class TestUsers(TestOrganizationMixin, TestCase):
         staff_user.refresh_from_db()
         end_user.refresh_from_db()
 
-        with self.subTest('Test password expiration disabled'):
+        with self.subTest('Test password expiration feature disabled'):
             with patch.object(
                 app_settings, 'USER_PASSWORD_EXPIRATION', 0
             ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 0):
                 self.assertEqual(staff_user.has_password_expired(), False)
                 self.assertEqual(end_user.has_password_expired(), False)
 
-        with self.subTest(
-            'Test password expiration enabled, but user password not expired'
-        ):
+        with self.subTest('Test password is not expired'):
             with patch.object(
                 app_settings, 'USER_PASSWORD_EXPIRATION', 10
             ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 10):
                 self.assertEqual(staff_user.has_password_expired(), False)
                 self.assertEqual(end_user.has_password_expired(), False)
 
-        with self.subTest(
-            'Test password expiration enabled, but user password is expired'
-        ):
+        with self.subTest('Test password is expired'):
             User.objects.update(password_updated=now().date() - timedelta(days=180))
             staff_user.refresh_from_db()
             end_user.refresh_from_db()
@@ -385,6 +381,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
             ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 10):
                 self.assertEqual(staff_user.has_password_expired(), True)
                 self.assertEqual(end_user.has_password_expired(), True)
+
+        with self.subTest('Test password_updated is None'):
+            User.objects.update(password_updated=None)
+            end_user.refresh_from_db()
+            with patch.object(
+                app_settings, 'USER_PASSWORD_EXPIRATION', 10
+            ), patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 10):
+                self.assertEqual(end_user.has_password_expired(), False)
 
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
     @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 90)
