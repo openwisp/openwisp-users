@@ -393,10 +393,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
     @patch.object(app_settings, 'STAFF_USER_PASSWORD_EXPIRATION', 90)
     def test_password_expiration_mail(self):
-        user_expiry_date = now().today() - timedelta(
+        user_expiry_date = now().date() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
-        staff_user_expiry_date = now().today() - timedelta(
+        staff_user_expiry_date = now().date() - timedelta(
             days=(app_settings.STAFF_USER_PASSWORD_EXPIRATION - 7)
         )
         staff_user = self._create_operator()
@@ -459,7 +459,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
     @patch('openwisp_users.tasks.sleep')
     def test_password_expiration_mail_sleep(self, mocked_sleep):
-        user_expiry_date = now().today() - timedelta(
+        user_expiry_date = now().date() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
         for i in range(10):
