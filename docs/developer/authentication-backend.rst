@@ -17,8 +17,8 @@ that even if the user adds characters like spaces, dots or dashes, the number
 will be recognized anyway.
 
 When parsing phone numbers, the
-`OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES
-<#openwisp_users_auth_backend_auto_prefixes>`_
+:ref:`OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES
+<openwisp_users_auth_backend_auto_prefixes>`
 setting allows to specify a list of international prefixes that can
 be prepended to the username string automatically in order to allow
 users to log in without having to type the international prefix.

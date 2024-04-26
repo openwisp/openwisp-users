@@ -105,7 +105,7 @@ without having to specify the international prefix.
 |              |    }                     |
 +--------------+--------------------------+
 
-This setting can be used to configure the exported fields for the `"export_users" <#export_users>`_
+This setting can be used to configure the exported fields for the :ref:`export_users <export_users>`
 command.
 
 The ``select_related`` property can be used to optimize the database query.
