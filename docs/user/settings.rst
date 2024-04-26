@@ -55,6 +55,8 @@ also count valid requests for rate limiting. For more information,
 check Django-rest-framework
 `throttling guide <https://www.django-rest-framework.org/api-guide/throttling/>`_.
 
+.. _openwisp_users_auth_backend_auto_prefixes:
+
 ``OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
