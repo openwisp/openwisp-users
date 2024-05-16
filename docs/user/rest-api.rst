@@ -50,6 +50,8 @@ Example usage of the endpoint:
         "token": "7a2e1d3d008253c123c61d56741003db5a194256"
     }
 
+.. _authenticating_rest_api:
+
 Authenticating with the user token
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
