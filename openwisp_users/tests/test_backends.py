@@ -141,6 +141,10 @@ class TestBackends(TestOrganizationMixin, TestCase):
         self.assertEqual(auth_backend.get_users('3665243702').count(), 1)
         self.assertEqual(auth_backend.get_users('3665243702').first(), user1)
 
+        with self.subTest('test with leading zero'):
+            self.assertEqual(auth_backend.get_users('03665243702').count(), 1)
+            self.assertEqual(auth_backend.get_users('03665243702').first(), user1)
+
         with self.subTest('test different prefix which is not enabled'):
             self._create_user(
                 username='tester2',
