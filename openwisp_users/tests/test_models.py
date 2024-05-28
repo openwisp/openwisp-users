@@ -186,7 +186,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(user2.is_member(org), True)
 
     def test_invalidate_cache_org_status_changed(self):
-        org = self._create_org(name="testorg1")
+        org = self._create_org(name='testorg1')
         user1 = self._create_user(username='testuser1', email='user1@test.com')
         self._create_org_user(user=user1, organization=org)
         self.assertEqual(user1.is_member(org), True)
