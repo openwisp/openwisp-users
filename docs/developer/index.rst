@@ -1,10 +1,10 @@
-Developers Documentation
-========================
+Developer Docs
+==============
 
 .. include:: ../partials/developer-docs.rst
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     ./installation.rst
     ./admin-multitenancy-mixins.rst
@@ -16,3 +16,8 @@ Developers Documentation
     ./organization-membership-helpers.rst
     ./password-validators.rst
     ./extending.rst
+
+Other useful resources:
+
+    - :doc:`../user/rest-api`
+    - :doc:`../user/settings`
