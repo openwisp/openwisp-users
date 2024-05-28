@@ -3,7 +3,7 @@ import logging
 from django.apps import AppConfig
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError,ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils.translation import gettext_lazy as _
@@ -98,7 +98,7 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-        Organization = load_model("openwisp_users" , "Organization") 
+        Organization = load_model('openwisp_users', 'Organization')
         signal_tuples = [
             (post_save, 'post_save'),
             (post_delete, 'post_delete'),
@@ -106,8 +106,8 @@ class OpenwispUsersConfig(AppConfig):
 
         pre_save.connect(
             self.handle_organization_update,
-            sender = Organization,
-            dispatch_uid='handle_organization_is_active_change'
+            sender=Organization,
+            dispatch_uid='handle_organization_is_active_change',
         )
 
         for model in [OrganizationUser, OrganizationOwner]:
@@ -138,20 +138,15 @@ class OpenwispUsersConfig(AppConfig):
         )
 
     @classmethod
-    def handle_organization_update(cls , instance , sender,**kwargs)  :
-        Organization = load_model("openwisp_users" , "Organization")
-        OrganizationUsers = load_model("openwisp_users" ,"OrganizationUser")
+    def handle_organization_update(cls, instance, **kwargs):
         try:
-            old_obj = Organization.objects.get(pk=instance.pk)
-        except ObjectDoesNotExist:
-            logger.warning(f"Organization with pk {instance.pk} does not exist.")
+            old_instance = instance._meta.model.objects.get(pk=instance.pk)
+        except instance._meta.model.DoesNotExist:
             return
-        except Exception as e:
-            logger.exception(f"An error occurred while fetching the organization: {e}")
-            return
-        if getattr(old_obj , "is_active") != getattr(instance , "is_active") :
-            for user in OrganizationUsers.objects.filter(organization = instance):
-                cls._invalidate_user_cache(user)
+        from .tasks import organization_update_task
+
+        if instance.is_active != old_instance.is_active:
+            organization_update_task.delay(instance.pk)
 
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
