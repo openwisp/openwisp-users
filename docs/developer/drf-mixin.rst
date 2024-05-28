@@ -1,7 +1,7 @@
 Django REST Framework Mixins
 ----------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 Filtering items by organization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

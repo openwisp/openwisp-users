@@ -1,7 +1,7 @@
 Organization membership helpers
 -------------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 The ``User`` model provides methods to check whether the user
 is a member, manager or owner of an organization in an efficient way.

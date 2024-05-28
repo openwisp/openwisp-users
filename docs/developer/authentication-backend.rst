@@ -1,7 +1,7 @@
 Authentication Backend
 ----------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 The authentication backend in
 ``openwisp_users.backends.UsersAuthenticationBackend``

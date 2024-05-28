@@ -1,7 +1,7 @@
 Extend openwisp-users
 ---------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 One of the core values of the OpenWISP project is
 `Software Reusability

@@ -1,7 +1,7 @@
 Django REST Framework Authentication Classes
 --------------------------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 1. ``openwisp_users.api.authentication.BearerAuthentication``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

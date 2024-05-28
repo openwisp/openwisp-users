@@ -1,7 +1,7 @@
 Management Commands
 -------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 .. _export_users:
 

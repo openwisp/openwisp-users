@@ -1,7 +1,7 @@
 Admin Multitenancy mixins
 -------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 * **MultitenantAdminMixin**: adding this mixin to a ``ModelAdmin`` class
   will make it multitenant-capable (users will only be able to see items

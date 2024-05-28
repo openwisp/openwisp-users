@@ -1,7 +1,7 @@
 Middlewares
 -----------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 ``openwisp_users.middleware.PasswordExpirationMiddleware``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

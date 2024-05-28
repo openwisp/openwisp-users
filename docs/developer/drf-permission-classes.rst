@@ -1,7 +1,7 @@
 Django REST Framework Permission Classes
 ----------------------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 The custom `Django REST Framework <https://www.django-rest-framework.org/>`_
 permission classes ``IsOrganizationMember``, ``IsOrganizationManager``

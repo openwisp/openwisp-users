@@ -1,7 +1,7 @@
 Developers Documentation
 ------------------------
 
-.. include:: /partials/developers-docs-warning.rst
+.. include:: ../partials/developer-docs.rst
 
 .. toctree::
    :maxdepth: 1
