@@ -1,31 +1,10 @@
-Install stable version from pypi
-================================
+Developer Installation Instructions
+===================================
 
 .. include:: ../partials/developer-docs.rst
 
-Install from pypi:
-
-.. code-block:: shell
-
-    pip install openwisp-users
-
-Install development version
-===========================
-
-Install tarball:
-
-.. code-block:: shell
-
-    pip install https://github.com/openwisp/openwisp-users/tarball/master
-
-Alternatively you can install via pip using git:
-
-.. code-block:: shell
-
-    pip install -e git+git://github.com/openwisp/openwisp-users#egg=openwisp_users
-
 Installing for development
-==========================
+--------------------------
 
 Install sqlite:
 
@@ -76,7 +55,7 @@ Launch development server:
 
     ./manage.py runserver
 
-You can access the admin interface at http://127.0.0.1:8000/admin/.
+You can access the admin interface at ``http://127.0.0.1:8000/admin/``.
 
 Run tests with:
 
@@ -84,3 +63,30 @@ Run tests with:
 
     # --parallel and --keepdb are optional but help to speed up the operation
     ./runtests.py --parallel --keepdb
+
+Alternative sources
+-------------------
+
+Pypi
+~~~~
+
+To install the latest stable version from pypi:
+
+.. code-block:: shell
+
+    pip install openwisp-users
+
+Github
+~~~~~~
+
+To install the latest development version tarball via HTTPs:
+
+.. code-block:: shell
+
+    pip install https://github.com/openwisp/openwisp-users/tarball/master
+
+Alternatively you can use the git protocol:
+
+.. code-block:: shell
+
+    pip install -e git+git://github.com/openwisp/openwisp-users#egg=openwisp_users
