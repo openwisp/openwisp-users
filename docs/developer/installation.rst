@@ -1,5 +1,5 @@
 Install stable version from pypi
---------------------------------
+================================
 
 .. include:: ../partials/developer-docs.rst
 
@@ -10,7 +10,7 @@ Install from pypi:
     pip install openwisp-users
 
 Install development version
----------------------------
+===========================
 
 Install tarball:
 
@@ -25,7 +25,7 @@ Alternatively you can install via pip using git:
     pip install -e git+git://github.com/openwisp/openwisp-users#egg=openwisp_users
 
 Installing for development
---------------------------
+==========================
 
 Install sqlite:
 
@@ -61,8 +61,8 @@ Create database:
     ./manage.py migrate
     ./manage.py createsuperuser
 
-
-Run celery and celery-beat with the following commands (separate terminal windows are needed):
+Run celery and celery-beat with the following commands (separate terminal windows are
+needed):
 
 .. code-block:: shell
 
