@@ -16,6 +16,7 @@ For a full introduction please refer to :doc:`user/intro`.
     user/intro.rst
     user/organization-permissions.rst
     user/organization-owners.rst
+    user/management-commands.rst
     user/settings.rst
     user/rest-api.rst
 

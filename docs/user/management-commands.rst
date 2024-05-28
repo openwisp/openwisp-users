@@ -1,8 +1,6 @@
 Management Commands
 ===================
 
-.. include:: ../partials/developer-docs.rst
-
 .. _export_users:
 
 ``export_users``

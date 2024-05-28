@@ -13,7 +13,6 @@ Developers Documentation
     ./drf-permission-classes.rst
     ./drf-mixin.rst
     ./middlewares.rst
-    ./management-commands.rst
     ./organization-membership-helpers.rst
     ./password-validators.rst
     ./extending.rst
