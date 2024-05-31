@@ -17,6 +17,7 @@ from swapper import load_model
 from . import settings as app_settings
 
 User = get_user_model()
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 @shared_task
@@ -87,12 +88,13 @@ def password_expiration_email():
 
 
 @shared_task
-def organization_update_task(organization_pk):
+def invalidate_org_membership_cache(organization_pk):
     """
-    Invalidates cache of users when organization become inactive
+    Invalidates organization membership cache of all users of an
+    organization when organization.is_active changes
+    (organization is disabled or enabled again).
     """
-    OrganizationUsers = load_model('openwisp_users', 'OrganizationUser')
-    qs = OrganizationUsers.objects.filter(
+    qs = OrganizationUser.objects.filter(
         organization_id=organization_pk
     ).select_related('user')
     User = get_user_model()

@@ -139,14 +139,15 @@ class OpenwispUsersConfig(AppConfig):
 
     @classmethod
     def handle_organization_update(cls, instance, **kwargs):
+        Organization = instance._meta.model
         try:
-            old_instance = instance._meta.model.objects.get(pk=instance.pk)
-        except instance._meta.model.DoesNotExist:
+            old_instance = Organization.objects.only('is_active').get(pk=instance.pk)
+        except Organization.DoesNotExist:
             return
-        from .tasks import organization_update_task
+        from .tasks import invalidate_org_membership_cache
 
         if instance.is_active != old_instance.is_active:
-            organization_update_task.delay(instance.pk)
+            invalidate_org_membership_cache.delay(instance.pk)
 
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
