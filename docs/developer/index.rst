@@ -7,7 +7,7 @@ Developer Docs
     :maxdepth: 2
 
     ./installation.rst
-    ./admin-multitenancy-mixins.rst
+    ./admin-utils.rst
     ./authentication-backend.rst
     ./django-rest-framework-utils
     ./middlewares.rst
