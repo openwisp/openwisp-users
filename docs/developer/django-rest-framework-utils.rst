@@ -116,6 +116,30 @@ or owners to view shared objects in read-only mode.
 
 Standard users will not be able to view or list shared objects.
 
+``ProtectedAPIMixin``
+---------------------
+
+**Full python path**: ``openwisp_users.api.mixins.ProtectedAPIMixin``.
+
+This mixin provides a set of authentication and permission classes
+that are commonly used across various OpenWISP modules API views.
+
+Usage example:
+
+.. code-block:: python
+
+    # Used in openwisp-ipam
+    from openwisp_users.api.mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
+
+
+    class ProtectedAPIMixin(BaseProtectedAPIMixin):
+        throttle_scope = "ipam"
+
+
+    class SubnetView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
+        serializer_class = SubnetSerializer
+        queryset = Subnet.objects.all()
+
 Mixins for Multi-Tenancy
 ------------------------
 
