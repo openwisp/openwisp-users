@@ -105,9 +105,9 @@ class OpenwispUsersConfig(AppConfig):
         ]
 
         pre_save.connect(
-            self.handle_organization_update,
+            self.handle_org_is_active_change,
             sender=Organization,
-            dispatch_uid='handle_organization_is_active_change',
+            dispatch_uid='handle_org_is_active_change',
         )
 
         for model in [OrganizationUser, OrganizationOwner]:
@@ -138,7 +138,10 @@ class OpenwispUsersConfig(AppConfig):
         )
 
     @classmethod
-    def handle_organization_update(cls, instance, **kwargs):
+    def handle_org_is_active_change(cls, instance, **kwargs):
+        if instance._state.adding:
+            # If it's a new organization, we don't need to update any cache
+            return
         Organization = instance._meta.model
         try:
             old_instance = Organization.objects.only('is_active').get(pk=instance.pk)

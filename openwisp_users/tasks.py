@@ -97,8 +97,5 @@ def invalidate_org_membership_cache(organization_pk):
     qs = OrganizationUser.objects.filter(
         organization_id=organization_pk
     ).select_related('user')
-    User = get_user_model()
-    for user in qs.iterator():
-        if not isinstance(user, User):
-            user = user.user
-        user._invalidate_user_organizations_dict()
+    for org_user in qs.iterator():
+        org_user.user._invalidate_user_organizations_dict()

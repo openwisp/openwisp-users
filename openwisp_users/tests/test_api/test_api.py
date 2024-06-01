@@ -50,7 +50,7 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse('users:organization_list')
         data = {'name': 'test-org', 'slug': 'test-org'}
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
@@ -720,7 +720,7 @@ class TestUsersApi(
     def test_organization_slug_post_custom_validation_api(self):
         path = reverse('users:organization_list')
         data = {'name': 'test-org', 'slug': 'test-org'}
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             r = self.client.post(path, data, content_type='application/json')
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
