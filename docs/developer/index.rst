@@ -8,11 +8,8 @@ Developer Docs
 
     ./installation.rst
     ./admin-utils.rst
-    ./authentication-backend.rst
     ./django-rest-framework-utils
-    ./middlewares.rst
-    ./organization-membership-helpers.rst
-    ./password-validators.rst
+    ./misc-utils.rst
     ./extending.rst
 
 Other useful resources:
