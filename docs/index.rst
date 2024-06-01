@@ -2,15 +2,15 @@ Users
 =====
 
 The OpenWISP Users module leverages the capabilities of the Django Framework and its
-reach ecosystem to provide OpenWISP with features for managing user accounts, permission
-groups, supporting different authentication schemes, implementing multitenancy to
+rich ecosystem to provide OpenWISP with features for managing user accounts, permission
+groups, supporting different authentication schemes, implementing multi-tenancy for
 allowing multiple organizations to be managed by different users within a single
 OpenWISP instance and more.
 
 For a full introduction please refer to :doc:`user/intro`.
 
 .. toctree::
-    :caption: User Docs
+    :caption: Usage Docs
     :maxdepth: 1
 
     user/intro.rst
