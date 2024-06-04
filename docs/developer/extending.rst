@@ -58,7 +58,7 @@ also that ``openwisp_users`` has been removed:
 
 For more information about how to work with Django projects and Django apps, please
 refer to the `Django documentation
-<https://docs.djangoproject.com/en/dev/intro/tutorial01/>`_.
+<https://docs.djangoproject.com/en/4.2/intro/tutorial01/>`_.
 
 2. Install OpenWISP Users
 -------------------------
@@ -133,7 +133,7 @@ You have to replicate and adapt that code in your project.
 
 For more information regarding the concept of ``AppConfig`` please refer to the
 `"Applications" section in the django documentation
-<https://docs.djangoproject.com/en/dev/ref/applications/>`_.
+<https://docs.djangoproject.com/en/4.2/ref/applications/>`_.
 
 7. Create Your Custom Models
 ----------------------------
@@ -146,7 +146,7 @@ You can add fields in a similar way in your ``models.py`` file.
 
 For doubts regarding how to use, extend, or develop models please refer to the `"Models"
 section in the django documentation
-<https://docs.djangoproject.com/en/dev/topics/db/models/>`_.
+<https://docs.djangoproject.com/en/4.2/topics/db/models/>`_.
 
 8. Add Swapper Configurations
 -----------------------------
@@ -204,7 +204,7 @@ below.
 
 For more information regarding how the Django admin works, or how it can be customized,
 please refer to `"The Django admin site" section in the Django documentation
-<https://docs.djangoproject.com/en/dev/ref/contrib/admin/>`_.
+<https://docs.djangoproject.com/en/4.2/ref/contrib/admin/>`_.
 
 1. Monkey Patching
 ~~~~~~~~~~~~~~~~~~
@@ -230,9 +230,8 @@ For your convenience in adding fields in User forms, we provide the following fu
 ``usermodel_add_form``
 ++++++++++++++++++++++
 
-When monkey patching the ``UserAdmin`` class to add fields in the "Add user" form,
-you can use this function. In the example, `Social Security Number is added in the add
-form
+When monkey patching the ``UserAdmin`` class to add fields in the "Add user" form, you
+can use this function. In the example, `Social Security Number is added in the add form
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/add_user.png
@@ -242,8 +241,8 @@ form
 +++++++++++++++++++++++++
 
 When monkey patching the ``UserAdmin`` class to add fields in the "Change user" form to
-change/modify the user form's profile section, you can use this function. In the example,
-`Social Security Number is added in the change form
+change/modify the user form's profile section, you can use this function. In the
+example, `Social Security Number is added in the change form
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/change_user.png
@@ -325,7 +324,7 @@ in the sample project.
 
 For more information about URL configuration in Django, please refer to the `"URL
 dispatcher" section in the Django documentation
-<https://docs.djangoproject.com/en/dev/topics/http/urls/>`_.
+<https://docs.djangoproject.com/en/4.2/topics/http/urls/>`_.
 
 12. Import the Automated Tests
 ------------------------------
@@ -368,4 +367,4 @@ Create a view file as done in `API views.py
 Remember to use these views in root URL configurations in point 11.
 
 For more information about Django views, please refer to the `views section in the
-Django documentation <https://docs.djangoproject.com/en/dev/topics/http/views/>`_.
+Django documentation <https://docs.djangoproject.com/en/4.2/topics/http/views/>`_.

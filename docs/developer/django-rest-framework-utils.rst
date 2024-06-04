@@ -87,7 +87,7 @@ To implement the permission class correctly in such cases, you would use:
 
 This setup translates to accessing ``obj.category.organization``. Ensure your view's
 querysets use `select_related
-<https://docs.djangoproject.com/en/3.0/ref/models/querysets/#select-related>`_ to avoid
+<https://docs.djangoproject.com/en/4.2/ref/models/querysets/#select-related>`_ to avoid
 generating too many queries.
 
 ``DjangoModelPermissions``
@@ -121,8 +121,8 @@ Standard users will not be able to view or list shared objects.
 
 **Full python path**: ``openwisp_users.api.mixins.ProtectedAPIMixin``.
 
-This mixin provides a set of authentication and permission classes
-that are commonly used across various OpenWISP modules API views.
+This mixin provides a set of authentication and permission classes that are commonly
+used across various OpenWISP modules API views.
 
 Usage example:
 
