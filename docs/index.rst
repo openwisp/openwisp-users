@@ -14,8 +14,7 @@ For a full introduction please refer to :doc:`user/intro`.
     :maxdepth: 1
 
     user/intro.rst
-    user/organization-permissions.rst
-    user/organization-owners.rst
+    user/basic-concepts.rst
     user/management-commands.rst
     user/settings.rst
     user/rest-api.rst
