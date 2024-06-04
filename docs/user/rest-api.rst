@@ -1,8 +1,10 @@
 REST API
 ========
 
-To enable the API the setting `OPENWISP_USERS_AUTH_API <#openwisp-users-auth-api>`_ must
-be set to ``True``.
+.. note::
+
+    The REST API is enabled by default but can be disabled by setting
+    :ref:`OPENWISP_USERS_AUTH_API` to ``False``.
 
 Live documentation
 ------------------
@@ -10,10 +12,12 @@ Live documentation
 A general live API documentation (following the OpenAPI specification) at
 ``/api/v1/docs/``.
 
-Browsable web interface
+Browsable Web Interface
 -----------------------
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/api-ui.png
+    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/api-ui.png
+    :alt: Browsable REST API Web Interface
 
 Additionally, opening any of the endpoints listed below directly in the browser will
 show the `browsable API interface of Django-REST-Framework

@@ -1,6 +1,8 @@
 Settings
 ========
 
+.. include:: /partials/settings-note.rst
+
 ``OPENWISP_ORGANIZATION_USER_ADMIN``
 ------------------------------------
 
@@ -24,6 +26,8 @@ Indicates whether the admin section for managing ``OrganizationOwner`` items is 
 or not.
 
 Find out more information about `organization owners <#organization-owners>`_.
+
+.. _openwisp_users_auth_api:
 
 ``OPENWISP_USERS_AUTH_API``
 ---------------------------
@@ -69,6 +73,8 @@ Each prefix will be prepended to the username string automatically and parsed wi
 
 This allows users to log in by using only the national phone number, without having to
 specify the international prefix.
+
+.. _openwisp_users_export_users_command_config:
 
 ``OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG``
 ----------------------------------------------
