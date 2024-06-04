@@ -1,15 +1,19 @@
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import resolve, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 
 class PasswordExpirationMiddleware:
-    exempted_paths = [
-        reverse_lazy('account_change_password'),
-        reverse_lazy('admin:logout'),
-        reverse_lazy('account_logout'),
+    exempted_url_names = [
+        'account_change_password',
+        'admin:logout',
+        'account_logout',
+        'account_reset_password',
+        'account_reset_password_done',
+        'account_reset_password_from_key',
+        'account_reset_password_from_key_done',
     ]
     admin_login_path = reverse_lazy('admin:login')
     admin_index_path = reverse_lazy('admin:index')
@@ -24,7 +28,10 @@ class PasswordExpirationMiddleware:
         if (
             request.user.is_authenticated
             and request.user.has_password_expired()
-            and request.path not in self.exempted_paths
+            # We use `resolve()` here to get the `url_name` from the `request.path`.
+            # This is more flexible than using `reverse()` as it doesn't require
+            # passing arguments to get the correct path.
+            and resolve(request.path).url_name not in self.exempted_url_names
         ):
             messages.warning(
                 request,
