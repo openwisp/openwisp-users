@@ -3,7 +3,7 @@ Developer Installation Instructions
 
 .. include:: ../partials/developer-docs.rst
 
-Installing for development
+Installing for Development
 --------------------------
 
 Install sqlite:
@@ -64,7 +64,7 @@ Run tests with:
     # --parallel and --keepdb are optional but help to speed up the operation
     ./runtests.py --parallel --keepdb
 
-Alternative sources
+Alternative Sources
 -------------------
 
 Pypi
