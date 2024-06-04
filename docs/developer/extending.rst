@@ -1,46 +1,46 @@
-Extend openwisp-users
-=====================
+Extending OpenWISP Users
+========================
 
 .. include:: ../partials/developer-docs.rst
 
 One of the core values of the OpenWISP project is `Software Reusability
 <http://openwisp.io/docs/general/values.html#software-reusability-means-long-term-sustainability>`_,
-for this reason *openwisp-users* provides a set of base classes which can be imported,
-extended and reused to create derivative apps.
+which ensures long-term sustainability. For this reason, *OpenWISP Users* provides a set
+of base classes that can be imported, extended, and reused to create derivative apps.
 
-This will be extreme beneficial for you if you want to create additional fields for User
-model, example asking for Social Security Number of the User for registeration.
+This is extremely beneficial if you want to add additional fields to the User model,
+such as requesting a Social Security Number during registration.
 
-In order to implement your custom version of *openwisp-users*, you need to perform the
-steps described in this section.
+To implement your custom version of *OpenWISP Users*, follow the steps described in this
+section.
 
-When in doubt, the code in the `test project
+If you have any doubts, refer to the code in the `test project
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/>`_ and the
 `sample app
-<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/>`_
-will serve you as source of truth: just replicate and adapt that code to get a basic
-derivative of *openwisp-users* working.
+<https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/>`_.
+These resources will serve as your source of truth: replicate and adapt that code to get
+a basic derivative of *OpenWISP Users* working.
 
-**Premise**: if you plan on using a customized version of this module, we suggest to
-start with it since the beginning, because migrating your data from the default module
-to your extended version may be time consuming.
+**Premise**: If you plan on using a customized version of this module, we recommend
+starting with it from the beginning, as migrating your data from the default module to
+your extended version may be time-consuming.
 
-1. Initialize your custom module
+1. Initialize Your Custom Module
 --------------------------------
 
-The first thing you need to do is to create a new django app which will contain your
-custom version of *openwisp-users*.
+The first thing you need to do is create a new Django app which will contain your custom
+version of *OpenWISP Users*.
 
-A django app is nothing more than a `python package
-<https://docs.python.org/3/tutorial/modules.html#packages>`_ (a directory of python
-scripts), in the following examples we'll call this django app ``myusers``, but you can
-name it how you want:
+A Django app is nothing more than a `Python package
+<https://docs.python.org/3/tutorial/modules.html#packages>`_ (a directory of Python
+scripts). In the following examples, we'll call this Django app ``myusers``, but you can
+name it however you like:
 
 .. code-block::
 
     django-admin startapp myusers
 
-Keep in mind that the command mentioned above must be called from a directory which is
+Keep in mind that the command mentioned above must be called from a directory that is
 available in your `PYTHON_PATH
 <https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH>`_ so that you can then
 import the result into your project.
@@ -56,14 +56,14 @@ also that ``openwisp_users`` has been removed:
         "myusers"
     ]
 
-For more information about how to work with django projects and django apps, please
-refer to the `django documentation
+For more information about how to work with Django projects and Django apps, please
+refer to the `Django documentation
 <https://docs.djangoproject.com/en/dev/intro/tutorial01/>`_.
 
-2. Install ``openwisp-users``
------------------------------
+2. Install OpenWISP Users
+-------------------------
 
-Install (and add to the requirement of your project) openwisp-users:
+Install (and add to the requirements of your project) openwisp-users:
 
 .. code-block::
 
@@ -119,7 +119,7 @@ Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` before
         }
     ]
 
-6. Inherit the AppConfig class
+6. Inherit the AppConfig Class
 ------------------------------
 
 Please refer to the following files in the sample app of the test project:
@@ -135,20 +135,20 @@ For more information regarding the concept of ``AppConfig`` please refer to the
 `"Applications" section in the django documentation
 <https://docs.djangoproject.com/en/dev/ref/applications/>`_.
 
-7. Create your custom models
+7. Create Your Custom Models
 ----------------------------
 
 For the purpose of showing an example, we added a simple ``social_security_number``
-field in User model to the `models of the sample app in the test project
+field in the User model to the `models of the sample app in the test project
 <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/models.py>`_.
 
 You can add fields in a similar way in your ``models.py`` file.
 
-For doubts regarding how to use, extend or develop models please refer to the `"Models"
+For doubts regarding how to use, extend, or develop models please refer to the `"Models"
 section in the django documentation
 <https://docs.djangoproject.com/en/dev/topics/db/models/>`_.
 
-8. Add swapper configurations
+8. Add Swapper Configurations
 -----------------------------
 
 Once you have created the models, add the following to your ``settings.py``:
@@ -169,7 +169,7 @@ Once you have created the models, add the following to your ``settings.py``:
 
 Substitute ``myusers`` with the name you chose in step 1.
 
-9. Create database migrations
+9. Create Database Migrations
 -----------------------------
 
 Create database migrations:
@@ -179,7 +179,7 @@ Create database migrations:
     ./manage.py makemigrations
 
 Now, manually create a file ``0004_default_groups.py`` in the migrations directory just
-created by the ``makemigrations`` command and copy contents of the
+created by the ``makemigrations`` command and copy the contents of the
 `sample_users/migrations/0004_default_groups.py
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/migrations/0004_default_groups.py>`_.
 
@@ -202,11 +202,11 @@ Refer to the `admin.py file of the sample app
 To introduce changes to the admin, you can do it in two main ways which are described
 below.
 
-For more information regarding how the django admin works, or how it can be customized,
-please refer to `"The django admin site" section in the django documentation
+For more information regarding how the Django admin works, or how it can be customized,
+please refer to `"The Django admin site" section in the Django documentation
 <https://docs.djangoproject.com/en/dev/ref/contrib/admin/>`_.
 
-1. Monkey patching
+1. Monkey Patching
 ~~~~~~~~~~~~~~~~~~
 
 If the changes you need to add are relatively small, you can resort to monkey patching.
@@ -225,12 +225,12 @@ For example:
 
     # OrganizationAdmin.field += ['example_field'] <-- Monkey patching changes example
 
-For your convenience of adding fields in User forms, we provide the following functions:
+For your convenience in adding fields in User forms, we provide the following functions:
 
-usermodel_add_form
-++++++++++++++++++
+``usermodel_add_form``
+++++++++++++++++++++++
 
-When monkey patching the ``UserAdmin`` class to add add fields in the "Add user" form,
+When monkey patching the ``UserAdmin`` class to add fields in the "Add user" form,
 you can use this function. In the example, `Social Security Number is added in the add
 form
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
@@ -238,21 +238,21 @@ form
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/add_user.png
     :alt: Social Security Number in Add form
 
-usermodel_change_form
-+++++++++++++++++++++
+``usermodel_change_form``
++++++++++++++++++++++++++
 
 When monkey patching the ``UserAdmin`` class to add fields in the "Change user" form to
-change / modify user form's profile section, you can use this function. In the example,
+change/modify the user form's profile section, you can use this function. In the example,
 `Social Security Number is added in the change form
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
 
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/change_user.png
     :alt: Social Security Number in Change form
 
-usermodel_list_and_search
-+++++++++++++++++++++++++
+``usermodel_list_and_search``
++++++++++++++++++++++++++++++
 
-When monkey patching the ``UserAdmin`` class you can use this function to make field
+When monkey patching the ``UserAdmin`` class, you can use this function to make a field
 searchable and add it to the user display list view. In the example, `Social Security
 Number is added in the changelist view
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/sample_users/admin.py>`_:
@@ -260,7 +260,7 @@ Number is added in the changelist view
 .. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/search_user.png
     :alt: Users Change List View
 
-2. Inheriting admin classes
+2. Inheriting Admin Classes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you need to introduce significant changes and/or you don't want to resort to monkey
@@ -316,23 +316,23 @@ patching, you can proceed as follows:
     class UserAdmin(BaseUserAdmin):
         pass
 
-11. Create root URL configuration
+11. Create Root URL Configuration
 ---------------------------------
 
 Please refer to the `urls.py
 <https://github.com/openwisp/openwisp-users/tree/master/tests/openwisp2/urls.py>`_ file
 in the sample project.
 
-For more information about URL configuration in django, please refer to the `"URL
-dispatcher" section in the django documentation
+For more information about URL configuration in Django, please refer to the `"URL
+dispatcher" section in the Django documentation
 <https://docs.djangoproject.com/en/dev/topics/http/urls/>`_.
 
-12. Import the automated tests
+12. Import the Automated Tests
 ------------------------------
 
 When developing a custom application based on this module, it's a good idea to import
 and run the base tests too, so that you can be sure the changes you're introducing are
-not breaking some of the existing features of *openwisp-users*.
+not breaking some of the existing features of *OpenWISP Users*.
 
 In case you need to add breaking changes, you can overwrite the tests defined in the
 base classes to test your own behavior.
@@ -350,16 +350,16 @@ You can then run tests with:
 
 Substitute ``myusers`` with the name you chose in step 1.
 
-Other base classes that can be inherited and extended
+Other Base Classes that can be Inherited and Extended
 -----------------------------------------------------
 
 The following steps are not required and are intended for more advanced customization.
 
-1. Extending the API Views
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Extending the API Views
+~~~~~~~~~~~~~~~~~~~~~~~
 
-The API view classes can be extended into other django applications as well. Note that
-it is not required for extending *openwisp-users* to your app and this change is
+The API view classes can be extended into other Django applications as well. Note that
+it is not required for extending *OpenWISP Users* to your app and this change is
 required only if you plan to make changes to the API views.
 
 Create a view file as done in `API views.py
@@ -367,5 +367,5 @@ Create a view file as done in `API views.py
 
 Remember to use these views in root URL configurations in point 11.
 
-For more information about django views, please refer to the `views section in the
-django documentation <https://docs.djangoproject.com/en/dev/topics/http/views/>`_.
+For more information about Django views, please refer to the `views section in the
+Django documentation <https://docs.djangoproject.com/en/dev/topics/http/views/>`_.
