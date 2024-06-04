@@ -22,6 +22,5 @@ Example usage:
 
     ./manage.py export_users --exclude-fields birth_date,location --filename users.csv
 
-For advance customizations (e.g. adding fields for export), you can use the
-:ref:`OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG
-<openwisp_users_export_users_command_config>` setting.
+For advanced customizations (e.g., adding fields for export), you can use the
+:ref:`OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG` setting.
