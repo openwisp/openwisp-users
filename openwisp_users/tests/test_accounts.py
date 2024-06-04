@@ -1,6 +1,8 @@
+import re
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
@@ -43,6 +45,49 @@ class TestAccountView(TestOrganizationMixin, TestCase):
             response, '<label for="id_oldpassword">Current Password:</label>'
         )
         self.assertContains(response, '<label for="id_password1">New Password:</label>')
+
+    def _test_expired_user_password_reset(self, user):
+        User.objects.update(password_updated=now() - timedelta(days=60))
+        user.refresh_from_db()
+        self.assertEqual(user.has_password_expired(), True)
+        response = self.client.post(
+            reverse(
+                'account_reset_password',
+            ),
+            data={'email': user.email},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.request.get('PATH_INFO'), reverse('account_reset_password_done')
+        )
+        self.assertContains(response, 'We have sent you an e-mail')
+        email = mail.outbox.pop()
+        password_reset_url = re.search(r'https?://[^\s]+', email.body).group(0)
+        response = self.client.get(
+            password_reset_url,
+        )
+        response = self.client.post(
+            response.url,
+            data={'password1': 'newpassword', 'password2': 'newpassword'},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.request.get('PATH_INFO'),
+            reverse('account_reset_password_from_key_done'),
+        )
+
+    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    def test_password_expired_user_reset_password(self):
+        user = self._create_org_user().user
+        self._test_expired_user_password_reset(user)
+
+    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    def test_password_expired_user_reset_password_after_login(self):
+        user = self._create_org_user().user
+        self._login_user()
+        self._test_expired_user_password_reset(user)
 
     def _test_login_flow(self):
         self._create_org_user()
