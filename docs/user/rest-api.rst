@@ -6,7 +6,7 @@ REST API
     The REST API is enabled by default but can be disabled by setting
     :ref:`OPENWISP_USERS_AUTH_API` to ``False``.
 
-Live documentation
+Live Documentation
 ------------------
 
 A general live API documentation (following the OpenAPI specification) at
@@ -24,6 +24,8 @@ show the `browsable API interface of Django-REST-Framework
 <https://www.django-rest-framework.org/topics/browsable-api/>`_, which makes it even
 easier to find out the details of each endpoint.
 
+.. _obtain_auth_token:
+
 Obtain Authentication Token
 ---------------------------
 
@@ -34,47 +36,46 @@ Obtain Authentication Token
 This endpoint only accepts the ``POST`` method and is used to retrieve the Bearer token
 that is required to make API requests to other endpoints.
 
-Example usage of the endpoint:
+Example usage:
 
 .. code-block:: shell
 
-    http POST localhost:8000/api/v1/users/token/ username=openwisp password=1234
+    curl -i -X POST http://localhost:8000/api/v1/users/token/ -d "username=openwisp" -d "password=1234"
 
     HTTP/1.1 200 OK
-    Allow: POST, OPTIONS
-    Content-Length: 52
+    Date: Wed, 05 Jun 2024 16:31:33 GMT
+    Server: WSGIServer/0.2 CPython/3.8.10
     Content-Type: application/json
-    Date: Wed, 13 May 2020 10:59:34 GMT
-    Server: WSGIServer/0.2 CPython/3.6.9
-    Vary: Cookie
-    X-Content-Type-Options: nosniff
+    Vary: Accept
+    Allow: POST, OPTIONS
     X-Frame-Options: DENY
+    Content-Length: 52
+    X-Content-Type-Options: nosniff
+    Referrer-Policy: same-origin
+    Cross-Origin-Opener-Policy: same-origin
 
-    {
-        "token": "7a2e1d3d008253c123c61d56741003db5a194256"
-    }
+    {"token": "7a2e1d3d008253c123c61d56741003db5a194256"}
 
 .. _authenticating_rest_api:
 
-Authenticating with the user token
+Authenticating with the User Token
 ----------------------------------
 
 The authentication class ``openwisp_users.api.authentication.BearerAuthentication`` is
 used across the different OpenWISP modules for authentication.
 
-To use it, first of all get the user token as described above in `Obtain Authentication
-Token <#obtain-authentication-token>`_, then send the token in the ``Authorization``
-header:
+To use it, first of all get the user token as described above in :ref:`obtain_auth_token`,
+then send the token in the ``Authorization`` header:
 
 .. code-block:: shell
 
-    # get token
-    TOKEN=$(http POST :8000/api/v1/users/token/ username=openwisp password=1234 | jq -r .token)
+    # Get the bearer token
+    TOKEN=$(curl -X POST http://localhost:8000/api/v1/users/token/ -d "username=openwisp" -d "password=1234" | jq -r .token)
 
-    # send bearer token
-    http GET localhost:8000/api/v1/firmware-upgrader/build/ "Authorization: Bearer $TOKEN"
+    # Get user list, send bearer token in authorization header
+    curl http://localhost:8000/api/v1/users/user/ -H "Authorization: Bearer $TOKEN"
 
-List of endpoints
+List of Endpoints
 -----------------
 
 Since the detailed explanation is contained in the `Live documentation
@@ -96,28 +97,28 @@ List Groups
 
     GET /api/v1/users/group/
 
-Create new Group
+Create New Group
 ~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     POST /api/v1/users/group/
 
-Get Group detail
+Get Group Detail
 ~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     GET /api/v1/users/group/{id}/
 
-Change Group detail
+Change Group Detail
 ~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PUT /api/v1/users/group/{id}/
 
-Patch Group detail
+Patch Group Detail
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
@@ -201,21 +202,21 @@ Create new Organization
 
     POST /api/v1/users/organization/
 
-Get Organization detail
+Get Organization Detail
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     GET /api/v1/users/organization/{id}/
 
-Change Organization detail
+Change Organization Detail
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PUT /api/v1/users/organization/{id}/
 
-Patch Organization detail
+Patch Organization Detail
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
@@ -247,21 +248,21 @@ Create User
 with their email address flagged as verified. This will also skip sending the
 verification link to their email address.
 
-Get User detail
+Get User Detail
 ~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     GET /api/v1/users/user/{id}/
 
-Change User detail
+Change User Detail
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PUT /api/v1/users/user/{id}/
 
-Patch User detail
+Patch User Detail
 ~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
