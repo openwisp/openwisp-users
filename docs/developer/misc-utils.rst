@@ -118,6 +118,8 @@ Usage example:
     >>> user.organizations_owned
     ... ['20135c30-d486-4d68-993f-322b8acb51c4']
 
+.. _usersauthenticationbackend:
+
 ``UsersAuthenticationBackend``
 ------------------------------
 
@@ -155,10 +157,9 @@ You can also use the backend programmatically:
 **Full python path**: ``openwisp_users.middleware.PasswordExpirationMiddleware``.
 
 When the password expiration feature is enabled (see
-`OPENWISP_USERS_USER_PASSWORD_EXPIRATION <#openwisp-users-user-password-expiration>`_
-and `OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION
-<#openwisp-users-staff-user-password-expiration>`_), this middleware restricts users to
-the *password change view* until they change their password.
+:ref:`OPENWISP_USERS_USER_PASSWORD_EXPIRATION` and
+:ref:`OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION`), this middleware restricts users
+to the *password change view* until they change their password.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and ``MessageMiddleware``:
 

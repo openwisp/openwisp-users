@@ -183,6 +183,8 @@ a verification code via SMS, see their RADIUS sessions, etc. All those endpoints
 tied to an organization because different organizations can have very different
 configurations. Users are allowed to consume those endpoints only if they're members.
 
+.. _organization_owners:
+
 Organization Owners
 ~~~~~~~~~~~~~~~~~~~
 

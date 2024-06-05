@@ -6,11 +6,19 @@ REST API
     The REST API is enabled by default but can be disabled by setting
     :ref:`OPENWISP_USERS_AUTH_API` to ``False``.
 
+.. _users_live_documentation:
+
 Live Documentation
 ------------------
 
-A general live API documentation (following the OpenAPI specification) at
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/live-api-docs.png
+    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/live-api-docs.png
+    :alt: Live API Documentation
+
+General live API documentation, following the OpenAPI specification, is available at
 ``/api/v1/docs/``.
+
+.. _users_browsable_web_interface:
 
 Browsable Web Interface
 -----------------------
@@ -64,8 +72,8 @@ Authenticating with the User Token
 The authentication class ``openwisp_users.api.authentication.BearerAuthentication`` is
 used across the different OpenWISP modules for authentication.
 
-To use it, first of all get the user token as described above in :ref:`obtain_auth_token`,
-then send the token in the ``Authorization`` header:
+To use it, first of all get the user token as described above in
+:ref:`obtain_auth_token`, then send the token in the ``Authorization`` header:
 
 .. code-block:: shell
 
@@ -78,10 +86,10 @@ then send the token in the ``Authorization`` header:
 List of Endpoints
 -----------------
 
-Since the detailed explanation is contained in the `Live documentation
-<#live-documentation>`_ and in the `Browsable web page <#browsable-web-interface>`_ of
-each point, here we'll provide just a list of the available endpoints, for further
-information please open the URL of the endpoint in your browser.
+Since the detailed explanation is contained in the :ref:`users_live_documentation` and
+in the :ref:`users_browsable_web_interface` of each endpoint, here we'll provide just a
+list of the available endpoints, for further information please open the URL of the
+endpoint in your browser.
 
 Change User password
 ~~~~~~~~~~~~~~~~~~~~

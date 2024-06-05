@@ -25,7 +25,7 @@ or not.
 Indicates whether the admin section for managing ``OrganizationOwner`` items is enabled
 or not.
 
-Find out more information about `organization owners <#organization-owners>`_.
+Refer to :ref:`organization_owners` for more information.
 
 .. _openwisp_users_auth_api:
 
@@ -37,7 +37,7 @@ Find out more information about `organization owners <#organization-owners>`_.
 **default**: ``True``
 ============ ===========
 
-Indicates whether the `REST API <#rest-api>`_ is enabled or not.
+Indicates whether the :doc:`rest-api` is enabled or not.
 
 ``OPENWISP_USERS_AUTH_THROTTLE_RATE``
 -------------------------------------
@@ -47,8 +47,7 @@ Indicates whether the `REST API <#rest-api>`_ is enabled or not.
 **default**: ``100/day``
 ============ ===========
 
-Indicates the rate throttling for the `Obtain Authentication
-<#obtain-authentication-token>`_ API endpoint.
+Indicates the rate throttling for the :ref:`obtain_auth_token` API endpoint.
 
 Please note that the current rate throttler is very basic and will also count valid
 requests for rate limiting. For more information, check Django-rest-framework
@@ -64,9 +63,9 @@ requests for rate limiting. For more information, check Django-rest-framework
 **default**: ``tuple()``
 ============ ===========
 
-A tuple or list of international prefixes which will be automatically tested by `the
-authentication backend of openwisp-users <#authentication-backend>`_ when parsing phone
-numbers.
+A tuple or list of international prefixes which will be automatically tested by
+:ref:`the authentication backend of OpenWISP Users <UsersAuthenticationBackend>` when
+parsing phone numbers.
 
 Each prefix will be prepended to the username string automatically and parsed with the
 ``phonenumbers`` library to find out if the result is a valid number of not.
@@ -105,10 +104,12 @@ specify the international prefix.
                  }
 ============ =============================
 
-This setting can be used to configure the exported fields for the :ref:`export_users
-<export_users>` command.
+This setting can be used to configure the exported fields for the :ref:`export_users`
+command.
 
 The ``select_related`` property can be used to optimize the database query.
+
+.. _openwisp_users_user_password_expiration:
 
 ``OPENWISP_USERS_USER_PASSWORD_EXPIRATION``
 -------------------------------------------
@@ -124,6 +125,8 @@ when users will be prompted to change their passwords.
 If set to ``0``, this feature is disabled, and users are not required to change their
 passwords.
 
+.. _openwisp_users_staff_user_password_expiration:
+
 ``OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION``
 -------------------------------------------------
 
@@ -132,5 +135,4 @@ passwords.
 **default**: ``0``
 ============ ===========
 
-Similar to `OPENWISP_USERS_USER_PASSWORD_EXPIRATION
-<#openwisp-users-user-password-expiration>`_, but for **staff users**.
+Similar to :ref:`OPENWISP_USERS_USER_PASSWORD_EXPIRATION`, but for **staff users**.

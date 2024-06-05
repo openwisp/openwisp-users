@@ -11,9 +11,9 @@ organizations.
 
 **Arguments**:
 
-- `--exclude-fields`: Optional, comma-separated list of fields to exclude from the
+- ``--exclude-fields``: Optional, comma-separated list of fields to exclude from the
   export.
-- `--filename`: Optional, filename for the exported CSV, defaults to
+- ``--filename``: Optional, filename for the exported CSV, defaults to
   "openwisp_exported_users.csv".
 
 Example usage:
