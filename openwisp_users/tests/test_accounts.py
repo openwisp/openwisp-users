@@ -94,3 +94,29 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         self.assertContains(
             response, 'The username and/or password you specified are not correct.'
         )
+
+    def test_social_login_user_change_password(self):
+        """
+        Tests the scenario where a user registers with social login
+        and then accesses the change password view.
+        """
+        # This test simulates the scenario where a user signs up using
+        # social login. Social login users do not set a password, so to
+        # verify this behavior, we set an unusable password to the user
+        # object.
+        user = self._create_org_user().user
+        user.set_unusable_password()
+        user.save()
+        self.client.force_login(user)
+        response = self.client.get(reverse('account_change_password'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            (
+                '<h1>You cannot change your password from this application because'
+                ' your account is linked to a third-party authentication provider.</h1>'
+                '<h1>Please visit the provider\'s website to manage your password.</h1>'
+                '<h1>This web page can be closed.</h1>'
+            ),
+            html=True,
+        )
