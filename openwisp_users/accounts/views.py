@@ -3,6 +3,7 @@ from allauth.account.views import PasswordChangeView as BasePasswordChangeView
 from django import forms
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic.base import TemplateView
 
@@ -25,6 +26,13 @@ class PasswordChangeView(BasePasswordChangeView):
         data = super().get_initial()
         data['next'] = self.request.GET.get(REDIRECT_FIELD_NAME)
         return data
+
+    def render_to_response(self, context, **response_kwargs):
+        if not self.request.user.has_usable_password():
+            return render(self.request, 'account/password_not_required.html')
+        return super(PasswordChangeView, self).render_to_response(
+            context, **response_kwargs
+        )
 
 
 password_change = login_required(PasswordChangeView.as_view())

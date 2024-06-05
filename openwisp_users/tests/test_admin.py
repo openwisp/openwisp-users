@@ -1904,7 +1904,7 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
     def test_expired_password_user_redirected(self):
         self.client.logout()
         user = self._create_admin()
-        user.password_updated = now() - timedelta(days=31)
+        user.password_updated = now().date() - timedelta(days=31)
         user.save()
         login_response = self.client.post(
             reverse('admin:login'),
@@ -1945,7 +1945,7 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
         """
         self.client.logout()
         user = self._create_admin()
-        user.password_updated = now() - timedelta(days=31)
+        user.password_updated = now().date() - timedelta(days=31)
         user.save()
         self.client.force_login(user)
         site_changelist_path = reverse('admin:sites_site_changelist')
