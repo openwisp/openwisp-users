@@ -1395,6 +1395,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         params = {
             'name': org.name,
             'slug': org.slug,
+            'is_active': 'on',
             'owner-TOTAL_FORMS': '1',
             'owner-INITIAL_FORMS': '1',
             'owner-MIN_NUM_FORMS': '0',

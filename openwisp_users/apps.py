@@ -98,10 +98,17 @@ class OpenwispUsersConfig(AppConfig):
     def connect_receivers(self):
         OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
         OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        Organization = load_model('openwisp_users', 'Organization')
         signal_tuples = [
             (post_save, 'post_save'),
             (post_delete, 'post_delete'),
         ]
+
+        pre_save.connect(
+            self.handle_org_is_active_change,
+            sender=Organization,
+            dispatch_uid='handle_org_is_active_change',
+        )
 
         for model in [OrganizationUser, OrganizationOwner]:
             for signal, name in signal_tuples:
@@ -129,6 +136,21 @@ class OpenwispUsersConfig(AppConfig):
             sender=OrganizationUser,
             dispatch_uid='make_first_org_user_org_owner',
         )
+
+    @classmethod
+    def handle_org_is_active_change(cls, instance, **kwargs):
+        if instance._state.adding:
+            # If it's a new organization, we don't need to update any cache
+            return
+        Organization = instance._meta.model
+        try:
+            old_instance = Organization.objects.only('is_active').get(pk=instance.pk)
+        except Organization.DoesNotExist:
+            return
+        from .tasks import invalidate_org_membership_cache
+
+        if instance.is_active != old_instance.is_active:
+            invalidate_org_membership_cache.delay(instance.pk)
 
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
