@@ -298,7 +298,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertContains(response, html)
 
     def test_admin_change_user_is_superuser_absent(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {
             'organization': self._get_org(),
             'is_admin': True,
@@ -324,7 +324,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertContains(response, html)
 
     def test_admin_change_non_superuser_readonly_fields(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {
             'organization': self._get_org(),
             'is_admin': True,
@@ -350,7 +350,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.assertContains(response, html)
 
     def test_org_manager_privilege_escalation(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {
             'organization': self._get_org(),
             'is_admin': True,
@@ -366,7 +366,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_admin_changelist_user_superusers_hidden(self):
         self._create_admin()
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         self.client.force_login(operator)
         response = self.client.get(reverse(f'admin:{self.app_label}_user_changelist'))
         self.assertNotContains(response, 'admin</a>')
@@ -374,7 +374,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_admin_changelist_operator_org_users_visible(self):
         # Check with operator in same organization and is_admin
         self._create_org_user()
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {'organization': self._get_org(), 'is_admin': True, 'user': operator}
         self._create_org_user(**options)
         self.client.force_login(operator)
@@ -383,7 +383,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertContains(response, 'operator</a>')
 
     def test_operator_changelist_superuser_column_hidden(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {'organization': self._get_org(), 'is_admin': True, 'user': operator}
         self._create_org_user(**options)
         self.client.force_login(operator)
@@ -393,7 +393,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_operator_organization_member(self):
         org1 = self._create_org(name='operator-org1')
         org2 = self._create_org(name='operator-org2')
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options1 = {'organization': org1, 'is_admin': True, 'user': operator}
         options2 = {'organization': org2, 'is_admin': False, 'user': operator}
         self._create_org_user(**options1)
@@ -411,7 +411,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_operator_can_see_organization_add_user(self, *args):
         org1 = self._create_org(name='operator-org1')
         org2 = self._create_org(name='operator-org2')
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         org_permissions = Permission.objects.filter(
             codename__endswith='organization_user'
         )
@@ -459,7 +459,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_operator_change_org_is_admin(self):
         org1 = self._create_org(name='test-org1')
         org2 = self._create_org(name='test-org2')
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         org_permissions = Permission.objects.filter(
             codename__endswith='change_organization'
         )
@@ -490,7 +490,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
     def test_admin_operator_delete_org_user(self):
         org1 = self._create_org(name='test-org1')
         org2 = self._create_org(name='test-org2')
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         org_permissions = Permission.objects.filter(
             codename__endswith='organization_user'
         )
@@ -526,7 +526,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_admin_operator_change_superuser_forbidden(self):
         admin = self._create_admin()
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         options = {
             'organization': self._get_org(),
             'is_admin': True,
@@ -649,7 +649,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
 
     def test_change_staff_without_group(self):
         self.client.force_login(self._get_admin())
-        user = self._create_operator()
+        user = self._create_user(is_staff=True)
         self._create_org_user(user=user)
         params = user.__dict__
         params.pop('password', None)
@@ -833,7 +833,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertContains(res, 'is_superuser')
 
     def test_admin_add_user_by_operator(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         self.client.force_login(operator)
         res = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertNotContains(res, 'is_superuser')
@@ -978,7 +978,7 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertTrue(user.is_staff)
 
     def test_operator_change_user_permissions(self):
-        operator = self._create_operator()
+        operator = self._create_operator_with_user_permissions()
         self.client.force_login(operator)
         admin = self._create_admin()
         response = self.client.get(
@@ -987,14 +987,14 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(response.status_code, 302)
 
     def test_user_add_user(self):
-        operator = self._create_operator()
-        self.client.force_login(operator)
+        admin = self._create_administrator()
+        self.client.force_login(admin)
         # removing the "add_organizationuser" permission allows
         # achieving more test coverage
         add_organizationuser = Permission.objects.get(
             codename__endswith='add_organizationuser'
         )
-        operator.user_permissions.remove(add_organizationuser)
+        admin.user_permissions.remove(add_organizationuser)
         response = self.client.get(reverse(f'admin:{self.app_label}_user_add'))
         self.assertContains(response, '<input type="text" name="username"')
 
@@ -1712,7 +1712,7 @@ class TestBasicUsersIntegration(
             self.assertContains(r, 'Email, phone number or username:')
 
 
-class TestMultitenantAdmin(TestMultitenantAdminMixin, TestOrganizationMixin, TestCase):
+class TestMultitenantAdmin(TestMultitenantAdminMixin, TestCase):
     app_label = 'openwisp_users'
 
     def _create_multitenancy_test_env(self):

@@ -29,25 +29,62 @@ class TestUserAdditionalFieldsMixin(object):
         return params
 
 
-class TestMultitenantAdminMixin(object):
-    def setUp(self):
-        user = User.objects.create_superuser(
-            username='admin', password='tester', email='admin@admin.com'
+class TestOrganizationMixin(object):
+    def _create_user(self, **kwargs):
+        opts = dict(
+            username='tester',
+            password='tester',
+            first_name='Tester',
+            last_name='Tester',
+            email='test@tester.com',
+            birth_date=date(1987, 3, 23),
         )
-        user.organizations_dict  # force caching
+        opts.update(kwargs)
+        user = User(**opts)
+        user.full_clean()
+        return User.objects.create_user(**opts)
 
-    def _login(self, username='admin', password='tester'):
-        self.client.login(username=username, password=password)
+    def _create_admin(self, **kwargs):
+        """
+        Creates a superuser.
+        It could be renamed as _create_superuser but
+        the naming is kept for backward compatibility.
+        See _create_administrator() for creating
+        a staff user with administrator group.
+        """
+        opts = dict(
+            username='admin', email='admin@admin.com', is_superuser=True, is_staff=True
+        )
+        opts.update(kwargs)
+        return self._create_user(**opts)
 
-    def _logout(self):
-        self.client.logout()
+    def _create_org(self, **kwargs):
+        options = {'name': 'test org', 'is_active': True, 'slug': 'test-org'}
+        options.update(kwargs)
+        org = Organization.objects.create(**options)
+        return org
+
+    def _create_operator_with_user_permissions(self, organizations=[], **kwargs):
+        """
+        Creates a staff user with the operator group and
+        additional privileges to manage users
+        """
+        operator = self._create_operator(organizations, **kwargs)
+        user_permissions = Permission.objects.filter(codename__endswith='user')
+        operator.user_permissions.add(*user_permissions)
+        operator.organizations_dict  # force caching
+        return operator
 
     def _create_operator(self, organizations=[], **kwargs):
+        """
+        Creates a staff user with the operator group
+        """
         opts = dict(
             username='operator',
             password='tester',
             email='operator@test.com',
             is_staff=True,
+            birth_date=date(1987, 3, 23),
         )
         opts.update(kwargs)
         operator = User.objects.create_user(**opts)
@@ -61,6 +98,9 @@ class TestMultitenantAdminMixin(object):
         return operator
 
     def _create_administrator(self, organizations=[], **kwargs):
+        """
+        Creates a staff user with the administrator group
+        """
         opts = dict(
             username='administrator',
             password='tester',
@@ -77,6 +117,69 @@ class TestMultitenantAdminMixin(object):
             )
         administrator.organizations_dict  # force caching
         return administrator
+
+    def _get_org(self, org_name='test org'):
+        try:
+            return Organization.objects.get(name=org_name)
+        except Organization.DoesNotExist:
+            return self._create_org(name=org_name)
+
+    def _get_user(self, username='tester'):
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            return self._create_user()
+
+    def _get_admin(self, username='admin'):
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            return self._create_admin()
+
+    def _get_operator(self, username='operator'):
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            return self._create_operator()
+
+    def _create_org_user(self, **kwargs):
+        options = {
+            'organization': self._get_org(),
+            'is_admin': False,
+            'user': self._get_user(),
+        }
+        options.update(kwargs)
+        org = OrganizationUser.objects.create(**options)
+        return org
+
+    def _get_org_user(self):
+        try:
+            return OrganizationUser.objects.get(
+                user=self._get_user(), organization=self._get_org()
+            )
+        except OrganizationUser.DoesNotExist:
+            return self._create_org_user()
+
+    def _create_org_owner(self, **kwargs):
+        options = {
+            'organization_user': self._get_org_user(),
+            'organization': self._get_org(),
+        }
+        options.update(kwargs)
+        org_owner = OrganizationOwner.objects.create(**options)
+        return org_owner
+
+
+class TestMultitenantAdminMixin(TestOrganizationMixin):
+    def setUp(self):
+        admin = self._create_admin(password='tester')
+        admin.organizations_dict  # force caching
+
+    def _login(self, username='admin', password='tester'):
+        self.client.login(username=username, password=password)
+
+    def _logout(self):
+        self.client.logout()
 
     def _test_multitenant_admin(
         self, url, visible, hidden, select_widget=False, administrator=False
@@ -139,96 +242,3 @@ class TestMultitenantAdminMixin(object):
             f'{path}?app_label={app_label}'
             f'&model_name={model_name}&field_name={field_name}'
         )
-
-
-class TestOrganizationMixin(object):
-    def _create_user(self, **kwargs):
-        opts = dict(
-            username='tester',
-            password='tester',
-            first_name='Tester',
-            last_name='Tester',
-            email='test@tester.com',
-            birth_date=date(1987, 3, 23),
-        )
-        opts.update(kwargs)
-        user = User(**opts)
-        user.full_clean()
-        return User.objects.create_user(**opts)
-
-    def _create_admin(self, **kwargs):
-        opts = dict(
-            username='admin', email='admin@admin.com', is_superuser=True, is_staff=True
-        )
-        opts.update(kwargs)
-        return self._create_user(**opts)
-
-    def _create_org(self, **kwargs):
-        options = {'name': 'test org', 'is_active': True, 'slug': 'test-org'}
-        options.update(kwargs)
-        org = Organization.objects.create(**options)
-        return org
-
-    def _create_operator(self):
-        operator = User.objects.create_user(
-            username='operator',
-            password='tester',
-            email='operator@test.com',
-            is_staff=True,
-            birth_date=date(1987, 3, 23),
-        )
-        user_permissions = Permission.objects.filter(codename__endswith='user')
-        operator.user_permissions.add(*user_permissions)
-        operator.organizations_dict  # force caching
-        return operator
-
-    def _get_org(self, org_name='test org'):
-        try:
-            return Organization.objects.get(name=org_name)
-        except Organization.DoesNotExist:
-            return self._create_org(name=org_name)
-
-    def _get_user(self, username='tester'):
-        try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
-            return self._create_user()
-
-    def _get_admin(self, username='admin'):
-        try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
-            return self._create_admin()
-
-    def _get_operator(self, username='operator'):
-        try:
-            return User.objects.get(username=username)
-        except User.DoesNotExist:
-            return self._create_operator()
-
-    def _create_org_user(self, **kwargs):
-        options = {
-            'organization': self._get_org(),
-            'is_admin': False,
-            'user': self._get_user(),
-        }
-        options.update(kwargs)
-        org = OrganizationUser.objects.create(**options)
-        return org
-
-    def _get_org_user(self):
-        try:
-            return OrganizationUser.objects.get(
-                user=self._get_user(), organization=self._get_org()
-            )
-        except OrganizationUser.DoesNotExist:
-            return self._create_org_user()
-
-    def _create_org_owner(self, **kwargs):
-        options = {
-            'organization_user': self._get_org_user(),
-            'organization': self._get_org(),
-        }
-        options.update(kwargs)
-        org_owner = OrganizationOwner.objects.create(**options)
-        return org_owner
