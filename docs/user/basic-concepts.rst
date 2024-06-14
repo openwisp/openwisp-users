@@ -118,11 +118,11 @@ Key Features of Organizations:
 - **Isolation & Privacy**: Organizations provide a logical separation of resources,
   ensuring that data and configurations are segregated between different entities or
   tenants. Each tenant can only see and interact with the data of their organizations
-  and :ref:`shared objects` defined by super administrators.
+  and :ref:`shared_objects` defined by super administrators.
 - **User Management**: Each organization can have its own set of users with specific
   roles and permissions tailored to their responsibilities within that organization.
 - **Administrative Controls**: Super administrators can define, oversee, and manage
-  :ref:`shared objects`, permission policies, and any other processes relating to
+  :ref:`shared_objects`, permission policies, and any other processes relating to
   organizations to ensure consistency across the entire system.
 
 By leveraging organizations, OpenWISP provides a robust framework for implementing
