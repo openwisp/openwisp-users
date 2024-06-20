@@ -239,6 +239,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         wrapper.__name__ = func.__name__
         return wrapper
 
+    @admin.action(
+        description=_('Flag selected users as inactive'), permissions=['change']
+    )
     @require_confirmation
     def make_inactive(self, request, queryset):
         queryset.update(is_active=False)
@@ -253,8 +256,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 messages.SUCCESS,
             )
 
-    make_inactive.short_description = _('Flag selected users as inactive')
-
+    @admin.action(
+        description=_('Flag selected users as active'), permissions=['change']
+    )
     @require_confirmation
     def make_active(self, request, queryset):
         queryset.update(is_active=True)
@@ -268,8 +272,6 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 ),
                 messages.SUCCESS,
             )
-
-    make_active.short_description = _('Flag selected users as active')
 
     def get_list_display(self, request):
         """
@@ -342,6 +344,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             del actions['delete_selected']
         return actions
 
+    @admin.action(description=delete_selected.short_description, permissions=['delete'])
     def delete_selected_overridden(self, request, queryset):
         if not request.user.is_superuser:
             users_pk = queryset.values_list('pk', flat=True)
@@ -375,8 +378,6 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             else:
                 queryset = excluded_owners_qs
         return delete_selected(self, request, queryset)
-
-    delete_selected_overridden.short_description = delete_selected.short_description
 
     def get_inline_instances(self, request, obj=None):
         """
@@ -581,6 +582,7 @@ class OrganizationUserAdmin(
             del actions['delete_selected']
         return actions
 
+    @admin.action(description=delete_selected.short_description, permissions=['delete'])
     def delete_selected_overridden(self, request, queryset):
         count = 0
         pks = []
@@ -615,8 +617,6 @@ class OrganizationUserAdmin(
             )
         # otherwise proceed but remove org users from the delete queryset
         return delete_selected(self, request, queryset)
-
-    delete_selected_overridden.short_description = delete_selected.short_description
 
 
 class OrganizationOwnerAdmin(
