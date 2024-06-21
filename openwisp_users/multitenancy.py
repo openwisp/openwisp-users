@@ -64,6 +64,7 @@ class MultitenantAdminMixin(object):
             * show only relevant organizations
             * show only relations associated to relevant organizations
               or shared relations
+            * do not allow organization field to be empty (shared org)
         else show everything
         """
         fields = form.base_fields
@@ -78,6 +79,7 @@ class MultitenantAdminMixin(object):
             if org_field:
                 org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
                 org_field.empty_label = None
+                org_field.required = True
             # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:

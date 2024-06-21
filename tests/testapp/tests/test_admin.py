@@ -7,6 +7,8 @@ from swapper import load_model
 
 from openwisp_users.tests.utils import TestOrganizationMixin
 
+from ..models import Template
+
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
@@ -40,3 +42,40 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertContains(
             r, '<input type="submit" class="button" value="Sign In" />', html=True
         )
+
+
+class TestTemplateAdmin(TestOrganizationMixin, TestCase):
+    def test_org_admin_create_shareable_template(self):
+        administrator = self._create_administrator()
+        self.client.force_login(administrator)
+        response = self.client.post(
+            reverse('admin:testapp_template_add'),
+            data={
+                'name': 'test-template',
+                'organization': '',
+            },
+            follow=True,
+        )
+        self.assertContains(
+            response,
+            (
+                '<div class="form-row errors field-organization">\n'
+                '            <ul class="errorlist"><li>This field '
+                'is required.</li></ul>'
+            ),
+        )
+        self.assertEqual(Template.objects.count(), 0)
+
+    def test_superuser_create_shareable_template(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.post(
+            reverse('admin:testapp_template_add'),
+            data={
+                'name': 'test-template',
+                'organization': '',
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Template.objects.count(), 1)
