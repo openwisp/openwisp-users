@@ -45,7 +45,7 @@ HTTP endpoints designed for end-users.
 .. note::
 
     An example of an end-user is someone who signs up for a public WiFi hotspot service
-    via the :doc:`WiFi Login Pages </user/wifi-login-pages>` module. This optional
+    via the :doc:`WiFi Login Pages </wifi-login-pages/index>` module. This optional
     OpenWISP module is commonly used in public WiFi hotspot deployments.
 
 Permissions
