@@ -14,7 +14,7 @@ from django.template.defaultfilters import date
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-from openwisp_utils.tests import capture_any_output
+from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 from swapper import load_model
 
 from .. import settings as app_settings
@@ -34,7 +34,12 @@ User = get_user_model()
 Group = load_model('openwisp_users', 'Group')
 
 
-class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase):
+class TestUsersAdmin(
+    AdminActionPermTestMixin,
+    TestOrganizationMixin,
+    TestUserAdditionalFieldsMixin,
+    TestCase,
+):
     """test admin site"""
 
     app_label = 'openwisp_users'
@@ -1089,6 +1094,27 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         response = self.client.post(path, post_data, follow=True)
         self.assertEqual(response.status_code, 200)
 
+    def test_action_active_perms(self):
+        org = self._get_org()
+        org_user = self._create_org_user(
+            organization=org, is_admin=True, user=self._create_user(is_staff=True)
+        ).user
+        user_obj = self._create_org_user(
+            organization=org,
+            user=self._create_user(
+                username='active-user', email='active-user@example.com'
+            ),
+        ).user
+        self._test_action_permission(
+            path=reverse(f'admin:{self.app_label}_user_changelist'),
+            action='make_active',
+            user=org_user,
+            obj=user_obj,
+            message='Successfully made 1 user active.',
+            required_perms=['change'],
+            extra_payload={'confirmation': True},
+        )
+
     def test_action_inactive(self):
         user = User.objects.create(
             username='openwisp',
@@ -1108,6 +1134,27 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         user.refresh_from_db()
         self.assertFalse(user.is_active)
         self.assertEqual(response.status_code, 200)
+
+    def test_action_inactive_perms(self):
+        org = self._get_org()
+        org_user = self._create_org_user(
+            organization=org, is_admin=True, user=self._create_user(is_staff=True)
+        ).user
+        user_obj = self._create_org_user(
+            organization=org,
+            user=self._create_user(
+                username='active-user', email='active-user@example.com'
+            ),
+        ).user
+        self._test_action_permission(
+            path=reverse(f'admin:{self.app_label}_user_changelist'),
+            action='make_inactive',
+            user=org_user,
+            obj=user_obj,
+            message='Successfully made 1 user inactive.',
+            required_perms=['change'],
+            extra_payload={'confirmation': True},
+        )
 
     def test_action_confirmation_page(self):
         user = User.objects.create(
@@ -1145,6 +1192,34 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
         self.assertEqual(r.status_code, 200)
         self.assertEqual(user_qs.count(), 0)
         self.assertEqual(org_user_qs.count(), 0)
+
+    def test_delete_selected_overridden_action_perms(self):
+        org = self._get_org()
+        org_user = self._create_org_user(
+            organization=org, is_admin=True, user=self._create_user(is_staff=True)
+        ).user
+        # Deleting user would require deleting OrganizationUser.
+        # Thus, add permission to delete OrganizationUser
+        org_user.user_permissions.add(
+            Permission.objects.get(
+                codename=f'delete_{OrganizationUser._meta.model_name}'
+            )
+        )
+        user_obj = self._create_org_user(
+            organization=org,
+            user=self._create_user(
+                username='delete-user', email='delete-user@example.com'
+            ),
+        ).user
+        self._test_action_permission(
+            path=reverse(f'admin:{self.app_label}_user_changelist'),
+            action='delete_selected_overridden',
+            user=org_user,
+            obj=user_obj,
+            message='Successfully deleted 1 user.',
+            required_perms=['delete'],
+            extra_payload={'post': 'yes'},
+        )
 
     def test_staff_delete_staff(self):
         org = self._create_org()
@@ -1551,6 +1626,27 @@ class TestUsersAdmin(TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestC
             self.assertContains(r, 'Successfully deleted 1 organization user.')
             self.assertEqual(qs.count(), 1)
             self.assertEqual(qs.first().organization, org1)
+
+    def test_delete_selected_overridden_org_user_action_perms(self):
+        org = self._get_org()
+        user = self._create_org_user(
+            organization=org, is_admin=True, user=self._create_user(is_staff=True)
+        ).user
+        org_user_obj = self._create_org_user(
+            organization=org,
+            user=self._create_user(
+                username='delete-user', email='delete-user@example.com'
+            ),
+        )
+        self._test_action_permission(
+            path=reverse(f'admin:{self.app_label}_organizationuser_changelist'),
+            action='delete_selected_overridden',
+            user=user,
+            obj=org_user_obj,
+            message='Successfully deleted 1 organization user.',
+            required_perms=['delete'],
+            extra_payload={'post': 'yes'},
+        )
 
     @capture_any_output()
     def test_admin_add_user_with_invalid_email(self):
