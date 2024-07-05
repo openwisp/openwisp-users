@@ -1704,10 +1704,7 @@ class TestBasicUsersIntegration(
     is_integration_test = True
 
     def _get_user_edit_form_inline_params(self, user, organization):
-        organization_user = OrganizationUser.objects.get(
-            user=user, organization=organization
-        )
-        return {
+        params = {
             # email address inline
             'emailaddress_set-TOTAL_FORMS': 1,
             'emailaddress_set-INITIAL_FORMS': 1,
@@ -1717,16 +1714,33 @@ class TestBasicUsersIntegration(
             'emailaddress_set-0-primary': True,
             'emailaddress_set-0-id': user.emailaddress_set.first().id,
             'emailaddress_set-0-user': str(user.pk),
-            # organization user inline
-            f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
-            f'{self.app_label}_organizationuser-INITIAL_FORMS': 1,
-            f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
-            f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1000,
-            f'{self.app_label}_organizationuser-0-is_admin': False,
-            f'{self.app_label}_organizationuser-0-organization': str(organization.pk),
-            f'{self.app_label}_organizationuser-0-id': str(organization_user.pk),
-            f'{self.app_label}_organizationuser-0-user': str(user.pk),
         }
+
+        try:
+            organization_user = OrganizationUser.objects.get(
+                user=user, organization=organization
+            )
+        except OrganizationUser.DoesNotExist:
+            pass
+        else:
+            params.update(
+                {
+                    # organization user inline
+                    f'{self.app_label}_organizationuser-TOTAL_FORMS': 1,
+                    f'{self.app_label}_organizationuser-INITIAL_FORMS': 1,
+                    f'{self.app_label}_organizationuser-MIN_NUM_FORMS': 0,
+                    f'{self.app_label}_organizationuser-MAX_NUM_FORMS': 1000,
+                    f'{self.app_label}_organizationuser-0-is_admin': False,
+                    f'{self.app_label}_organizationuser-0-organization': str(
+                        organization.pk
+                    ),
+                    f'{self.app_label}_organizationuser-0-id': str(
+                        organization_user.pk
+                    ),
+                    f'{self.app_label}_organizationuser-0-user': str(user.pk),
+                }
+            )
+        return params
 
     def test_change_user(self):
         admin = self._create_admin()
