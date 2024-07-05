@@ -1195,16 +1195,12 @@ class TestUsersAdmin(
 
     def test_delete_selected_overridden_action_perms(self):
         org = self._get_org()
-        org_user = self._create_org_user(
-            organization=org, is_admin=True, user=self._create_user(is_staff=True)
-        ).user
-        # Deleting user would require deleting OrganizationUser.
-        # Thus, add permission to delete OrganizationUser
-        org_user.user_permissions.add(
-            Permission.objects.get(
-                codename=f'delete_{OrganizationUser._meta.model_name}'
-            )
+        administrator_group = Group.objects.get(name='Administrator')
+        administrator_group.permissions.remove(
+            Permission.objects.get(codename=f'delete_{User._meta.model_name}')
         )
+        administrator = self._create_administrator([org])
+
         user_obj = self._create_org_user(
             organization=org,
             user=self._create_user(
@@ -1214,7 +1210,7 @@ class TestUsersAdmin(
         self._test_action_permission(
             path=reverse(f'admin:{self.app_label}_user_changelist'),
             action='delete_selected_overridden',
-            user=org_user,
+            user=administrator,
             obj=user_obj,
             message='Successfully deleted 1 user.',
             required_perms=['delete'],
