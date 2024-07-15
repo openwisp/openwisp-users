@@ -71,7 +71,7 @@ In most cases, this default value does not need to be changed. However, it may n
 be adjusted if the ``organization`` is defined only on a parent object.
 
 For example, in :doc:`openwisp-firmware-upgrader
-</openwisp-firmware-upgrader/>`, the ``organization`` is
+</firmware-upgrader/index>`, the ``organization`` is
 defined on ``Category``, and ``Build`` has a relation to ``Category``. Therefore, the
 organization of ``Build`` instances is inferred from the ``Category`` organization.
 
