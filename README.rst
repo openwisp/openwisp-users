@@ -34,11 +34,13 @@ Implementation of user management and multi-tenancy for OpenWISP (built with pyt
 
 ------------
 
-.. contents:: **Table of Contents**:
-   :backlinks: none
-   :depth: 3
+Documentation
+-------------
 
-------------
+- `Developer documentation
+  <https://openwisp.io/docs/dev/users/developer/>`_
+- `User documentation
+  <https://openwisp.io/docs/dev/users/>`_
 
 Contributing
 ------------
