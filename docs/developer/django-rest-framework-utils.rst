@@ -56,6 +56,8 @@ Usage example:
     class MyApiView(generics.APIView):
         permission_classes = (IsOrganizationManager,)
 
+.. _users_organization_field:
+
 ``organization_field``
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -68,8 +70,8 @@ Usage example:
 In most cases, this default value does not need to be changed. However, it may need to
 be adjusted if the ``organization`` is defined only on a parent object.
 
-For example, in `openwisp-firmware-upgrader
-<https://github.com/openwisp/openwisp-firmware-upgrader>`_, the ``organization`` is
+For example, in :doc:`openwisp-firmware-upgrader
+</openwisp-firmware-upgrader/>`, the ``organization`` is
 defined on ``Category``, and ``Build`` has a relation to ``Category``. Therefore, the
 organization of ``Build`` instances is inferred from the ``Category`` organization.
 
@@ -275,8 +277,7 @@ To filter items based on the ``organization`` of their parent object,
 ``organization_field`` attribute can be defined in the view function which is inheriting
 any of the mixin classes.
 
-Usage example: `organization_field
-<https://github.com/openwisp/openwisp-users#organization_field>`_.
+Usage example: :ref:`organization_field <users_organization_field>`.
 
 Multi-tenant Filtering Capabilities for the Browsable Web UI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
