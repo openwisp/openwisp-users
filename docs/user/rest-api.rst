@@ -1,6 +1,10 @@
 REST API
 ========
 
+.. contents:: **Table of contents**:
+    :depth: 1
+    :local:
+
 .. note::
 
     The REST API is enabled by default but can be disabled by setting

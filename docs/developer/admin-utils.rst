@@ -3,6 +3,10 @@ Admin Utilities
 
 This section outlines the admin utilities provided by the OpenWISP Users module.
 
+.. contents:: **Table of contents**:
+    :depth: 2
+    :local:
+
 ``MultitenantAdminMixin``
 -------------------------
 

@@ -3,8 +3,7 @@ Extending OpenWISP Users
 
 .. include:: ../partials/developer-docs.rst
 
-One of the core values of the OpenWISP project is `Software Reusability
-<http://openwisp.io/docs/general/values.html#software-reusability-means-long-term-sustainability>`_,
+One of the core values of the OpenWISP project is :ref:`Software Reusability <values_software_reusability>`,
 which ensures long-term sustainability. For this reason, *OpenWISP Users* provides a set
 of base classes that can be imported, extended, and reused to create derivative apps.
 
@@ -21,9 +20,15 @@ If you have any doubts, refer to the code in the `test project
 These resources will serve as your source of truth: replicate and adapt that code to get
 a basic derivative of *OpenWISP Users* working.
 
-**Premise**: If you plan on using a customized version of this module, we recommend
-starting with it from the beginning, as migrating your data from the default module to
-your extended version may be time-consuming.
+.. important::
+
+    If you plan on using a customized version of this module, we suggest
+    to start with it since the beginning, because migrating your data from
+    the default module to your extended version may be time consuming.
+
+.. contents:: **Table of Contents**:
+    :depth: 2
+    :local:
 
 1. Initialize Your Custom Module
 --------------------------------

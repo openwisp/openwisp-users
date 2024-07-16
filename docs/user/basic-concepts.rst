@@ -1,7 +1,7 @@
 Basic Concepts
 ==============
 
-.. contents::
+.. contents:: **Table of contents**:
     :depth: 2
     :local:
 
@@ -234,6 +234,6 @@ the entire system.
 
 Examples of shared objects include:
 
-- Shared Configuration Templates
+- :ref:`Shared Configuration Templates <controller_shared_vs_org>`
 - Shared VPN servers
 - Shared Subnets

@@ -8,7 +8,9 @@ schemes, and implementing multi-tenancy. This allows multiple organizations to b
 managed by different users within a single OpenWISP instance, among other
 functionalities.
 
-Below is a summary of the key features available.
+.. contents:: **Summary of the key features available**:
+    :depth: 2
+    :local:
 
 User Management
 ---------------

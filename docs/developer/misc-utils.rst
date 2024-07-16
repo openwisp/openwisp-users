@@ -5,6 +5,10 @@ Miscellaneous Utilities
 
 This section covers miscellaneous utilities provided by the OpenWISP Users module.
 
+.. contents:: **Table of Contents**:
+    :depth: 2
+    :local:
+
 Organization Membership Helpers
 -------------------------------
 

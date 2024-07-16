@@ -9,6 +9,10 @@ authentication, permission enforcement, multi-tenancy, and filtering.
 
 These utilities ensure consistency and reusability across the OpenWISP modules.
 
+.. contents:: **Table of Contents**:
+    :depth: 2
+    :local:
+
 Authentication
 --------------
 
@@ -254,8 +258,8 @@ The ``include_shared`` boolean attribute can be used to include shared objects i
 accepted values of the multi-tenant serializers.
 
 Shared objects have the ``organization`` field set to ``None`` and can be used by any
-organization. A common use case is `shared templates in OpenWISP Controller
-<https://openwisp.io/docs/user/templates.html#shared-templates-vs-organization-specific>`_.
+organization. A common use case is :ref:`shared templates in OpenWISP Controller
+<controller_shared_vs_org>`.
 
 Usage example:
 

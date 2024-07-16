@@ -3,6 +3,10 @@ Developer Installation Instructions
 
 .. include:: ../partials/developer-docs.rst
 
+.. contents:: **Table of contents**:
+    :depth: 2
+    :local:
+
 Installing for Development
 --------------------------
 
