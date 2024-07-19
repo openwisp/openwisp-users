@@ -27,6 +27,8 @@ from Django REST Framework.
 For detailed usage instructions, please refer to the `authenticating with the user token
 :ref:`authenticating_rest_api` section.
 
+.. _users_sesameauthentication:
+
 ``openwisp_users.api.authentication.SesameAuthentication``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
