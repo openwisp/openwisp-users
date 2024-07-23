@@ -49,24 +49,21 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install python dependencies
+      - name: Install Dependencies
+        id: deps
         run: |
           pip install -U pip wheel
           pip install -U -r requirements-test.txt
-      - name: Install npm dependencies
-        run: sudo npm install -g jshint
-
-      - name: Install openwisp-users
-        run: pip install -e .[rest]
-
-      - name: Change Django Version for test
-        run: pip install -U ${{ matrix.django-version }}
+          sudo npm install -g jshint
+          pip install -e .[rest]
+          pip install -U ${{ matrix.django-version }}
 
       - name: QA checks
         run: |
           ./run-qa-checks
 
       - name: Tests
+        if: ${{ !cancelled() && steps.deps.conclusion == 'success' }}
         run: |
           coverage run ./runtests.py --parallel
           SAMPLE_APP=1 coverage run ./runtests.py --parallel
@@ -75,6 +72,7 @@ jobs:
           NO_SOCIAL_APP=1 ./tests/manage.py test testapp.tests.test_admin.TestUsersAdmin --parallel
 
       - name: Upload Coverage
+        if: ${{ success() }}
         run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
