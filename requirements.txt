@@ -1,6 +1,6 @@
 django-organizations~=2.1.0
 django-extensions~=3.2.3
-django-allauth~=0.54.0
+django-allauth~=0.60.0
 django-phonenumber-field~=6.1.0
 phonenumbers~=8.13.0
 openwisp-utils[rest,celery] @ https://github.com/openwisp/openwisp-utils/tarball/master
