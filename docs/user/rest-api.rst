@@ -19,8 +19,8 @@ Live Documentation
     :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/live-api-docs.png
     :alt: Live API Documentation
 
-General live API documentation, following the OpenAPI specification, is available at
-``/api/v1/docs/``.
+General live API documentation, following the OpenAPI specification, is
+available at ``/api/v1/docs/``.
 
 .. _users_browsable_web_interface:
 
@@ -31,10 +31,10 @@ Browsable Web Interface
     :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/api-ui.png
     :alt: Browsable REST API Web Interface
 
-Additionally, opening any of the endpoints listed below directly in the browser will
-show the `browsable API interface of Django-REST-Framework
-<https://www.django-rest-framework.org/topics/browsable-api/>`_, which makes it even
-easier to find out the details of each endpoint.
+Additionally, opening any of the endpoints listed below directly in the
+browser will show the `browsable API interface of Django-REST-Framework
+<https://www.django-rest-framework.org/topics/browsable-api/>`_, which
+makes it even easier to find out the details of each endpoint.
 
 .. _obtain_auth_token:
 
@@ -45,8 +45,8 @@ Obtain Authentication Token
 
     /api/v1/users/token/
 
-This endpoint only accepts the ``POST`` method and is used to retrieve the Bearer token
-that is required to make API requests to other endpoints.
+This endpoint only accepts the ``POST`` method and is used to retrieve the
+Bearer token that is required to make API requests to other endpoints.
 
 Example usage:
 
@@ -73,11 +73,13 @@ Example usage:
 Authenticating with the User Token
 ----------------------------------
 
-The authentication class ``openwisp_users.api.authentication.BearerAuthentication`` is
-used across the different OpenWISP modules for authentication.
+The authentication class
+``openwisp_users.api.authentication.BearerAuthentication`` is used across
+the different OpenWISP modules for authentication.
 
 To use it, first of all get the user token as described above in
-:ref:`obtain_auth_token`, then send the token in the ``Authorization`` header:
+:ref:`obtain_auth_token`, then send the token in the ``Authorization``
+header:
 
 .. code-block:: shell
 
@@ -90,10 +92,11 @@ To use it, first of all get the user token as described above in
 List of Endpoints
 -----------------
 
-Since the detailed explanation is contained in the :ref:`users_live_documentation` and
-in the :ref:`users_browsable_web_interface` of each endpoint, here we'll provide just a
-list of the available endpoints, for further information please open the URL of the
-endpoint in your browser.
+Since the detailed explanation is contained in the
+:ref:`users_live_documentation` and in the
+:ref:`users_browsable_web_interface` of each endpoint, here we'll provide
+just a list of the available endpoints, for further information please
+open the URL of the endpoint in your browser.
 
 Change User password
 ~~~~~~~~~~~~~~~~~~~~
@@ -256,9 +259,9 @@ Create User
 
     POST /api/v1/users/user/
 
-**Note**: Passing ``true`` to the optional ``is_verified`` field allows creating users
-with their email address flagged as verified. This will also skip sending the
-verification link to their email address.
+**Note**: Passing ``true`` to the optional ``is_verified`` field allows
+creating users with their email address flagged as verified. This will
+also skip sending the verification link to their email address.
 
 Get User Detail
 ~~~~~~~~~~~~~~~

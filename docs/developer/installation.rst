@@ -44,8 +44,8 @@ Create database:
     ./manage.py migrate
     ./manage.py createsuperuser
 
-Run celery and celery-beat with the following commands (separate terminal windows are
-needed):
+Run celery and celery-beat with the following commands (separate terminal
+windows are needed):
 
 .. code-block:: shell
 
