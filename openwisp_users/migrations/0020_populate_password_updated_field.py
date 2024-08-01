@@ -15,7 +15,6 @@ def populate_password_updated_field(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("openwisp_users", "0019_user_password_updated"),
     ]

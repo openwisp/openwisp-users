@@ -1,7 +1,8 @@
+from swapper import load_model
+
 from openwisp_utils.admin_theme.views import (
     AutocompleteJsonView as BaseAutocompleteJsonView,
 )
-from swapper import load_model
 
 from .widgets import SHARED_SYSTEMWIDE_LABEL
 

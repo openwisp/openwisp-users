@@ -2,6 +2,7 @@ from allauth.account.adapter import DefaultAccountAdapter
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
+
 from openwisp_utils.admin_theme.email import send_email
 
 

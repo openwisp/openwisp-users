@@ -11,11 +11,14 @@ from django.urls import reverse
 from django.utils import translation
 from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_lazy as _
+from swapper import load_model
+
 from openwisp_utils.admin_theme.email import send_email
 
 from . import settings as app_settings
 
 User = get_user_model()
+OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
 @shared_task
@@ -83,3 +86,17 @@ def password_expiration_email():
             sleep(random.randint(1, 2))
         else:
             email_counts += 1
+
+
+@shared_task
+def invalidate_org_membership_cache(organization_pk):
+    """
+    Invalidates organization membership cache of all users of an
+    organization when organization.is_active changes
+    (organization is disabled or enabled again).
+    """
+    qs = OrganizationUser.objects.filter(
+        organization_id=organization_pk
+    ).select_related('user')
+    for org_user in qs.iterator():
+        org_user.user._invalidate_user_organizations_dict()

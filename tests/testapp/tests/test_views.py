@@ -3,18 +3,16 @@ from unittest.mock import patch
 from django.contrib.admin import site
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_utils.tests import capture_stderr
 from swapper import load_model
 
-from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
+from openwisp_users.tests.utils import TestMultitenantAdminMixin
+from openwisp_utils.tests import capture_stderr
 
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 
 
-class TestAutocompleteJsonView(
-    TestMultitenantAdminMixin, TestOrganizationMixin, TestCase
-):
+class TestAutocompleteJsonView(TestMultitenantAdminMixin, TestCase):
     def test_autocomplete_view_organization_filter(self):
         org1 = self._create_org(name='org1')
         org2 = self._create_org(name='org2')

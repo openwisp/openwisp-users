@@ -5,7 +5,6 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [('openwisp_users', '0004_default_groups')]
 
     operations = [

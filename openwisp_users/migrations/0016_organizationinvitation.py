@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('openwisp_users', '0015_alter_organization_users_alter_organizationuser_user'),
     ]

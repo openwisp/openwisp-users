@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from swapper import load_model
+
+from openwisp_utils.admin_theme.filters import AutocompleteFilter
 
 from .widgets import SHARED_SYSTEMWIDE_LABEL, OrganizationAutocompleteSelect
 
@@ -64,6 +65,7 @@ class MultitenantAdminMixin(object):
             * show only relevant organizations
             * show only relations associated to relevant organizations
               or shared relations
+            * do not allow organization field to be empty (shared org)
         else show everything
         """
         fields = form.base_fields
@@ -78,6 +80,7 @@ class MultitenantAdminMixin(object):
             if org_field:
                 org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
                 org_field.empty_label = None
+                org_field.required = True
             # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:
