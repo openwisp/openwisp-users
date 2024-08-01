@@ -3,10 +3,10 @@ from unittest.mock import patch
 from django.contrib.admin import site
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_utils.tests import capture_stderr
 from swapper import load_model
 
 from openwisp_users.tests.utils import TestMultitenantAdminMixin
+from openwisp_utils.tests import capture_stderr
 
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')

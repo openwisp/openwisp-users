@@ -5,8 +5,9 @@ from unittest.mock import patch
 from django.core.files.temp import NamedTemporaryFile
 from django.core.management import call_command
 from django.test import TestCase
-from openwisp_utils.tests import capture_stdout
 from rest_framework.authtoken.models import Token
+
+from openwisp_utils.tests import capture_stdout
 
 from .. import settings as app_settings
 from .utils import TestOrganizationMixin

@@ -1,8 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from swapper import load_model
+
+from openwisp_utils.admin_theme.filters import AutocompleteFilter
 
 from .widgets import SHARED_SYSTEMWIDE_LABEL, OrganizationAutocompleteSelect
 

@@ -5,16 +5,14 @@ on:
   push:
     branches:
       - master
-      - new-menu
   pull_request:
     branches:
       - master
-      - new-menu
 
 jobs:
   build:
     name: Python==${{ matrix.python-version }} | ${{ matrix.django-version }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     services:
       redis:
@@ -35,23 +33,20 @@ jobs:
           - django~=4.2.0
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Install system libraries
-        run: |
-          sudo apt update
-          sudo apt-get -qq -y install gettext
-
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Dependencies
         id: deps
         run: |
+          sudo apt update -qq
+          sudo apt-get -qq -y install gettext
           pip install -U pip wheel
           pip install -U -r requirements-test.txt
           sudo npm install -g jshint
@@ -67,28 +62,25 @@ jobs:
         run: |
           coverage run ./runtests.py --parallel
           SAMPLE_APP=1 coverage run ./runtests.py --parallel
-          coverage combine
           # basic tests without allauth.socialaccount
-          NO_SOCIAL_APP=1 ./tests/manage.py test testapp.tests.test_admin.TestUsersAdmin --parallel
+          NO_SOCIAL_APP=1 coverage run ./tests/manage.py test testapp.tests.test_admin.TestUsersAdmin --parallel
+          coverage combine
+          coverage xml
 
       - name: Upload Coverage
         if: ${{ success() }}
-        run: coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: |
-            python-${{ matrix.python-version }}-${{ matrix.django-version }}
-          COVERALLS_PARALLEL: true
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel: true
+          format: cobertura
+          flag-name: python-${{ matrix.env.env }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
   coveralls:
-    name: Finish Coveralls
     needs: build
     runs-on: ubuntu-latest
-    container: python:3-slim
     steps:
-      - name: Finished
-        run: |
-          pip3 install --upgrade coveralls
-          coveralls --finish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true

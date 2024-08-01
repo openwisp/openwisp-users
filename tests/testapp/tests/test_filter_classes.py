@@ -1,10 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
+from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
 from ..models import Book, Library, Shelf, Tag
 from .mixins import TestMultitenancyMixin

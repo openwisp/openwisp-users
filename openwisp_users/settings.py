@@ -1,4 +1,5 @@
 from django.conf import settings
+
 from openwisp_utils.utils import default_or_test
 
 ORGANIZATION_USER_ADMIN = getattr(settings, 'OPENWISP_ORGANIZATION_USER_ADMIN', True)

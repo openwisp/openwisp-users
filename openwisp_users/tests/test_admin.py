@@ -14,8 +14,9 @@ from django.template.defaultfilters import date
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 from swapper import load_model
+
+from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 
 from .. import settings as app_settings
 from ..admin import OrganizationOwnerAdmin

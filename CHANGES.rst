@@ -9,9 +9,8 @@ WIP
 Version 1.0.2 [2022-06-28]
 --------------------------
 
-- Bumped django-all-auth from 0.46.0 to 0.51.0
-  to fix mild security issues (see the `change log
-  of django-all-auth for more information
+- Bumped django-all-auth from 0.46.0 to 0.51.0 to fix mild security issues
+  (see the `change log of django-all-auth for more information
   <https://github.com/pennersr/django-allauth/blob/master/ChangeLog.rst>`_)
 - The ``@classmethod`` decorator was mistakenly forgotten and hence
   missing from the following methods of
@@ -19,8 +18,9 @@ Version 1.0.2 [2022-06-28]
 
   - ``update_organizations_dict``
   - ``create_organization_owner``
-- Fixed a broken example in the DRF Permission Classes section
-  of the documentation
+
+- Fixed a broken example in the DRF Permission Classes section of the
+  documentation
 
 Version 1.0.1 [2022-05-24]
 --------------------------
@@ -35,9 +35,10 @@ Features
 
 - Added `UsersAuthenticationBackend class
   <https://github.com/openwisp/openwisp-users#authentication-backend>`_
-  that allows users to authenticate using either email, phone_number or username.
-- Added the possibility to filter users by their organization in
-  the user administration section.
+  that allows users to authenticate using either email, phone_number or
+  username.
+- Added the possibility to filter users by their organization in the user
+  administration section.
 - Added `REST API endpoints for openwisp-users
   <https://github.com/openwisp/openwisp-users#list-of-endpoints>`_.
 - Added various `Django REST Framework mixins and utilities
@@ -68,19 +69,19 @@ Changes
   - Added `User.language field
     <https://github.com/openwisp/openwisp-users/issues/261>`_.
   - Made `User.email case insensitive
-    <https://github.com/openwisp/openwisp-users/issues/227>`_.
-    Email addresses will always get converted to lower case before
-    storage and comparison.
+    <https://github.com/openwisp/openwisp-users/issues/227>`_. Email
+    addresses will always get converted to lower case before storage and
+    comparison.
 
 - Updated ``OrganizationOwnerInline`` to use ``raw_id`` field for
   ``organization_user`` field.
-- Updated ``OrganizationUserInline`` to use ``autocomplete`` field
-  for ``organization`` field.
+- Updated ``OrganizationUserInline`` to use ``autocomplete`` field for
+  ``organization`` field.
 - **Backward incompatible:** removed `custom permission helpers
   <https://github.com/openwisp/openwisp-users/issues/266>`_.
 - **Backward incompatible:** the REST API endpoint ``/api/v1/user/token/``
-  has been changed to ``/api/v1/users/token/`` for consistency
-  with the rest of the API.
+  has been changed to ``/api/v1/users/token/`` for consistency with the
+  rest of the API.
 
 **Dependencies**:
 
@@ -99,14 +100,14 @@ Bugfixes
 ~~~~~~~~
 
 - Fixed `internal server error on "/accounts/login/" page
-  <https://github.com/openwisp/openwisp-users/issues/218>`_
-  when the social account app is disabled.
+  <https://github.com/openwisp/openwisp-users/issues/218>`_ when the
+  social account app is disabled.
 - Fixed `error on restoring "Group" object with django-reversion
   <https://github.com/openwisp/openwisp-users/issues/214>`_.
 - Fixed `error on visiting Django admin URL for non-existing users
   <https://github.com/openwisp/openwisp-users/issues/228>`_.
-- Fixed `organization managers could escalate their privileges to superuser
-  <https://github.com/openwisp/openwisp-users/issues/284>`_.
+- Fixed `organization managers could escalate their privileges to
+  superuser <https://github.com/openwisp/openwisp-users/issues/284>`_.
 
 Version 0.5.1 [2020-12-13]
 --------------------------
@@ -115,15 +116,16 @@ Changes
 ~~~~~~~
 
 - Updated django-allauth to 0.44.x
-- Copied the template ``account/login.html`` from django-allauth
-  in order to remove the sign up link, which we do not support
+- Copied the template ``account/login.html`` from django-allauth in order
+  to remove the sign up link, which we do not support
 - Updated django-extensions to 3.1
 
 Bugfixes
 ~~~~~~~~
 
 - Updating django-allauth to 0.44.x also fixes an `issue affecting
-  OpenWISP Users in production deployment (experienced in ansible-openwisp2)
+  OpenWISP Users in production deployment (experienced in
+  ansible-openwisp2)
   <https://github.com/openwisp/ansible-openwisp2/issues/233>`_
 
 Version 0.5.0 [2020-11-18]
@@ -138,9 +140,10 @@ Changes
 ~~~~~~~
 
 - [change] Extend ``admin/base_site.html`` in ``confirm_email.html``
-- [change] Updated to openwisp-utils 0.7 and switched to new ``register_menu_items``
-- [change] Removed typographic error in settings which was maintained
-  for backward compatibility
+- [change] Updated to openwisp-utils 0.7 and switched to new
+  ``register_menu_items``
+- [change] Removed typographic error in settings which was maintained for
+  backward compatibility
 - [change] Removed deprecated ``organizations_pk``
 
 Bugfixes
@@ -153,8 +156,9 @@ Bugfixes
 Version 0.4.1 [2020-10-08]
 --------------------------
 
-- [chores] Allow passing a string or uuid to the
-  `Organization membership helpers <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
+- [chores] Allow passing a string or uuid to the `Organization membership
+  helpers
+  <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
 - [fix] The ``OrganizationUser`` instance of an ``OrganizationOwner``
   won't be allowed to be ``is_admin=False``
 - [fix] Fixed mutable class attribute in MultitenantAdminMixin
@@ -167,26 +171,28 @@ Version 0.4.0 [2020-08-23]
 Features
 ~~~~~~~~
 
-- [models] Added `organizations_managed <https://github.com/openwisp/openwisp-users#organizations-managed>`_ helper
-- [models] Added `organizations_owned <https://github.com/openwisp/openwisp-users#organizations-owned>`_ helper
+- [models] Added `organizations_managed
+  <https://github.com/openwisp/openwisp-users#organizations-managed>`_
+  helper
+- [models] Added `organizations_owned
+  <https://github.com/openwisp/openwisp-users#organizations-owned>`_
+  helper
 
 Changes
 ~~~~~~~
 
-- [admin]: **Potentially backward incompatible change**:
-  Multi-tenant admin classes now allow only org managers.
-  Before this version, a user needed to be only org member
-  to see items of that organization in the admin, but this
-  is wrong! An ``OrganizationUser`` which has ``is_admin=False`` is
-  only an end-user of that organization.
-  Instead, an ``OrganizationUser`` which has ``is_admin=True`` is
-  also a manager and only this type of user shall be allowed
-  to manage items of the organization through the django admin site.
-  This is needed in order to support users being simple end-users
-  in one organization but administrators in others, otherwise
-  a staff user who is administrator of one organization would be
-  able to change also items of other organizations where
-  they are only members and not managers.
+- [admin]: **Potentially backward incompatible change**: Multi-tenant
+  admin classes now allow only org managers. Before this version, a user
+  needed to be only org member to see items of that organization in the
+  admin, but this is wrong! An ``OrganizationUser`` which has
+  ``is_admin=False`` is only an end-user of that organization. Instead, an
+  ``OrganizationUser`` which has ``is_admin=True`` is also a manager and
+  only this type of user shall be allowed to manage items of the
+  organization through the django admin site. This is needed in order to
+  support users being simple end-users in one organization but
+  administrators in others, otherwise a staff user who is administrator of
+  one organization would be able to change also items of other
+  organizations where they are only members and not managers.
 - [dependencies] Added support for django 3.1
 - [dependencies] django-phonenumber-field 5.0
 
@@ -194,7 +200,8 @@ Version 0.3.1 [2020-08-17]
 --------------------------
 
 - [deps] Updated openwisp-utils to 0.6.0
-- [test] Added functions to add inline fields in extended app's integration testing
+- [test] Added functions to add inline fields in extended app's
+  integration testing
 
 Version 0.3.0 [2020-08-14]
 --------------------------
@@ -202,21 +209,34 @@ Version 0.3.0 [2020-08-14]
 Features
 ~~~~~~~~
 
-- [models] Added `swappable models and extensible classes <https://github.com/openwisp/openwisp-users#extend-openwisp-users>`_
-- [admin] Added support for `organization owners <https://github.com/openwisp/openwisp-users#organization-owners>`_
+- [models] Added `swappable models and extensible classes
+  <https://github.com/openwisp/openwisp-users#extend-openwisp-users>`_
+- [admin] Added support for `organization owners
+  <https://github.com/openwisp/openwisp-users#organization-owners>`_
 - [admin] Added default owner to each organization
-- [api] Added `ObtainTokenView REST API endpoint <https://github.com/openwisp/openwisp-users#obtain-authentication-token>`_ for bearer authentication
-- [api] Added `OPENWISP_USERS_AUTH_API <https://github.com/openwisp/openwisp-users#openwisp-users-auth-api>`_ and `OPENWISP_USERS_AUTH_THROTTLE_RATE <https://github.com/openwisp/openwisp-users#openwisp-users-auth-throttle-rate>`_ settings
-- [api] Added `Django REST Framework permission classes <https://github.com/openwisp/openwisp-users#django-rest-framework-permission-classes>`_
-- [models] Added `Organization membership helpers <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
-- [models] Added `User permission helpers <https://github.com/openwisp/openwisp-users#permissions-helpers>`_
+- [api] Added `ObtainTokenView REST API endpoint
+  <https://github.com/openwisp/openwisp-users#obtain-authentication-token>`_
+  for bearer authentication
+- [api] Added `OPENWISP_USERS_AUTH_API
+  <https://github.com/openwisp/openwisp-users#openwisp-users-auth-api>`_
+  and `OPENWISP_USERS_AUTH_THROTTLE_RATE
+  <https://github.com/openwisp/openwisp-users#openwisp-users-auth-throttle-rate>`_
+  settings
+- [api] Added `Django REST Framework permission classes
+  <https://github.com/openwisp/openwisp-users#django-rest-framework-permission-classes>`_
+- [models] Added `Organization membership helpers
+  <https://github.com/openwisp/openwisp-users#organization-membership-helpers>`_
+- [models] Added `User permission helpers
+  <https://github.com/openwisp/openwisp-users#permissions-helpers>`_
 
 Changes
 ~~~~~~~
 
-- Enabled `organization owner admin <https://github.com/openwisp/openwisp-users#openwisp-organization-owner-admin>`_ by default
-- [dependencies] Upgraded ``django-allauth 0.42.0``, ``django-extensions 3.0.2``,
-  ``openwisp-utils 0.5[rest]`` and ``phonenumbers 8.12.0``
+- Enabled `organization owner admin
+  <https://github.com/openwisp/openwisp-users#openwisp-organization-owner-admin>`_
+  by default
+- [dependencies] Upgraded ``django-allauth 0.42.0``, ``django-extensions
+  3.0.2``, ``openwisp-utils 0.5[rest]`` and ``phonenumbers 8.12.0``
 
 Bugfixes
 ~~~~~~~~
@@ -227,8 +247,8 @@ Bugfixes
 Version 0.2.2 [2020-05-04]
 --------------------------
 
-- [admin] Fixed regression that caused superusers to
-  not be able to delete regular users
+- [admin] Fixed regression that caused superusers to not be able to delete
+  regular users
 - [admin] Do not de-register socialaccount if not enabled
 
 Version 0.2.1 [2020-04-07]
@@ -239,9 +259,10 @@ Version 0.2.1 [2020-04-07]
 - [admin] Show latest items first in "recovery deleted <object>" pages
 
 Version 0.2.0 [2020-01-17]
----------------------------
+--------------------------
 
-- [dependencies] Added support for django 3.0, dropped support for django < 2.1
+- [dependencies] Added support for django 3.0, dropped support for django
+  < 2.1
 - [python] Dropped support for python 2.7
 
 Version 0.1.12 [2019-12-20]
@@ -256,14 +277,16 @@ Version 0.1.11 [2019-12-13]
 - [admin] Allow adding organization in user creation form
 - [admin] ``UserCreationForm`` encourages to select the organization
 - [admin] Non-superusers now can manage the users of their organization
-- [admin] Made ``OrganizationOwner`` and ``OrganizationUser`` admins multi-tenant
+- [admin] Made ``OrganizationOwner`` and ``OrganizationUser`` admins
+  multi-tenant
 - [admin] Disabled ``OrganizationOwnerAdmin`` by default
 - [admin] Disabled ``OrganizationUserAdmin`` by default
 - [admin] Disabled ``view_on_site`` for ``OrganizationUserInline``
 - [admin] Added menu items
 - [admin] Avoid 500 error in case of SMTP error when adding a new user
 - [urls] Added social login views URLs
-- [mixins] Moved ``MultitenantAdminMixin`` from openwisp-utils to openwisp-users
+- [mixins] Moved ``MultitenantAdminMixin`` from openwisp-utils to
+  openwisp-users
 - [models] Add possibility to validate inverse relations
 - [model] Added phone_number field to User
 - [models] Add unique constraint on user.email
@@ -273,20 +296,20 @@ Version 0.1.11 [2019-12-13]
 Version 0.1.10 [2018-08-01]
 ---------------------------
 
-- `#26 <https://github.com/openwisp/openwisp-users/pull/26>`_:
-  [admin] Fixed Integrity error if trying to change email that exists
-  (thanks to `@R9295 <https://github.com/R9295>`_)
+- `#26 <https://github.com/openwisp/openwisp-users/pull/26>`_: [admin]
+  Fixed Integrity error if trying to change email that exists (thanks to
+  `@R9295 <https://github.com/R9295>`_)
 - `#27 <https://github.com/openwisp/openwisp-users/issues/27>`_:
   [requirements] Added support for django 2.1 rc
 
 Version 0.1.9 [2018-07-27]
 --------------------------
 
-- `#25 <https://github.com/openwisp/openwisp-users/pull/25>`_:
-  [docs] Updated setup instructions in README
-  (thanks to `@AlmogCohen <https://github.com/AlmogCohen>`_)
-- `#20 <https://github.com/openwisp/openwisp-users/issues/20>`_:
-  [tests] Fixed pending migration check
+- `#25 <https://github.com/openwisp/openwisp-users/pull/25>`_: [docs]
+  Updated setup instructions in README (thanks to `@AlmogCohen
+  <https://github.com/AlmogCohen>`_)
+- `#20 <https://github.com/openwisp/openwisp-users/issues/20>`_: [tests]
+  Fixed pending migration check
 - [requirements] Updated dependencies
 
 Version 0.1.8 [2018-02-19]
@@ -308,9 +331,9 @@ Version 0.1.6 [2017-12-02]
 Version 0.1.5 [2017-08-29]
 --------------------------
 
-- `#3 <https://github.com/openwisp/openwisp-users/issues/3>`_:
-  [admin] Allow operators to manage users without being
-  able to change superuser related details
+- `#3 <https://github.com/openwisp/openwisp-users/issues/3>`_: [admin]
+  Allow operators to manage users without being able to change superuser
+  related details
 - `31b13bb <https://github.com/openwisp/openwisp-users/commit/31b13bb>`_:
   [requirements] Updated django-allauth to 0.33.0
 

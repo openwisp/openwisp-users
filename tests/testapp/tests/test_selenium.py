@@ -2,12 +2,13 @@ from django.contrib.auth.models import Permission
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import Q
 from django.urls import reverse
-from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from swapper import load_model
+
+from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 
 from .mixins import TestMultitenancyMixin
 
@@ -66,7 +67,6 @@ class TestOrganizationAutocompleteField(
         self.open(reverse('admin:logout'))
 
         with self.subTest('Test organization user: 1 org'):
-
             self._test_multitenant_autocomplete_org_field(
                 path=path,
                 username='tester',
