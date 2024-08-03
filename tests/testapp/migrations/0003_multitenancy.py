@@ -12,7 +12,6 @@ import openwisp_users.mixins
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         swapper.dependency('openwisp_users', 'Group'),
         ('testapp', '0002_config_template'),

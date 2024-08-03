@@ -1,10 +1,9 @@
-from openwisp_utils.api.serializers import ValidatedModelSerializer
-
 from openwisp_users.api.mixins import (
     FilterSerializerByOrgManaged,
     FilterSerializerByOrgMembership,
     FilterSerializerByOrgOwned,
 )
+from openwisp_utils.api.serializers import ValidatedModelSerializer
 
 from .models import Book, Library, Shelf, Template
 

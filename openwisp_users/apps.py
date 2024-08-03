@@ -7,9 +7,10 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.utils.translation import gettext_lazy as _
+from swapper import get_model_name, load_model
+
 from openwisp_utils import settings as utils_settings
 from openwisp_utils.admin_theme.menu import register_menu_group
-from swapper import get_model_name, load_model
 
 from . import settings as app_settings
 

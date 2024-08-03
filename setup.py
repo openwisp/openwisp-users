@@ -43,7 +43,7 @@ setup(
     name='openwisp-users',
     version=get_version(),
     license='BSD',
-    author='Federico Capoano',
+    author='OpenWISP',
     author_email='support@openwisp.io',
     description='Provides basic multi-tenancy features for OpenWISP (using the Django web-framework)',
     long_description=open('README.rst').read(),
@@ -56,7 +56,7 @@ setup(
     zip_safe=False,
     install_requires=get_install_requires(),
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Topic :: Internet :: WWW/HTTP',
         'Intended Audience :: Developers',

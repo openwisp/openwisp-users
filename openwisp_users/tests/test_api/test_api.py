@@ -5,8 +5,9 @@ from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
-from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 from swapper import load_model
+
+from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
 from ..utils import TestOrganizationMixin
 

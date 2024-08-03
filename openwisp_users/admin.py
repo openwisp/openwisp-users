@@ -21,7 +21,6 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
-from openwisp_utils.admin import UUIDAdmin
 from organizations.base_admin import (
     BaseOrganizationAdmin,
     BaseOrganizationOwnerAdmin,
@@ -30,6 +29,8 @@ from organizations.base_admin import (
 from organizations.exceptions import OwnershipRequired
 from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
+
+from openwisp_utils.admin import UUIDAdmin
 
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter

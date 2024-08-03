@@ -11,8 +11,9 @@ from django.urls import reverse
 from django.utils import translation
 from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_lazy as _
-from openwisp_utils.admin_theme.email import send_email
 from swapper import load_model
+
+from openwisp_utils.admin_theme.email import send_email
 
 from . import settings as app_settings
 
