@@ -69,6 +69,6 @@ of Django third party apps to implement the following:
 
 On a similar note, the `OpenWISP RADIUS
 <https://openwisp-radius.readthedocs.io/>`_ module ships logic that allows
-end-users to log into WiFi services using OAuth (eg: social login provided
-by Google, Facebook) or SAML (eg: `EIDAS <https://www.eid.as/>`_, `SPID
-<https://www.spid.gov.it/en/>`_).
+end-users to log into WiFi services using OAuth (e.g.: social login
+provided by Google, Facebook) or SAML (e.g.: `EIDAS
+<https://www.eid.as/>`_, `SPID <https://www.spid.gov.it/en/>`_).

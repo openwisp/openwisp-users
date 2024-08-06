@@ -48,7 +48,7 @@ database query to fetch the organization instance.
 
 Use this check to grant access to end-users who need to consume services
 offered by organizations they're members of, such as authenticating to
-public Wi-Fi services.
+public WiFi services.
 
 ``is_manager(org)``
 ~~~~~~~~~~~~~~~~~~~

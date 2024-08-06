@@ -214,7 +214,7 @@ Sometimes, the API view needs to check the existence and the
 In such cases, ``FilterByParentMembership``, ``FilterByParentManaged`` and
 ``FilterByParentOwned`` can be used.
 
-For example, given a hypotetical URL
+For example, given a hypothetical URL
 ``/api/v1/device/{device_id}/config/``, the view must check that
 ``{device_id}`` exists and that the user has access to it, here's how to
 do it:

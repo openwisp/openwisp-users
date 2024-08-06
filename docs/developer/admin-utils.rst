@@ -37,8 +37,8 @@ This class has two important attributes:
 **Full python path**:
 ``openwisp_users.multitenancy.MultitenantOrgFilter``.
 
-This autocomplete admin filter displays only organizations the current
-user can manage. Below is an example of adding the autocomplete
+This auto complete admin filter displays only organizations the current
+user can manage. Below is an example of adding the auto complete
 organization filter in ``BookAdmin``:
 
 .. code-block:: python
