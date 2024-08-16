@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from packaging.version import parse as version_parse
+from rest_framework import VERSION as REST_FRAMEWORK_VERSION
 from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
@@ -312,7 +314,10 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.client.force_login(operator)
         self._create_shelf(name='test-shelf-a', organization=org1)
         path = reverse('test_shelf_list_with_read_only_org')
-        with self.assertNumQueries(7):
+        expected_queries = (
+            6 if version_parse(REST_FRAMEWORK_VERSION) > version_parse('3.14') else 7
+        )
+        with self.assertNumQueries(expected_queries):
             response = self.client.get(path, {'format': 'api'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['organization'], org1.pk)
