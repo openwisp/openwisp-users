@@ -181,7 +181,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
                 'ordering': ['name'],
             },
-            bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
             name='OrganizationOwner',
@@ -221,7 +220,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'organization owner',
                 'abstract': False,
             },
-            bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
             name='OrganizationUser',
@@ -271,7 +269,6 @@ class Migration(migrations.Migration):
                 'abstract': False,
                 'ordering': ['organization', 'user'],
             },
-            bases=(organizations.base.UnicodeMixin, models.Model),
         ),
         migrations.CreateModel(
             name='Group',
