@@ -1,5 +1,6 @@
 from allauth.account.forms import ChangePasswordForm as BaseChangePasswordForm
 from allauth.account.views import PasswordChangeView as BasePasswordChangeView
+from allauth.account.views import sensitive_post_parameters_m
 from django import forms
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
@@ -27,12 +28,11 @@ class PasswordChangeView(BasePasswordChangeView):
         data['next'] = self.request.GET.get(REDIRECT_FIELD_NAME)
         return data
 
-    def render_to_response(self, context, **response_kwargs):
+    @sensitive_post_parameters_m
+    def dispatch(self, request, *args, **kwargs):
         if not self.request.user.has_usable_password():
             return render(self.request, 'account/password_not_required.html')
-        return super(PasswordChangeView, self).render_to_response(
-            context, **response_kwargs
-        )
+        return super().dispatch(request, *args, **kwargs)
 
 
 password_change = login_required(PasswordChangeView.as_view())

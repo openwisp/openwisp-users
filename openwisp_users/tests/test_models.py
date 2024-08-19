@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from allauth.account.models import EmailAddress
+from allauth.account.models import EmailAddress, get_emailconfirmation_model
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -17,7 +17,7 @@ from .utils import TestOrganizationMixin
 Organization = load_model('openwisp_users', 'Organization')
 OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
 OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-EmailConfirmation = load_model('account', 'EmailConfirmation')
+EmailConfirmation = get_emailconfirmation_model()
 User = get_user_model()
 
 
@@ -315,6 +315,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
     )
     def test_email_verification_success(self):
         user = self._create_user()
+        user.emailaddress_set.update(verified=False)
         email_address = user.emailaddress_set.first()
         email_confirmation = EmailConfirmation.create(email_address)
         email_confirmation.send()
