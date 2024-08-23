@@ -61,7 +61,7 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         self.assertEqual(
             response.request.get('PATH_INFO'), reverse('account_reset_password_done')
         )
-        self.assertContains(response, 'We have sent you an e-mail')
+        self.assertContains(response, 'We have sent you an email')
         email = mail.outbox.pop()
         password_reset_url = re.search(r'https?://[^\s]+', email.body).group(0)
         response = self.client.get(

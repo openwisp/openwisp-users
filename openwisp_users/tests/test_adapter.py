@@ -29,7 +29,7 @@ class TestEmailAdapter(TestOrganizationMixin, TestCase):
         self.client.post(reverse('account_reset_password'), params, follow=True)
         send_mail_calls = mail_func.call_args_list
         send_mail_arguments = send_mail_calls[0][0]
-        self.assertEqual(send_mail_arguments[0], '[example.com] Password Reset E-mail')
+        self.assertEqual(send_mail_arguments[0], '[example.com] Password Reset Email')
         self.assertEqual(send_mail_arguments[2], '')
 
     def test_password_reset_email_sent(self):
@@ -41,5 +41,5 @@ class TestEmailAdapter(TestOrganizationMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox.pop()
         self.assertFalse(email.alternatives)
-        self.assertIn('Password Reset E-mail', email.subject)
+        self.assertIn('Password Reset Email', email.subject)
         self.assertIn('Click the link below to reset your password', email.body)

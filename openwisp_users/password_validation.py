@@ -18,4 +18,4 @@ class PasswordReuseValidator:
             )
 
     def get_help_text(self):
-        return ''
+        return _('Your password cannot be the same as your current password.')

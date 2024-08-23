@@ -1,4 +1,4 @@
-{% extends "account/base.html" %}
+{% extends "account/base_entrance.html" %}
 
 {% load i18n %}
 {% block head_title %}{% trans "Sign In" %}{% endblock %}
@@ -8,6 +8,9 @@
 <style>
 #content p label {
   margin-right: 5px;
+}
+#id_password + span {
+  display: none;
 }
 </style>
 {% endblock extrastyle %}
