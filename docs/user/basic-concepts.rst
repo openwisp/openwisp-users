@@ -192,13 +192,13 @@ via the administrative interface, even if they are flagged as Staff users.
 They can only consume REST API endpoints or other non administrative user
 interface pages.
 
-A real-world example of this is the :ref:`User API endpoints of OpenWISP RADIUS
-<radius_user_api_endpoints>`,
-which allow users to sign up to an organization, verify their phone number
-by receiving a verification code via SMS, see their RADIUS sessions, etc.
-All those endpoints are tied to an organization because different
-organizations can have very different configurations. Users are allowed to
-consume those endpoints only if they're members.
+A real-world example of this is the :ref:`User API endpoints of OpenWISP
+RADIUS <radius_user_api_endpoints>`, which allow users to sign up to an
+organization, verify their phone number by receiving a verification code
+via SMS, see their RADIUS sessions, etc. All those endpoints are tied to
+an organization because different organizations can have very different
+configurations. Users are allowed to consume those endpoints only if
+they're members.
 
 .. _organization_owners:
 

@@ -261,9 +261,9 @@ Create User
 
 .. note::
 
-    Passing ``true`` to the optional ``is_verified`` field allows
-    creating users with their email address flagged as verified. This will
-    also skip sending the verification link to their email address.
+    Passing ``true`` to the optional ``is_verified`` field allows creating
+    users with their email address flagged as verified. This will also
+    skip sending the verification link to their email address.
 
 Get User Detail
 ~~~~~~~~~~~~~~~
