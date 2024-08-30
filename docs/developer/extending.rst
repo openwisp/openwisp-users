@@ -202,9 +202,11 @@ Then, run the migrations:
 
     ./manage.py migrate
 
-**Note**: the ``0004_default_groups`` is required because other OpenWISP
-modules depend on it. If it's not created as documented here, the
-migrations of other OpenWISP modules will fail.
+.. note::
+
+    The ``0004_default_groups`` is required because other OpenWISP
+    modules depend on it. If it's not created as documented here, the
+    migrations of other OpenWISP modules will fail.
 
 10. Create the admin
 --------------------

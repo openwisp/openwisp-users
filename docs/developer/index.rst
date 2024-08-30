@@ -14,5 +14,5 @@ Developer Docs
 
 Other useful resources:
 
-    - :doc:`../user/rest-api`
-    - :doc:`../user/settings`
+- :doc:`../user/rest-api`
+- :doc:`../user/settings`
