@@ -1,10 +1,70 @@
 Changelog
 =========
 
-Version 1.1.0 [unreleased]
+Version 1.1.0 [2024-11-20]
 --------------------------
 
-WIP
+Features
+~~~~~~~~
+
+- Added support for `password expiration
+  <https://openwisp.io/docs/dev/users/user/settings.html#openwisp-users-user-password-expiration>`_,
+  allowing user passwords to automatically expire after a set period.
+- Added `multi-tenant Django filters
+  <https://openwisp.io/docs/dev/users/developer/django-rest-framework-utils.html#filtering-items-by-organization>`_.
+- Added `MultitenantOrgFilter
+  <https://openwisp.io/docs/dev/users/developer/admin-utils.html#multitenantorgfilter>`_
+  to add autocomplete filter in ``ModelAdmin``.
+- Added `export-users
+  <https://openwisp.io/docs/dev/users/user/management-commands.html#export-users>`_
+  command line utility to export users.
+- Added `ProtectedApiMixin
+  <https://openwisp.io/docs/dev/users/developer/django-rest-framework-utils.html#protectedapimixin>`_.
+- Added `PasswordReuseValidator
+  <https://openwisp.io/docs/dev/users/developer/misc-utils.html#passwordreusevalidator>`_
+  which prevents users from reusing their current password when setting a
+  new one.
+- Allowed creating users with a verified email via REST API.
+
+Changes
+~~~~~~~
+
+- Added autocomplete fields in ``OrganizationOwner`` admin.
+- Enabled ``OrganizationUserAdmin`` by default.
+
+**Dependencies**:
+
+- Bumped ``django-organizations~=2.4.1``.
+- Bumped ``django-extensions~=3.2.3``.
+- Bumped ``django-allauth[socialaccount]~=0.63.6``.
+- Bumped ``django-phonenumber-field~=8.13.48``.
+- Bumped ``django-reversion~=5.1.0``.
+- Bumped ``phonenumbers~=8.13.48``.
+- Bumped ``django-sesame~=3.2.2``.
+- Bumped ``openwisp-utils[rest,celery]~=1.1.1``.
+- Added support for Django ``4.1.x`` and ``4.2.x``.
+- Added support for Python ``3.10``.
+- Dropped support for Python ``3.7``.
+- Dropped support for Django ``3.0.x`` and ``3.1.x``.
+
+Bugfixes
+~~~~~~~~
+
+- User need to have required model permissions to perform admin actions.
+- Don't allow organization admin to create shared object.
+- Fixed user's organization cache invalidation.
+- Invalidate org membership cache when organization's active status
+  changes.
+- Fixed an issue where the organization admin would see multiple entries
+  for the same user in the user changelist.
+- Fixed admin unregistration failures for ``EmailAddress`` and
+  ``TokenProxy`` models.
+- Fixed an ``IntegrityError`` that occurred when adding the first user to
+  an organization via ``Organization.add_user``.
+- Fixed `UsersAuthenticationBackend
+  <https://openwisp.io/docs/dev/users/developer/misc-utils.html#usersauthenticationbackend>`_
+  to support phone numbers with leading zero.
+- Prevented users registered via social login from setting a password.
 
 Version 1.0.2 [2022-06-28]
 --------------------------
