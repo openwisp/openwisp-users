@@ -199,7 +199,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'user',
                 'verbose_name_plural': 'users',
                 'abstract': False,
-                'index_together': {('id', 'email')},
             },
             managers=[
                 ('objects', openwisp_users.base.models.UserManager()),
@@ -499,5 +498,9 @@ class Migration(migrations.Migration):
                 through='sample_users.OrganizationUser',
                 to=settings.AUTH_USER_MODEL,
             ),
+        ),
+        migrations.AddIndex(
+            model_name="user",
+            index=models.Index(fields=["id", "email"], name="user_id_email_idx"),
         ),
     ]
