@@ -8,20 +8,20 @@ Features
 ~~~~~~~~
 
 - Added support for `password expiration
-  <https://openwisp.io/docs/dev/users/user/settings.html#openwisp-users-user-password-expiration>`_,
+  <https://openwisp.io/docs/stable/users/user/settings.html#openwisp-users-user-password-expiration>`_,
   allowing user passwords to automatically expire after a set period.
 - Added `multi-tenant Django filters
-  <https://openwisp.io/docs/dev/users/developer/django-rest-framework-utils.html#filtering-items-by-organization>`_.
+  <https://openwisp.io/docs/stable/users/developer/django-rest-framework-utils.html#filtering-items-by-organization>`_.
 - Added `MultitenantOrgFilter
-  <https://openwisp.io/docs/dev/users/developer/admin-utils.html#multitenantorgfilter>`_
+  <https://openwisp.io/docs/stable/users/developer/admin-utils.html#multitenantorgfilter>`_
   to add autocomplete filter in ``ModelAdmin``.
 - Added `export-users
-  <https://openwisp.io/docs/dev/users/user/management-commands.html#export-users>`_
+  <https://openwisp.io/docs/stable/users/user/management-commands.html#export-users>`_
   command line utility to export users.
 - Added `ProtectedApiMixin
-  <https://openwisp.io/docs/dev/users/developer/django-rest-framework-utils.html#protectedapimixin>`_.
+  <https://openwisp.io/docs/stable/users/developer/django-rest-framework-utils.html#protectedapimixin>`_.
 - Added `PasswordReuseValidator
-  <https://openwisp.io/docs/dev/users/developer/misc-utils.html#passwordreusevalidator>`_
+  <https://openwisp.io/docs/stable/users/developer/misc-utils.html#passwordreusevalidator>`_
   which prevents users from reusing their current password when setting a
   new one.
 - Allowed creating users with a verified email via REST API.
@@ -62,7 +62,7 @@ Bugfixes
 - Fixed an ``IntegrityError`` that occurred when adding the first user to
   an organization via ``Organization.add_user``.
 - Fixed `UsersAuthenticationBackend
-  <https://openwisp.io/docs/dev/users/developer/misc-utils.html#usersauthenticationbackend>`_
+  <https://openwisp.io/docs/stable/users/developer/misc-utils.html#usersauthenticationbackend>`_
   to support phone numbers with leading zero.
 - Prevented users registered via social login from setting a password.
 

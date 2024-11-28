@@ -38,9 +38,9 @@ with python & django).
 Documentation
 -------------
 
-- `Usage documentation <https://openwisp.io/docs/dev/users/>`_
+- `Usage documentation <https://openwisp.io/docs/stable/users/>`_
 - `Developer documentation
-  <https://openwisp.io/docs/dev/users/developer/>`_
+  <https://openwisp.io/docs/stable/users/developer/>`_
 
 Contributing
 ------------
