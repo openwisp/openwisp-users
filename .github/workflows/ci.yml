@@ -52,7 +52,7 @@ jobs:
           sudo apt-get -qq -y install gettext
           pip install -U pip wheel
           pip install -U -r requirements-test.txt
-          sudo npm install -g jshint
+          sudo npm install -g prettier
           pip install -e .[rest]
           pip install -U ${{ matrix.django-version }}
 

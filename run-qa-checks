@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-jshint ./openwisp_users/static/openwisp-users/js/*.js
-
 echo ''
 echo 'Compiling translations'
 cd openwisp_users
@@ -12,7 +10,9 @@ cd ..
 openwisp-qa-check \
       --migrations-to-ignore 2 \
       --migration-path './openwisp_users/migrations' \
-      --migration-module openwisp_users
+      --migration-module openwisp_users \
+      --csslinter \
+      --jslinter
 
 echo ''
 echo 'Running checks for testapp'
