@@ -1,4 +1,4 @@
-django-organizations~=2.4.1
+django-organizations~=2.5.0
 django-extensions~=3.2.3
 django-allauth[socialaccount]~=0.63.6
 django-phonenumber-field~=8.0.0
