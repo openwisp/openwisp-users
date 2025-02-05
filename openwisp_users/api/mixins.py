@@ -107,8 +107,6 @@ class FilterByParent(OrgLookup):
 
     def assert_parent_exists(self):
         parent_queryset = self.get_parent_queryset()
-        if not self.request.user.is_superuser:
-            parent_queryset = self.get_organization_queryset(parent_queryset)
         try:
             assert parent_queryset.exists()
         except (AssertionError, ValidationError):

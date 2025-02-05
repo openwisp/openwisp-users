@@ -1,11 +1,9 @@
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import pagination
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.exceptions import NotFound
 from rest_framework.generics import (
     GenericAPIView,
     ListCreateAPIView,
@@ -20,6 +18,7 @@ from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
 
+from .mixins import FilterByParentOwned
 from .mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
 from .serializers import (
     ChangePasswordSerializer,
@@ -198,7 +197,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
+class BaseEmailView(ProtectedAPIMixin, FilterByParentOwned, GenericAPIView):
     model = EmailAddress
     serializer_class = EmailAddressSerializer
 
@@ -208,13 +207,6 @@ class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
     def initial(self, *args, **kwargs):
         super().initial(*args, **kwargs)
         self.assert_parent_exists()
-
-    def assert_parent_exists(self):
-        try:
-            assert self.get_parent_queryset().exists()
-        except (AssertionError, ValidationError):
-            user_id = self.kwargs['pk']
-            raise NotFound(detail=_("User with ID '{}' not found.".format(user_id)))
 
     def get_parent_queryset(self):
         user = self.request.user
