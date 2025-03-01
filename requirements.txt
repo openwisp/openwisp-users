@@ -1,6 +1,6 @@
 django-organizations~=2.4.1
 django-extensions~=3.2.3
-django-allauth[socialaccount]~=0.63.6
+django-allauth[socialaccount]~=65.4.1
 django-phonenumber-field~=8.0.0
 phonenumbers~=8.13.54
 openwisp-utils[rest,celery] @ https://github.com/openwisp/openwisp-utils/tarball/1.2
