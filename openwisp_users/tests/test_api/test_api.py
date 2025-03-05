@@ -458,7 +458,7 @@ class TestUsersApi(
         self._create_org_user(user=org2_user, organization=org2)
         self.client.force_login(org1_user)
         path = reverse('users:email_list', args=(org2_user.pk,))
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(4):
             response = self.client.get(path)
         self.assertEqual(response.status_code, 404)
 

@@ -209,20 +209,19 @@ class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
         self.assert_parent_exists()
 
     def get_parent_queryset(self):
+        qs = User.objects.filter(pk=self.kwargs['pk'])
         if self.request.user.is_superuser:
-            return User.objects.filter(pk=self.kwargs['pk'])
-        return self.get_organization_queryset(User.objects.all())
+            return qs
+        return self.get_organization_queryset(qs)
 
     def get_organization_queryset(self, qs):
-        user = self.request.user
-        org_users = OrganizationUser.objects.filter(user=user).select_related(
-            'organization'
-        )
-        qs_user = User.objects.none()
-        for org_user in org_users:
-            if org_user.is_admin:
-                qs_user = qs_user | org_user.organization.users.all().distinct()
-        return qs_user.filter(is_superuser=False, pk=self.kwargs['pk'])
+        orgs = self.request.user.organizations_managed
+        return qs.filter(
+            # exclude superusers
+            is_superuser=False,
+            # ensure user is member of the org
+            openwisp_users_organizationuser__organization_id__in=orgs
+        ).distinct()
 
     def get_serializer_context(self):
         if getattr(self, 'swagger_fake_view', False):
