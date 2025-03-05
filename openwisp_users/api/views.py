@@ -1,11 +1,9 @@
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import pagination
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.exceptions import NotFound
 from rest_framework.generics import (
     GenericAPIView,
     ListCreateAPIView,
@@ -20,6 +18,7 @@ from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
 
+from .mixins import FilterByParent
 from .mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
 from .serializers import (
     ChangePasswordSerializer,
@@ -198,7 +197,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
+class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
     model = EmailAddress
     serializer_class = EmailAddressSerializer
 
@@ -209,19 +208,13 @@ class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
         super().initial(*args, **kwargs)
         self.assert_parent_exists()
 
-    def assert_parent_exists(self):
-        try:
-            assert self.get_parent_queryset().exists()
-        except (AssertionError, ValidationError):
-            user_id = self.kwargs['pk']
-            raise NotFound(detail=_("User with ID '{}' not found.".format(user_id)))
-
     def get_parent_queryset(self):
-        user = self.request.user
-
-        if user.is_superuser:
+        if self.request.user.is_superuser:
             return User.objects.filter(pk=self.kwargs['pk'])
+        return self.get_organization_queryset(User.objects.all())
 
+    def get_organization_queryset(self, qs):
+        user = self.request.user
         org_users = OrganizationUser.objects.filter(user=user).select_related(
             'organization'
         )
@@ -229,8 +222,7 @@ class BaseEmailView(ProtectedAPIMixin, GenericAPIView):
         for org_user in org_users:
             if org_user.is_admin:
                 qs_user = qs_user | org_user.organization.users.all().distinct()
-        qs_user = qs_user.filter(is_superuser=False)
-        return qs_user.filter(pk=self.kwargs['pk'])
+        return qs_user.filter(is_superuser=False, pk=self.kwargs['pk'])
 
     def get_serializer_context(self):
         if getattr(self, 'swagger_fake_view', False):
