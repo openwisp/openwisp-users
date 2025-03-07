@@ -216,12 +216,14 @@ class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
 
     def get_organization_queryset(self, qs):
         orgs = self.request.user.organizations_managed
-        return qs.filter(
+        app_label = User._meta.app_config.label
+        filter_kwargs = {
             # exclude superusers
-            is_superuser=False,
+            'is_superuser': False,
             # ensure user is member of the org
-            openwisp_users_organizationuser__organization_id__in=orgs
-        ).distinct()
+            f'{app_label}_organizationuser__organization_id__in': orgs,
+        }
+        return qs.filter(**filter_kwargs).distinct()
 
     def get_serializer_context(self):
         if getattr(self, 'swagger_fake_view', False):
