@@ -4,6 +4,7 @@ import smtplib
 import uuid
 from unittest.mock import patch
 
+import django
 from django.contrib import admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.contrib.auth.models import Permission
@@ -252,9 +253,11 @@ class TestUsersAdmin(
             self.assertContains(
                 response,
                 (
-                    '<ul class="errorlist"><li>'
+                    '<ul class="errorlist"{}><li>'
                     'You cannot re-use your current password. '
                     'Enter a new password.</li></ul>'
+                ).format(
+                    ' id="id_password2_error"' if django.VERSION >= (5, 2) else ''
                 ),
             )
         with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
@@ -344,7 +347,7 @@ class TestUsersAdmin(
         with self.subTest('User Permissions'):
             # regex to check if `<div class="readonly"> ... app_label </div>`
             # exists in the response
-            html = f'<div class="readonly">((?!</div>).)*({self.app_label})'
+            html = f'v((?!</div>).)*({self.app_label})'
             self.assertTrue(
                 re.search(
                     html,

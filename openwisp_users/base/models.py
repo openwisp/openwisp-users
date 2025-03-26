@@ -73,7 +73,7 @@ class AbstractUser(BaseUser):
 
     class Meta(BaseUser.Meta):
         abstract = True
-        index_together = ('id', 'email')
+        indexes = [models.Index(fields=['id', 'email'], name='user_id_email_idx')]
 
     @staticmethod
     def _get_pk(obj):
@@ -257,7 +257,11 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
-        if self.user.is_owner(self.organization_id) and not self.is_admin:
+        if (
+            not self._state.adding
+            and self.user.is_owner(self.organization_id)
+            and not self.is_admin
+        ):
             raise ValidationError(
                 _(
                     f'{self.user.username} is the owner of the organization: '
