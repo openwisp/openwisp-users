@@ -83,7 +83,6 @@ jobs:
           pip install -U -r requirements-test.txt
           sudo npm install -g prettier
           pip install -e .[rest]
-          pip install -IU "openwisp-utils[qa,selenium] @ https://github.com/openwisp/openwisp-utils/tarball/issues/439-deps"
           pip install -U ${{ matrix.django-version }}
 
       - name: QA checks
