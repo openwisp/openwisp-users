@@ -64,7 +64,7 @@ class TestOrganizationAutocompleteField(
                 visible=Organization.objects.values_list('name', flat=True),
                 hidden=[],
             )
-        self.open(reverse('admin:logout'))
+        self.logout()
 
         with self.subTest('Test organization user: 1 org'):
             self._test_multitenant_autocomplete_org_field(
@@ -81,7 +81,7 @@ class TestOrganizationAutocompleteField(
             )
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
-        self.open(reverse('admin:logout'))
+        self.logout()
 
         with self.subTest('Test organization user: 2 orgs'):
             self._create_org_user(user=administrator, organization=org2, is_admin=True)
@@ -99,7 +99,7 @@ class TestOrganizationAutocompleteField(
                 self.web_driver.find_element(By.CSS_SELECTOR, '#id_organization')
             )
             self.assertEqual(len(org_select.all_selected_options), 0)
-        self.open(reverse('admin:logout'))
+        self.logout()
 
     def test_shelf_add_form_organization_field(self):
         path = reverse('admin:testapp_shelf_add')
@@ -122,7 +122,7 @@ class TestOrganizationAutocompleteField(
                 + ['Shared systemwide (no organization)'],
                 hidden=[],
             )
-        self.open(reverse('admin:logout'))
+        self.logout()
 
         with self.subTest('Test organization user'):
             self._test_multitenant_autocomplete_org_field(
@@ -142,4 +142,4 @@ class TestOrganizationAutocompleteField(
             )
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
-        self.open(reverse('admin:logout'))
+        self.logout()

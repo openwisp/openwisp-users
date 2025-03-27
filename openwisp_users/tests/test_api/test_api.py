@@ -440,7 +440,7 @@ class TestUsersApi(
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 1)
         path = reverse('users:email_list', args=(user1.pk,))
         data = {'email': 'newemail@test.com'}
-        expected_queries = 7 if django.VERSION < (4, 0) else 9
+        expected_queries = 9 if django.VERSION < (5, 2) else 13
         with self.assertNumQueries(expected_queries):
             response = self.client.post(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -468,7 +468,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse('users:email_update', args=(user1.pk, email_id))
         data = {'email': 'emailchange@test.com', 'primary': True}
-        expected_queries = 9 if django.VERSION < (4, 0) else 11
+        expected_queries = 11 if django.VERSION < (5, 2) else 15
         with self.assertNumQueries(expected_queries):
             response = self.client.put(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)
@@ -479,7 +479,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse('users:email_update', args=(user1.pk, email_id))
         data = {'email': 'changemail@test.com'}
-        expected_queries = 9 if django.VERSION < (4, 0) else 11
+        expected_queries = 11 if django.VERSION < (5, 2) else 15
         with self.assertNumQueries(expected_queries):
             response = self.client.patch(path, data, content_type='application/json')
         self.assertEqual(response.status_code, 200)

@@ -1,5 +1,6 @@
 import os
 
+import django
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -60,9 +61,9 @@ class TestTemplateAdmin(TestOrganizationMixin, TestCase):
             response,
             (
                 '<div class="form-row errors field-organization">\n'
-                '            <ul class="errorlist"><li>This field '
-                'is required.</li></ul>'
-            ),
+                '            <ul class="errorlist"{}>'
+                '<li>This field is required.</li></ul>'
+            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else ''),
         )
         self.assertEqual(Template.objects.count(), 0)
 
