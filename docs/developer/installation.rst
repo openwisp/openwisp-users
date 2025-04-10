@@ -34,7 +34,7 @@ Start Redis
 
 .. code-block:: shell
 
-    docker-compose up -d
+    docker compose up -d
 
 Create database:
 
