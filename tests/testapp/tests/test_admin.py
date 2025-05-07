@@ -1,12 +1,11 @@
 import os
 
-import django
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
-from openwisp_users.tests.utils import TestOrganizationMixin
+from openwisp_users.tests.utils import TestMultitenantAdminMixin, TestOrganizationMixin
 
 from ..models import Template
 
@@ -45,30 +44,42 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         )
 
 
-class TestTemplateAdmin(TestOrganizationMixin, TestCase):
+class TestTemplateAdmin(TestMultitenantAdminMixin, TestCase):
+    def _create_template(self, **kwargs):
+        if "organization" not in kwargs:
+            kwargs["organization"] = self._get_org()
+        options = {
+            "name": "test-template",
+        }
+        options.update(kwargs)
+        template = Template(**options)
+        template.full_clean()
+        template.save()
+        return template
+
     def test_org_admin_create_shareable_template(self):
-        administrator = self._create_administrator()
-        self.client.force_login(administrator)
-        response = self.client.post(
+        self._test_org_admin_create_shareable_object(
             reverse("admin:testapp_template_add"),
-            data={
+            payload={
                 "name": "test-template",
                 "organization": "",
             },
-            follow=True,
+            model=Template,
         )
-        self.assertContains(
-            response,
-            (
-                '<div class="form-row errors field-organization">\n'
-                '            <ul class="errorlist"{}>'
-                "<li>This field is required.</li></ul>"
-            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else ""),
+
+    def test_template_organization_autocomplete_view(self):
+        self._test_object_organization_fk_autocomplete_view(
+            Template,
         )
-        self.assertEqual(Template.objects.count(), 0)
+
+    def test_org_admin_view_shared_template(self):
+        template = self._create_template(organization=None)
+        self._test_org_admin_view_shareable_object(
+            reverse("admin:testapp_template_change", args=(template.id,)),
+        )
 
     def test_superuser_create_shareable_template(self):
-        admin = self._create_admin()
+        admin = self._get_admin()
         self.client.force_login(admin)
         response = self.client.post(
             reverse("admin:testapp_template_add"),
