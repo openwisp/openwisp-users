@@ -1,10 +1,7 @@
-from openwisp_users.tests.test_api import AuthenticationMixin
-from openwisp_users.tests.utils import TestMultitenantAdminMixin
+from openwisp_users.tests.test_api import AuthenticationMixin, TestMultitenantApiMixin
 
 from .. import CreateMixin
 
 
-class TestMultitenancyMixin(
-    CreateMixin, TestMultitenantAdminMixin, AuthenticationMixin
-):
+class TestMultitenancyMixin(CreateMixin, TestMultitenantApiMixin, AuthenticationMixin):
     pass
