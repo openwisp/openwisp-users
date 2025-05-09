@@ -1,3 +1,8 @@
+// Custom override of Django's autocomplete.js to add the "is_filter" parameter
+// to AJAX requests. This parameter enables the backend autocomplete view to
+// determine if the request is for filtering, allowing it to include the shared
+// option when appropriate (e.g., for filtering shared objects in the admin).
+
 "use strict";
 {
   const $ = django.jQuery;
