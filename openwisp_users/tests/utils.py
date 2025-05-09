@@ -240,7 +240,14 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
         self.assertEqual(response.status_code, 403)
 
     def _test_org_admin_create_shareable_object(
-        self, path, payload, model, expected_count=0, error_message=None, user=None
+        self,
+        path,
+        payload,
+        model,
+        expected_count=0,
+        user=None,
+        error_message=None,
+        raises_error=True,
     ):
         """
         Verifies a non-superuser cannot create a shareable object
@@ -253,12 +260,13 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
             data=payload,
             follow=True,
         )
-        error_message = error_message or (
-            '<div class="form-row errors field-organization">\n'
-            '            <ul class="errorlist"{}>'
-            '<li>This field is required.</li></ul>'
-        ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else '')
-        self.assertContains(response, error_message)
+        if raises_error:
+            error_message = error_message or (
+                '<div class="form-row errors field-organization">\n'
+                '            <ul class="errorlist"{}>'
+                '<li>This field is required.</li></ul>'
+            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else '')
+            self.assertContains(response, error_message)
         self.assertEqual(model.objects.count(), expected_count)
 
     def _test_org_admin_view_shareable_object(
