@@ -251,9 +251,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} '
-                    f'{model_ngettext(self.opts, count)} inactive.'
-                ),
+                    'Successfully made {count} {verbose_name} inactive.'
+                    ).format(count, verbose_name=model_ngettext(self.opts, count)),
                 messages.SUCCESS,
             )
 
@@ -267,10 +266,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if count:
             self.message_user(
                 request,
-                _(
-                    f'Successfully made {count} '
-                    f'{model_ngettext(self.opts, count)} active.'
-                ),
+               _(
+                   'Successfully made {count} {verbose_name} active.'
+                ).format(count, verbose_name=model_ngettext(self.opts, count)),
                 messages.SUCCESS,
             )
 
