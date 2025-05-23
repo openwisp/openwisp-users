@@ -82,8 +82,8 @@ ROOT_URLCONF = 'openwisp2.urls'
 TIME_ZONE = 'Europe/Rome'
 LANGUAGE_CODE = 'en-gb'
 USE_TZ = True
-USE_I18N = False
-USE_L10N = False
+USE_I18N = True
+USE_L10N = True
 STATIC_URL = '/static/'
 
 TEMPLATES = [
