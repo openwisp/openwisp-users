@@ -1,0 +1,154 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-23 14:07+0000\n"
+"PO-Revision-Date: 2025-05-23 12:11-0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.6\n"
+
+#: accounts/adapter.py:20 accounts/templates/account/email_confirm.html:21
+msgid "Confirm"
+msgstr "Confirmar"
+
+#: accounts/templates/account/email/base_message.txt:1
+#, python-format
+msgid "Welcome to %(site_name)s!"
+msgstr "¡Bienvenido a %(site_name)s!"
+
+#: accounts/templates/account/email/base_message.txt:5
+#, python-format
+msgid ""
+"Thank you for using %(site_name)s!\n"
+"%(site_domain)s"
+msgstr ""
+"Gracias por usar %(site_name)s!\n"
+"%(site_domain)s"
+
+#: accounts/templates/account/email/email_confirmation_message.html:5
+#, python-format
+msgid ""
+"\n"
+"You're receiving this e-mail because user <b>%(user_display)s</b> registered "
+"this e-mail address to create an account on <b>%(site_name)s</b>.\n"
+msgstr ""
+"\n"
+"Está recibiendo este correo electrónico porque el usuario "
+"<b>%(user_display)s</b> registró esta dirección de correo electrónico para "
+"crear una cuenta en <b>%(site_name)s</b>.\n"
+
+#: accounts/templates/account/email/email_confirmation_message.html:9
+msgid "To confirm this is correct, please click on the button below."
+msgstr "Para confirmar que es correcto, haga clic en el botón de abajo."
+
+#: accounts/templates/account/email/email_confirmation_message.txt:5
+#, python-format
+msgid ""
+"You're receiving this e-mail because user %(user_display)s registered this e-"
+"mail address to create an account on %(site_domain)s.\n"
+"\n"
+"To confirm this is correct, go to %(activate_url)s"
+msgstr ""
+"Está recibiendo este correo electrónico porque el usuario %(user_display)s "
+"registró esta dirección de correo electrónico para crear una cuenta en "
+"%(site_domain)s.\n"
+"\n"
+"Para confirmar que es correcto, vaya a %(activate_url)s"
+
+#: accounts/templates/account/email/password_expiration_message.html:4
+#: accounts/templates/account/email/password_expiration_message.txt:4
+#, python-format
+msgid ""
+"We inform you that the password for your account %(username)s will expire in "
+"7 days, precisely on %(expiry_date)s."
+msgstr ""
+"Le informamos de que la contraseña de su cuenta %(username)s caducará dentro "
+"de 7 días, exactamente el %(expiry_date)s."
+
+#: accounts/templates/account/email/password_expiration_message.html:6
+#: accounts/templates/account/email/password_expiration_message.txt:6
+msgid ""
+"Kindly proceed with updating your password by clicking on the button below."
+msgstr "Por favor, actualice su contraseña haciendo clic en el botón de abajo."
+
+#: accounts/templates/account/email_confirm.html:6
+#: accounts/templates/account/email_confirm.html:11
+msgid "Confirm E-mail Address"
+msgstr "Confirmar Dirección de e-mail"
+
+#: accounts/templates/account/email_confirm.html:17
+#, python-format
+msgid ""
+"Please confirm that <a href=\"mailto:%(email)s\">%(email)s</a> is an e-mail "
+"address for user %(user_display)s."
+msgstr ""
+"Confirme que <a href=\"mailto:%(email)s\">%(email)s</a> es una dirección de "
+"correo electrónico para el %(user_display)s usuario."
+
+#: accounts/templates/account/email_confirm.html:26
+msgid "This e-mail confirmation link expired or is invalid."
+msgstr ""
+"Este enlace de confirmación de correo electrónico ha caducado o no es válido."
+
+#: accounts/templates/account/email_verification_success.html:18
+msgid "Your email has been verified successfully."
+msgstr "Su correo electrónico ha sido verificado correctamente."
+
+#: accounts/templates/account/email_verification_success.html:19
+#: accounts/templates/account/logout_success.html:19
+#: accounts/templates/account/password_change_success.html:19
+#: accounts/templates/account/password_not_required.html:20
+msgid "This web page can be closed."
+msgstr "Esta página web puede cerrarse."
+
+#: accounts/templates/account/login.html:4
+#: accounts/templates/account/login.html:19
+#: accounts/templates/account/login.html:27
+msgid "Sign In"
+msgstr "Iniciar sesión"
+
+#: accounts/templates/account/login.html:28
+#: accounts/templates/account/password_change.html:49
+msgid "Forgot Password?"
+msgstr "¿Olvidó su contraseña?"
+
+#: accounts/templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Cierre de sesión exitoso"
+
+#: accounts/templates/account/password_change.html:6
+#: accounts/templates/account/password_change.html:14
+msgid "Change Password"
+msgstr "Cambiar Contraseña"
+
+#: accounts/templates/account/password_change.html:48
+msgid "Change password"
+msgstr "Cambiar contraseña"
+
+#: accounts/templates/account/password_change_success.html:18
+msgid "Your password has been changed successfully."
+msgstr "Su contraseña ha sido cambiada con éxito."
+
+#: accounts/templates/account/password_not_required.html:18
+msgid ""
+"You cannot change your password from this application because your account "
+"is linked to a third-party authentication provider."
+msgstr ""
+"No puedes cambiar tu contraseña desde esta aplicación porque tu cuenta está "
+"vinculada a un proveedor de autenticación externo."
+
+#: accounts/templates/account/password_not_required.html:19
+msgid "Please visit the provider's website to manage your password."
+msgstr "Visite el sitio web del proveedor para gestionar su contraseña."

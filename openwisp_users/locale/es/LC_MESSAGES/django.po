@@ -1,0 +1,361 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-05-23 14:07+0000\n"
+"PO-Revision-Date: 2025-05-23 12:14-0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.6\n"
+
+#: admin.py:142
+msgid "Email"
+msgstr "Email"
+
+#: admin.py:150
+msgid "A staff user must belong to a group, please select one."
+msgstr ""
+"Un usuario del staff debe pertenecer a un grupo, por favor seleccione uno."
+
+#: admin.py:230
+msgid "Are you sure?"
+msgstr "¿Estás seguro?"
+
+#: admin.py:244
+msgid "Flag selected users as inactive"
+msgstr "Marcar a los usuarios seleccionados como inactivos"
+
+#: admin.py:254 admin.py:271
+#, python-brace-format
+msgid "Successfully made {count} "
+msgstr "Realizado con éxito {count}"
+
+#: admin.py:261
+msgid "Flag selected users as active"
+msgstr "Marcar a los usuarios seleccionados como activos"
+
+#: admin.py:365
+#, python-format, python-brace-format
+msgid "Can't delete %d organization owner: {owners}"
+msgid_plural "Can't delete %d organization owners: {owners}"
+msgstr[0] "No se puede eliminar %d propietario de la organización: {owners}"
+msgstr[1] "No se pueden eliminar %d propietarios de organizaciones: {owners}"
+
+#: admin.py:569
+msgid ""
+"Can't delete this organization user because it belongs to an organization "
+"owner."
+msgstr ""
+"No se puede eliminar este usuario de la organización porque pertenece al "
+"propietario de una organización."
+
+#: admin.py:598
+msgid "Can't delete organization users which belong to owners."
+msgstr ""
+"No se pueden eliminar usuarios de la organización que sean propietarios."
+
+#: api/authentication.py:26
+msgid "Invalid token header. No credentials provided."
+msgstr "Encabezado de token inválido. No se proporcionaron las credenciales."
+
+#: api/authentication.py:29
+msgid "Invalid token header. Token string should not contain spaces."
+msgstr ""
+"Encabezado de token inválido. La cadena de token no debe contener espacios."
+
+#: api/authentication.py:36
+msgid ""
+"Invalid token header. Token string should not contain invalid characters."
+msgstr ""
+"Cabecera de token no válida. La cadena del token no debe contener caracteres "
+"no válidos."
+
+#: api/authentication.py:46
+msgid "Invalid or expired token."
+msgstr "Token no válido o caducado."
+
+#: api/permissions.py:21
+#, fuzzy
+msgid "Organization not found, `organization_field` not implemented correctly."
+msgstr ""
+"Organización no encontrada, `organization_field` no implementado "
+"correctamente."
+
+#: api/permissions.py:49
+#, fuzzy
+msgid ""
+"View's permission_classes not implemented correctly.Please use one of the "
+"child classes: IsOrganizationMember, IsOrganizationManager or "
+"IsOrganizationOwner."
+msgstr ""
+"Las permission_classes de la vista no se han implementado correctamente: "
+"IsOrganizationMember, IsOrganizationManager o IsOrganizationOwner."
+
+#: api/permissions.py:58
+msgid ""
+"User is not a member of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"El usuario no es miembro de la organización a la que pertenece el recurso "
+"solicitado."
+
+#: api/permissions.py:68
+msgid ""
+"User is not a manager of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"El usuario no es directivo de la organización a la que pertenece el recurso "
+"solicitado."
+
+#: api/permissions.py:84
+msgid ""
+"User is not a owner of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"El usuario no es propietario de la organización a la que pertenece el "
+"recurso solicitado."
+
+#: api/serializers.py:49
+msgid "organization with this slug already exists."
+msgstr "Ya existe una organización con este identificador."
+
+#: api/serializers.py:249
+msgid "This field cannot be blank."
+msgstr "Este campo no puede estar en blanco."
+
+#: api/serializers.py:422
+msgid "The two password fields didn’t match."
+msgstr "Los dos campos de contraseña no coincidían."
+
+#: api/serializers.py:438
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr "Su contraseña antigua es incorrecta. Por favor, vuelva a introducirla."
+
+#: api/serializers.py:449
+msgid "New password cannot be the same as your old password."
+msgstr "La nueva contraseña no puede ser la misma que la anterior."
+
+#: api/views.py:196
+msgid "Password updated successfully"
+msgstr "Contraseña actualizada exitosamente"
+
+#: apps.py:23
+msgid "Users and Organizations"
+msgstr "Usuarios y organizaciones"
+
+#: apps.py:34
+msgid "Users"
+msgstr "Usuarios"
+
+#: apps.py:40
+msgid "Organizations"
+msgstr "Organizaciones"
+
+#: apps.py:46
+msgid "Groups & Permissions"
+msgstr "Grupos y permisos"
+
+#: apps.py:54
+msgid "Organization Owners"
+msgstr "Propietarios de organizaciones"
+
+#: apps.py:61
+msgid "Organization Users"
+msgstr "Usuarios de la Organización "
+
+#: apps.py:69
+msgid "Users & Organizations"
+msgstr "Usuarios y Organizaciones"
+
+#: base/models.py:53
+msgid "email address"
+msgstr "dirección de correo electrónico"
+
+#: base/models.py:54
+#, fuzzy
+msgid "bio"
+msgstr "bio"
+
+#: base/models.py:55 base/models.py:221
+msgid "URL"
+msgstr "URL"
+
+#: base/models.py:56
+msgid "company"
+msgstr "empresa"
+
+#: base/models.py:57
+msgid "location"
+msgstr "ubicación"
+
+#: base/models.py:59
+msgid "phone number"
+msgstr "número de teléfono"
+
+#: base/models.py:61
+msgid "birth date"
+msgstr "fecha de nacimiento"
+
+#: base/models.py:63
+msgid "notes"
+msgstr "notas"
+
+#: base/models.py:63
+msgid "notes for internal usage"
+msgstr "notas para uso interno"
+
+#: base/models.py:70
+msgid "password updated"
+msgstr "contraseña actualizada"
+
+#: base/models.py:183
+msgid "User with this Email address already exists."
+msgstr "Ya existe un usuario con esta dirección de correo electrónico."
+
+#: base/models.py:209
+msgid "group"
+msgstr "grupo"
+
+#: base/models.py:210
+msgid "groups"
+msgstr "grupos"
+
+#: base/models.py:219
+msgid "description"
+msgstr "descripción"
+
+#: base/models.py:220
+msgid "email"
+msgstr "email"
+
+#: base/models.py:226
+msgid "disabled"
+msgstr "deshabilitado"
+
+#: base/models.py:267
+#, python-brace-format
+msgid "{self.user.username} is the owner of the organization: "
+msgstr "{self.user.username} es el propietario de la organización:"
+
+#: base/models.py:294
+msgid "The selected user is not member of this organization."
+msgstr "El usuario seleccionado no es miembro de esta organización."
+
+#: middleware.py:38
+msgid "Your password has expired, please update your password."
+msgstr "Su contraseña ha caducado, por favor actualícela."
+
+#: mixins.py:31
+#, python-brace-format
+msgid ""
+"Please ensure that the organization of this {object_label} and the "
+"organization of the related {related_object_label} match."
+msgstr ""
+"Por favor asegúrese de que la organización de este {object_label} y la "
+"organización del {related_object_label} relacionado coinciden."
+
+#: mixins.py:63
+msgid "is"
+msgstr "es"
+
+#: mixins.py:63
+msgid "are"
+msgstr "estamos"
+
+#: mixins.py:65
+#, python-brace-format
+msgid ""
+"The organization of this {object_label} cannot be changed because {0} "
+"{related_object_label} {verb} still related to it"
+msgstr ""
+"La organización de este {object_label} no se puede cambiar porque {0} "
+"{related_object_label} {verb} siguen relacionados con él"
+
+#: mixins.py:86 multitenancy.py:150
+msgid "organization"
+msgstr "organización"
+
+#: multitenancy.py:38
+msgid "name"
+msgstr "nombre"
+
+#: password_validation.py:17
+msgid "You cannot re-use your current password. Enter a new password."
+msgstr ""
+"No puede reutilizar su contraseña actual. Introduzca una nueva contraseña."
+
+#: password_validation.py:21
+msgid "Your password cannot be the same as your current password."
+msgstr "Su contraseña no puede ser la misma que su contraseña actual."
+
+#: tasks.py:64
+msgid "Action Required: Password Expiry Notice"
+msgstr "Acción requerida: Aviso de caducidad de contraseña"
+
+#: tasks.py:79
+msgid "Change password"
+msgstr "Cambiar contraseña"
+
+#: templates/admin/action_confirmation.html:15
+msgid "Home"
+msgstr "Inicio"
+
+#: templates/admin/action_confirmation.html:18
+msgid "Modify active status"
+msgstr "Modificar el estado activo"
+
+#: templates/admin/action_confirmation.html:24
+msgid "Are you sure you want to make the selected users inactive?"
+msgstr ""
+"¿Estás seguro de que quieres dejar inactivos a los usuarios seleccionados?"
+
+#: templates/admin/action_confirmation.html:26
+msgid "Are you sure you want to make the selected users active?"
+msgstr "¿Estás seguro de que quieres activar a los usuarios seleccionados?"
+
+#: templates/admin/action_confirmation.html:28
+msgid "Summary"
+msgstr "Resumen"
+
+#: templates/admin/action_confirmation.html:31
+msgid "User"
+msgstr "Usuario"
+
+#: templates/admin/action_confirmation.html:40
+msgid "Confirm"
+msgstr "Confirmar"
+
+#: templates/admin/action_confirmation.html:42
+msgid "No, take me back"
+msgstr "No, volver atrás"
+
+#: templates/admin/login.html:33
+msgid "Email, phone number or username"
+msgstr "Correo electrónico, número de teléfono o nombre de usuario"
+
+#: templates/admin/openwisp_users/user/change_form.html:9
+msgid ""
+"\n"
+"        You do not have permission to edit or delete this user because they "
+"are owner of an organization.\n"
+"        "
+msgstr ""
+"\n"
+"        No tiene permiso para editar o eliminar este usuario porque es "
+"propietario de una organización.\n"
+"        "
+
+#: widgets.py:5
+msgid "Shared systemwide (no organization)"
+msgstr "Compartido en todo el sistema (sin organización)"
