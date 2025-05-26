@@ -323,18 +323,14 @@ Usage example:
 
 
     class FloorPlanOrganizationFilter(FilterDjangoByOrgManaged):
-        organization_slug = filters.CharFilter(
-            field_name="organization__slug"
-        )
+        organization_slug = filters.CharFilter(field_name="organization__slug")
 
         class Meta:
             model = FloorPlan
             fields = ["organization", "organization_slug"]
 
 
-    class FloorPlanListCreateView(
-        ProtectedAPIMixin, generics.ListCreateAPIView
-    ):
+    class FloorPlanListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
         serializer_class = FloorPlanSerializer
         queryset = FloorPlan.objects.select_related().order_by("-created")
         pagination_class = ListViewPagination
@@ -360,9 +356,7 @@ Usage example:
             model = FloorPlan
 
 
-    class FloorPlanListCreateView(
-        ProtectedAPIMixin, generics.ListCreateAPIView
-    ):
+    class FloorPlanListCreateView(ProtectedAPIMixin, generics.ListCreateAPIView):
         serializer_class = FloorPlanSerializer
         queryset = FloorPlan.objects.select_related().order_by("-created")
         pagination_class = ListViewPagination

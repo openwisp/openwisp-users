@@ -13,21 +13,21 @@ class EmailAdapter(DefaultAccountAdapter):
         subject = self.format_email_subject(subject)
         content = {}
         errors = {}
-        for ext in ['html', 'txt']:
-            template_name = '{0}_message.{1}'.format(template_prefix, ext)
-            if 'activate_url' in context:
-                context['call_to_action_url'] = context['activate_url']
-                context['call_to_action_text'] = _('Confirm')
+        for ext in ["html", "txt"]:
+            template_name = "{0}_message.{1}".format(template_prefix, ext)
+            if "activate_url" in context:
+                context["call_to_action_url"] = context["activate_url"]
+                context["call_to_action_text"] = _("Confirm")
             try:
-                template_name = '{0}_message.{1}'.format(template_prefix, ext)
+                template_name = "{0}_message.{1}".format(template_prefix, ext)
                 content[ext] = render_to_string(
                     template_name, context, self.request
                 ).strip()
             except TemplateDoesNotExist as e:
                 errors[ext] = e
-            text = content.get('txt', '')
-            html = content.get('html', '')
+            text = content.get("txt", "")
+            html = content.get("html", "")
             # both templates fail to load, raise the exception
             if len(errors.keys()) >= 2:
-                raise errors['txt'] from errors['html']
+                raise errors["txt"] from errors["html"]
         send_email(subject, text, html, [email], context)

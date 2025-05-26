@@ -8,7 +8,7 @@ from openwisp_utils.admin_theme.filters import AutocompleteFilter
 from .widgets import SHARED_SYSTEMWIDE_LABEL, OrganizationAutocompleteSelect
 
 User = get_user_model()
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 
 
 class MultitenantAdminMixin(object):
@@ -35,7 +35,7 @@ class MultitenantAdminMixin(object):
     def get_repr(self, obj):
         return str(obj)
 
-    get_repr.short_description = _('name')
+    get_repr.short_description = _("name")
 
     def get_queryset(self, request):
         """
@@ -48,14 +48,14 @@ class MultitenantAdminMixin(object):
             return self.multitenant_behaviour_for_user_admin(request)
         if user.is_superuser:
             return qs
-        if hasattr(self.model, 'organization'):
+        if hasattr(self.model, "organization"):
             return qs.filter(organization__in=user.organizations_managed)
-        if self.model.__name__ == 'Organization':
+        if self.model.__name__ == "Organization":
             return qs.filter(pk__in=user.organizations_managed)
         elif not self.multitenant_parent:
             return qs
         else:
-            qsarg = '{0}__organization__in'.format(self.multitenant_parent)
+            qsarg = "{0}__organization__in".format(self.multitenant_parent)
             return qs.filter(**{qsarg: user.organizations_managed})
 
     def _edit_form(self, request, form):
@@ -70,7 +70,7 @@ class MultitenantAdminMixin(object):
         """
         fields = form.base_fields
         user = request.user
-        org_field = fields.get('organization')
+        org_field = fields.get("organization")
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
@@ -123,7 +123,7 @@ class MultitenantAdminMixin(object):
             OrganizationUser.objects.filter(
                 organization_id__in=user.organizations_managed
             )
-            .values_list('user_id')
+            .values_list("user_id")
             .distinct()
         )
         # hide superusers from organization operators
@@ -131,9 +131,9 @@ class MultitenantAdminMixin(object):
         return qs.filter(id__in=user_ids, is_superuser=False)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == 'organization':
-            kwargs['widget'] = OrganizationAutocompleteSelect(
-                db_field, self.admin_site, using=kwargs.get('using')
+        if db_field.name == "organization":
+            kwargs["widget"] = OrganizationAutocompleteSelect(
+                db_field, self.admin_site, using=kwargs.get("using")
             )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -144,12 +144,12 @@ class MultitenantOrgFilter(AutocompleteFilter):
     user is associated with in its available choices
     """
 
-    field_name = 'organization'
-    parameter_name = 'organization'
-    org_lookup = 'id__in'
-    title = _('organization')
+    field_name = "organization"
+    parameter_name = "organization"
+    org_lookup = "id__in"
+    title = _("organization")
     widget_attrs = AutocompleteFilter.widget_attrs.copy()
-    widget_attrs.update({'data-empty-label': SHARED_SYSTEMWIDE_LABEL})
+    widget_attrs.update({"data-empty-label": SHARED_SYSTEMWIDE_LABEL})
 
 
 class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
@@ -158,4 +158,4 @@ class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
     one of the organizations the current user is associated with
     """
 
-    org_lookup = 'organization__in'
+    org_lookup = "organization__in"

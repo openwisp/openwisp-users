@@ -4,14 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('openwisp_users', '0005_user_phone_number')]
+    dependencies = [("openwisp_users", "0005_user_phone_number")]
 
     operations = [
         migrations.AddIndex(
-            model_name='user',
+            model_name="user",
             index=models.Index(
-                fields=['id', 'email'],
-                name='user_id_email_idx',
+                fields=["id", "email"],
+                name="user_id_email_idx",
             ),
         ),
     ]

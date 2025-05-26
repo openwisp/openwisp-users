@@ -44,12 +44,12 @@ from .serializers import (
     TemplateSerializer,
 )
 
-Organization = swapper.load_model('openwisp_users', 'Organization')
+Organization = swapper.load_model("openwisp_users", "Organization")
 
 
 class BookOrgMixin:
     def get_parent_queryset(self):
-        shelf_org = Shelf.objects.get(pk=self.kwargs['shelf_id']).organization
+        shelf_org = Shelf.objects.get(pk=self.kwargs["shelf_id"]).organization
         qs = Book.objects.filter(organization=shelf_org.pk)
         return qs
 
@@ -58,9 +58,9 @@ class BaseGetApiView(APIView):
     queryset = Template.objects.all()
 
     def get(self, request, *args, **kwargs):
-        testorg, _ = Organization.objects.get_or_create(name='test org')
+        testorg, _ = Organization.objects.get_or_create(name="test org")
         template, _ = Template.objects.get_or_create(
-            name='sample', organization=testorg
+            name="sample", organization=testorg
         )
         self.check_object_permissions(request, template)
         return Response({})
@@ -90,11 +90,11 @@ class OrganizationFieldView(APIView):
     queryset = Config.objects.all()
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
-    organization_field = 'template__organization'
+    organization_field = "template__organization"
 
     def get(self, request, *args, **kwargs):
-        testorg, _ = Organization.objects.get_or_create(name='test org')
-        temp1, _ = Template.objects.get_or_create(name='temp', organization=testorg)
+        testorg, _ = Organization.objects.get_or_create(name="test org")
+        temp1, _ = Template.objects.get_or_create(name="temp", organization=testorg)
         config, _ = Config.objects.get_or_create(template=temp1, organization=testorg)
         self.check_object_permissions(request, config)
         return Response({})
@@ -103,13 +103,13 @@ class OrganizationFieldView(APIView):
 class ErrorOrganizationFieldView(BaseGetApiView):
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
-    organization_field = 'error__organization'
+    organization_field = "error__organization"
 
 
 class ShelfListMemberFilter(OrganizationMembershipFilter):
     class Meta(OrganizationMembershipFilter.Meta):
         model = Shelf
-        fields = OrganizationMembershipFilter.Meta.fields + ['tags']
+        fields = OrganizationMembershipFilter.Meta.fields + ["tags"]
 
 
 class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
@@ -124,7 +124,7 @@ class ShelfListMemberView(FilterByOrganizationMembership, ListAPIView):
 class ShelfListManagerFilter(OrganizationManagedFilter):
     class Meta(OrganizationManagedFilter.Meta):
         model = Shelf
-        fields = OrganizationManagedFilter.Meta.fields + ['tags']
+        fields = OrganizationManagedFilter.Meta.fields + ["tags"]
 
 
 class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
@@ -139,7 +139,7 @@ class ShelfListManagerView(FilterByOrganizationManaged, ListAPIView):
 class ShelfListOwnerFilter(OrganizationOwnedFilter):
     class Meta(OrganizationOwnedFilter.Meta):
         model = Shelf
-        fields = OrganizationOwnedFilter.Meta.fields + ['tags']
+        fields = OrganizationOwnedFilter.Meta.fields + ["tags"]
 
 
 class ShelfListOwnerView(FilterByOrganizationOwned, ListAPIView):
@@ -158,7 +158,7 @@ class BooksListMemberView(BookOrgMixin, FilterByParentMembership, ListCreateAPIV
     serializer_class = BookMemberSerializer
 
     def get_queryset(self):
-        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        shelf = Shelf.objects.get(pk=self.kwargs["shelf_id"])
         super().get_queryset()
         return shelf.book_set.all()
 
@@ -170,7 +170,7 @@ class BooksListManagerView(BookOrgMixin, FilterByParentManaged, ListCreateAPIVie
     serializer_class = BookManagerSerializer
 
     def get_queryset(self):
-        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        shelf = Shelf.objects.get(pk=self.kwargs["shelf_id"])
         super().get_queryset()
         return shelf.book_set.all()
 
@@ -182,7 +182,7 @@ class BooksListOwnerView(BookOrgMixin, FilterByParentOwned, ListCreateAPIView):
     serializer_class = BookOwnerSerializer
 
     def get_queryset(self):
-        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        shelf = Shelf.objects.get(pk=self.kwargs["shelf_id"])
         super().get_queryset()
         return shelf.book_set.all()
 
@@ -200,7 +200,7 @@ class BooksListUnauthorizedView(BookOrgMixin, FilterByParentOwned, ListAPIView):
     serializer_class = BookSerializer
 
     def get_queryset(self):
-        shelf = Shelf.objects.get(pk=self.kwargs['shelf_id'])
+        shelf = Shelf.objects.get(pk=self.kwargs["shelf_id"])
         super().get_queryset()
         return shelf.book_set.all()
 
@@ -229,14 +229,14 @@ class LibraryListFilter(FilterDjangoByOrgManaged):
     class Meta:
         model = Library
         fields = (
-            'book',
-            'book__organization',
+            "book",
+            "book__organization",
         )
 
 
 class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     serializer_class = LibrarySerializer
-    organization_field = 'book__organization'
+    organization_field = "book__organization"
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     queryset = Library.objects.all()
@@ -246,7 +246,7 @@ class LibraryListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
 
 class LibraryDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView):
     serializer_class = LibrarySerializer
-    organization_field = 'book__organization'
+    organization_field = "book__organization"
     authentication_classes = (BearerAuthentication,)
     permission_classes = (IsOrganizationMember,)
     queryset = Library.objects.all()

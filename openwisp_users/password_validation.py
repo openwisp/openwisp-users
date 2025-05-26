@@ -14,8 +14,8 @@ class PasswordReuseValidator:
         if user.check_password(password):
             # The new password is same as the current password
             raise ValidationError(
-                _('You cannot re-use your current password. Enter a new password.')
+                _("You cannot re-use your current password. Enter a new password.")
             )
 
     def get_help_text(self):
-        return _('Your password cannot be the same as your current password.')
+        return _("Your password cannot be the same as your current password.")

@@ -13,7 +13,7 @@ class Template(ShareableOrgMixin):
         return self.name
 
     def clean(self):
-        self._validate_org_reverse_relation('config_set')
+        self._validate_org_reverse_relation("config_set")
 
 
 class Config(OrgMixin):
@@ -23,7 +23,7 @@ class Config(OrgMixin):
     )
 
     def clean(self):
-        self._validate_org_relation('template')
+        self._validate_org_relation("template")
 
 
 class Tag(ShareableOrgMixin):
@@ -34,7 +34,7 @@ class Tag(ShareableOrgMixin):
 
 
 class Shelf(ShareableOrgMixin, TimeStampedEditableModel):
-    name = models.CharField(_('name'), max_length=64)
+    name = models.CharField(_("name"), max_length=64)
     tags = models.ManyToManyField(Tag, blank=True)
 
     def __str__(self):
@@ -45,15 +45,15 @@ class Shelf(ShareableOrgMixin, TimeStampedEditableModel):
 
     def clean(self):
         if self.name == "Intentional_Test_Fail":
-            raise ValidationError('Intentional_Test_Fail')
+            raise ValidationError("Intentional_Test_Fail")
         return self
 
 
 class Book(OrgMixin, TimeStampedEditableModel):
-    name = models.CharField(_('name'), max_length=64)
-    author = models.CharField(_('author'), max_length=64)
+    name = models.CharField(_("name"), max_length=64)
+    author = models.CharField(_("author"), max_length=64)
     shelf = models.ForeignKey(
-        'testapp.Shelf', on_delete=models.CASCADE, blank=True, null=True
+        "testapp.Shelf", on_delete=models.CASCADE, blank=True, null=True
     )
 
     def __str__(self):
@@ -64,9 +64,9 @@ class Book(OrgMixin, TimeStampedEditableModel):
 
 
 class Library(models.Model):
-    name = models.CharField(_('name'), max_length=64)
+    name = models.CharField(_("name"), max_length=64)
     address = models.TextField(null=True, blank=True)
-    book = models.ForeignKey('testapp.Book', on_delete=models.CASCADE)
+    book = models.ForeignKey("testapp.Book", on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name

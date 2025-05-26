@@ -11,42 +11,42 @@ def get_api_urls(api_views=None):
         api_views = views
     urlpatterns += [
         path(
-            'users/organization/',
+            "users/organization/",
             views.organization_list,
-            name='organization_list',
+            name="organization_list",
         ),
         path(
-            'users/organization/<str:pk>/',
+            "users/organization/<str:pk>/",
             views.organization_detail,
-            name='organization_detail',
+            name="organization_detail",
         ),
         path(
-            'users/user/',
+            "users/user/",
             views.user_list,
-            name='user_list',
+            name="user_list",
         ),
-        path('users/user/<str:pk>/', views.user_detail, name='user_detail'),
+        path("users/user/<str:pk>/", views.user_detail, name="user_detail"),
         path(
-            'users/user/<str:pk>/password/',
+            "users/user/<str:pk>/password/",
             views.change_password,
-            name='change_password',
+            name="change_password",
         ),
         path(
-            'users/user/<str:pk>/email/',
+            "users/user/<str:pk>/email/",
             views.email_list,
-            name='email_list',
+            name="email_list",
         ),
         path(
-            'users/user/<str:pk>/email/<int:email_id>/',
+            "users/user/<str:pk>/email/<int:email_id>/",
             views.email_update,
-            name='email_update',
+            name="email_update",
         ),
-        path('users/group/', views.group_list, name='group_list'),
-        path('users/group/<int:pk>/', views.group_detail, name='group_detail'),
+        path("users/group/", views.group_list, name="group_list"),
+        path("users/group/<int:pk>/", views.group_detail, name="group_detail"),
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
-            path('users/token/', views.obtain_auth_token, name='user_auth_token')
+            path("users/token/", views.obtain_auth_token, name="user_auth_token")
         ]
     return urlpatterns
 

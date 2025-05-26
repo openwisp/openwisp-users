@@ -34,10 +34,10 @@ from .serializers import (
 from .swagger import ObtainTokenRequest, ObtainTokenResponse
 from .throttling import AuthRateThrottle
 
-Group = load_model('openwisp_users', 'Group')
-Organization = load_model('openwisp_users', 'Organization')
+Group = load_model("openwisp_users", "Group")
+Organization = load_model("openwisp_users", "Organization")
 User = get_user_model()
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 
 
 class ProtectedAPIMixin(BaseProtectedAPIMixin):
@@ -49,7 +49,7 @@ class ProtectedAPIMixin(BaseProtectedAPIMixin):
 
 class ListViewPagination(pagination.PageNumberPagination):
     page_size = 10
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 100
 
 
@@ -73,11 +73,11 @@ class BaseOrganizationView(ProtectedAPIMixin):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Organization.objects.order_by('-created')
+            return Organization.objects.order_by("-created")
         if user.is_anonymous:
             return
         return Organization.objects.filter(pk__in=user.organizations_managed).order_by(
-            '-created'
+            "-created"
         )
 
 
@@ -93,18 +93,18 @@ class BaseUserView(ProtectedAPIMixin):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return User.objects.order_by('-date_joined')
+            return User.objects.order_by("-date_joined")
 
         if not user.is_superuser and not user.is_anonymous:
             org_users = OrganizationUser.objects.filter(user=user).select_related(
-                'organization'
+                "organization"
             )
             qs = User.objects.none()
             for org_user in org_users:
                 if org_user.is_admin:
                     qs = qs | org_user.organization.users.all().distinct()
             qs = qs.filter(is_superuser=False)
-            return qs.order_by('-date_joined')
+            return qs.order_by("-date_joined")
 
 
 class UsersListCreateView(BaseUserView, ListCreateAPIView):
@@ -127,16 +127,16 @@ class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
 
 class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
     queryset = Group.objects.prefetch_related(
-        'permissions', 'permissions__content_type'
-    ).order_by('name')
+        "permissions", "permissions__content_type"
+    ).order_by("name")
     serializer_class = GroupSerializer
     pagination_class = ListViewPagination
 
 
 class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
     queryset = Group.objects.prefetch_related(
-        'permissions', 'permissions__content_type'
-    ).order_by('name')
+        "permissions", "permissions__content_type"
+    ).order_by("name")
     serializer_class = GroupSerializer
 
 
@@ -158,14 +158,14 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         class if loggedin user wants to change
         his own password.
         """
-        if str(self.request.user.id) == self.kwargs['pk']:
+        if str(self.request.user.id) == self.kwargs["pk"]:
             self.permission_classes = [IsAuthenticated]
         else:
             self.permission_classes = [IsAuthenticated, DjangoModelPermissions]
         return super(self.__class__, self).get_permissions()
 
     def get_object(self):
-        if getattr(self, 'swagger_fake_view', False):
+        if getattr(self, "swagger_fake_view", False):
             # To get rid of assertion error raised in
             # the dev server, and for schema generation
             return User.objects.none()
@@ -178,14 +178,14 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         ):
             qs = qs | user
         filter_kwargs = {
-            'id': self.kwargs['pk'],
+            "id": self.kwargs["pk"],
         }
         obj = get_object_or_404(qs, **filter_kwargs)
         return obj
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        context['user'] = self.get_object()
+        context["user"] = self.get_object()
         return context
 
     def update(self, request, *args, **kwargs):
@@ -193,7 +193,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(
-            {'status': 'Success', 'message': _('Password updated successfully')}
+            {"status": "Success", "message": _("Password updated successfully")}
         )
 
 
@@ -202,14 +202,14 @@ class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
     serializer_class = EmailAddressSerializer
 
     def get_queryset(self):
-        return EmailAddress.objects.select_related('user').order_by('id')
+        return EmailAddress.objects.select_related("user").order_by("id")
 
     def initial(self, *args, **kwargs):
         super().initial(*args, **kwargs)
         self.assert_parent_exists()
 
     def get_parent_queryset(self):
-        qs = User.objects.filter(pk=self.kwargs['pk'])
+        qs = User.objects.filter(pk=self.kwargs["pk"])
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
@@ -219,19 +219,19 @@ class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
         app_label = User._meta.app_config.label
         filter_kwargs = {
             # exclude superusers
-            'is_superuser': False,
+            "is_superuser": False,
             # ensure user is member of the org
-            f'{app_label}_organizationuser__organization_id__in': orgs,
+            f"{app_label}_organizationuser__organization_id__in": orgs,
         }
         return qs.filter(**filter_kwargs).distinct()
 
     def get_serializer_context(self):
-        if getattr(self, 'swagger_fake_view', False):
+        if getattr(self, "swagger_fake_view", False):
             # To get rid of assertion error raised in
             # the dev server, and for schema generation
             return None
         context = super().get_serializer_context()
-        context['user'] = self.get_parent_queryset().first()
+        context["user"] = self.get_parent_queryset().first()
         return context
 
 
@@ -239,11 +239,11 @@ class EmailListCreateView(BaseEmailView, ListCreateAPIView):
     pagination_class = ListViewPagination
 
     def get_queryset(self):
-        if getattr(self, 'swagger_fake_view', False):
+        if getattr(self, "swagger_fake_view", False):
             # To get rid of assertion error raised in
             # the dev server, and for schema generation
             return EmailAddress.objects.none()
-        return super().get_queryset().filter(user_id=self.kwargs['pk'])
+        return super().get_queryset().filter(user_id=self.kwargs["pk"])
 
 
 class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
@@ -251,7 +251,7 @@ class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         queryset = queryset.filter(user=self.get_parent_queryset().first())
         filter_kwargs = {
-            'id': self.kwargs['email_id'],
+            "id": self.kwargs["email_id"],
         }
         obj = get_object_or_404(queryset, **filter_kwargs)
         self.check_object_permissions(self.request, obj)

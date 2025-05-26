@@ -176,9 +176,7 @@ Once you have created the models, add the following to your
     # but users are free to implement it in their projects if needed
     # for more information refer to the django-organizations docs:
     # https://django-organizations.readthedocs.io/
-    OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = (
-        "myusers.OrganizationInvitation"
-    )
+    OPENWISP_USERS_ORGANIZATIONINVITATION_MODEL = "myusers.OrganizationInvitation"
 
 Substitute ``myusers`` with the name you chose in step 1.
 

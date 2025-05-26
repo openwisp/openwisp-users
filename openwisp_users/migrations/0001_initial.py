@@ -18,84 +18,84 @@ import openwisp_users.models
 class Migration(migrations.Migration):
     initial = True
 
-    dependencies = [('auth', '0008_alter_user_username_max_length')]
+    dependencies = [("auth", "0008_alter_user_username_max_length")]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('password', models.CharField(max_length=128, verbose_name='password')),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
                 (
-                    'last_login',
+                    "last_login",
                     models.DateTimeField(
-                        blank=True, null=True, verbose_name='last login'
+                        blank=True, null=True, verbose_name="last login"
                     ),
                 ),
                 (
-                    'is_superuser',
+                    "is_superuser",
                     models.BooleanField(
                         default=False,
-                        help_text='Designates that this user has all permissions without explicitly assigning them.',
-                        verbose_name='superuser status',
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
                     ),
                 ),
                 (
-                    'username',
+                    "username",
                     models.CharField(
                         error_messages={
-                            'unique': 'A user with that username already exists.'
+                            "unique": "A user with that username already exists."
                         },
-                        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+                        help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
                         max_length=150,
                         unique=True,
                         validators=[
                             django.contrib.auth.validators.UnicodeUsernameValidator()
                         ],
-                        verbose_name='username',
+                        verbose_name="username",
                     ),
                 ),
                 (
-                    'first_name',
+                    "first_name",
                     models.CharField(
-                        blank=True, max_length=30, verbose_name='first name'
+                        blank=True, max_length=30, verbose_name="first name"
                     ),
                 ),
                 (
-                    'last_name',
+                    "last_name",
                     models.CharField(
-                        blank=True, max_length=30, verbose_name='last name'
+                        blank=True, max_length=30, verbose_name="last name"
                     ),
                 ),
                 (
-                    'email',
+                    "email",
                     models.EmailField(
-                        blank=True, max_length=254, verbose_name='email address'
+                        blank=True, max_length=254, verbose_name="email address"
                     ),
                 ),
                 (
-                    'is_staff',
+                    "is_staff",
                     models.BooleanField(
                         default=False,
-                        help_text='Designates whether the user can log into this admin site.',
-                        verbose_name='staff status',
+                        help_text="Designates whether the user can log into this admin site.",
+                        verbose_name="staff status",
                     ),
                 ),
                 (
-                    'is_active',
+                    "is_active",
                     models.BooleanField(
                         default=True,
-                        help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
-                        verbose_name='active',
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
+                        verbose_name="active",
                     ),
                 ),
                 (
-                    'date_joined',
+                    "date_joined",
                     models.DateTimeField(
-                        default=django.utils.timezone.now, verbose_name='date joined'
+                        default=django.utils.timezone.now, verbose_name="date joined"
                     ),
                 ),
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -103,61 +103,61 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ('bio', models.TextField(blank=True, verbose_name='bio')),
-                ('url', models.URLField(blank=True, verbose_name='URL')),
+                ("bio", models.TextField(blank=True, verbose_name="bio")),
+                ("url", models.URLField(blank=True, verbose_name="URL")),
                 (
-                    'company',
-                    models.CharField(blank=True, max_length=30, verbose_name='company'),
+                    "company",
+                    models.CharField(blank=True, max_length=30, verbose_name="company"),
                 ),
                 (
-                    'location',
+                    "location",
                     models.CharField(
-                        blank=True, max_length=128, verbose_name='location'
+                        blank=True, max_length=128, verbose_name="location"
                     ),
                 ),
             ],
             options={
-                'verbose_name_plural': 'users',
-                'verbose_name': 'user',
-                'abstract': False,
+                "verbose_name_plural": "users",
+                "verbose_name": "user",
+                "abstract": False,
             },
-            managers=[('objects', openwisp_users.base.models.UserManager())],
+            managers=[("objects", openwisp_users.base.models.UserManager())],
         ),
         migrations.CreateModel(
-            name='Organization',
+            name="Organization",
             fields=[
                 (
-                    'name',
+                    "name",
                     models.CharField(
-                        help_text='The name of the organization', max_length=200
+                        help_text="The name of the organization", max_length=200
                     ),
                 ),
-                ('is_active', models.BooleanField(default=True)),
+                ("is_active", models.BooleanField(default=True)),
                 (
-                    'created',
+                    "created",
                     organizations.fields.AutoCreatedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
                 (
-                    'modified',
+                    "modified",
                     organizations.fields.AutoLastModifiedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
                 (
-                    'slug',
+                    "slug",
                     organizations.fields.SlugField(
                         blank=True,
                         editable=False,
-                        help_text='The name in all lowercase, suitable for URL identification',
+                        help_text="The name in all lowercase, suitable for URL identification",
                         max_length=200,
-                        populate_from='name',
+                        populate_from="name",
                         unique=True,
                     ),
                 ),
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -166,39 +166,39 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    'description',
-                    models.TextField(blank=True, verbose_name='description'),
+                    "description",
+                    models.TextField(blank=True, verbose_name="description"),
                 ),
                 (
-                    'email',
-                    models.EmailField(blank=True, max_length=254, verbose_name='email'),
+                    "email",
+                    models.EmailField(blank=True, max_length=254, verbose_name="email"),
                 ),
-                ('url', models.URLField(blank=True, verbose_name='URL')),
+                ("url", models.URLField(blank=True, verbose_name="URL")),
             ],
             options={
-                'verbose_name_plural': 'organizations',
-                'verbose_name': 'organization',
-                'abstract': False,
-                'ordering': ['name'],
+                "verbose_name_plural": "organizations",
+                "verbose_name": "organization",
+                "abstract": False,
+                "ordering": ["name"],
             },
         ),
         migrations.CreateModel(
-            name='OrganizationOwner',
+            name="OrganizationOwner",
             fields=[
                 (
-                    'created',
+                    "created",
                     organizations.fields.AutoCreatedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
                 (
-                    'modified',
+                    "modified",
                     organizations.fields.AutoLastModifiedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -207,38 +207,38 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    'organization',
+                    "organization",
                     models.OneToOneField(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name='owner',
-                        to='openwisp_users.Organization',
+                        related_name="owner",
+                        to="openwisp_users.Organization",
                     ),
                 ),
             ],
             options={
-                'verbose_name_plural': 'organization owners',
-                'verbose_name': 'organization owner',
-                'abstract': False,
+                "verbose_name_plural": "organization owners",
+                "verbose_name": "organization owner",
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='OrganizationUser',
+            name="OrganizationUser",
             fields=[
                 (
-                    'created',
+                    "created",
                     organizations.fields.AutoCreatedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
                 (
-                    'modified',
+                    "modified",
                     organizations.fields.AutoLastModifiedField(
                         default=django.utils.timezone.now, editable=False
                     ),
                 ),
-                ('is_admin', models.BooleanField(default=False)),
+                ("is_admin", models.BooleanField(default=False)),
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -247,82 +247,82 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    'organization',
+                    "organization",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name='organization_users',
-                        to='openwisp_users.Organization',
+                        related_name="organization_users",
+                        to="openwisp_users.Organization",
                     ),
                 ),
                 (
-                    'user',
+                    "user",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name='openwisp_users_organizationuser',
+                        related_name="openwisp_users_organizationuser",
                         to=settings.AUTH_USER_MODEL,
                     ),
                 ),
             ],
             options={
-                'verbose_name_plural': 'organization users',
-                'verbose_name': 'organization user',
-                'abstract': False,
-                'ordering': ['organization', 'user'],
+                "verbose_name_plural": "organization users",
+                "verbose_name": "organization user",
+                "abstract": False,
+                "ordering": ["organization", "user"],
             },
         ),
         migrations.CreateModel(
-            name='Group',
+            name="Group",
             fields=[],
             options={
-                'verbose_name_plural': 'groups',
-                'verbose_name': 'group',
-                'proxy': True,
+                "verbose_name_plural": "groups",
+                "verbose_name": "group",
+                "proxy": True,
             },
-            bases=('auth.group',),
-            managers=[('objects', django.contrib.auth.models.GroupManager())],
+            bases=("auth.group",),
+            managers=[("objects", django.contrib.auth.models.GroupManager())],
         ),
         migrations.AddField(
-            model_name='organizationowner',
-            name='organization_user',
+            model_name="organizationowner",
+            name="organization_user",
             field=models.OneToOneField(
                 on_delete=django.db.models.deletion.CASCADE,
-                to='openwisp_users.OrganizationUser',
+                to="openwisp_users.OrganizationUser",
             ),
         ),
         migrations.AddField(
-            model_name='organization',
-            name='users',
+            model_name="organization",
+            name="users",
             field=models.ManyToManyField(
-                related_name='openwisp_users_organization',
-                through='openwisp_users.OrganizationUser',
+                related_name="openwisp_users_organization",
+                through="openwisp_users.OrganizationUser",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name='user',
-            name='groups',
+            model_name="user",
+            name="groups",
             field=models.ManyToManyField(
                 blank=True,
-                help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
-                related_name='user_set',
-                related_query_name='user',
-                to='auth.Group',
-                verbose_name='groups',
+                help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                related_name="user_set",
+                related_query_name="user",
+                to="auth.Group",
+                verbose_name="groups",
             ),
         ),
         migrations.AddField(
-            model_name='user',
-            name='user_permissions',
+            model_name="user",
+            name="user_permissions",
             field=models.ManyToManyField(
                 blank=True,
-                help_text='Specific permissions for this user.',
-                related_name='user_set',
-                related_query_name='user',
-                to='auth.Permission',
-                verbose_name='user permissions',
+                help_text="Specific permissions for this user.",
+                related_name="user_set",
+                related_query_name="user",
+                to="auth.Permission",
+                verbose_name="user permissions",
             ),
         ),
         migrations.AlterUniqueTogether(
-            name='organizationuser', unique_together=set([('user', 'organization')])
+            name="organizationuser", unique_together=set([("user", "organization")])
         ),
     ]

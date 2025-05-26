@@ -5,10 +5,10 @@ from django.contrib.auth.models import Permission
 from django.urls import reverse
 from swapper import load_model
 
-Organization = load_model('openwisp_users', 'Organization')
-OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
-Group = load_model('openwisp_users', 'Group')
+Organization = load_model("openwisp_users", "Organization")
+OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
+Group = load_model("openwisp_users", "Group")
 User = get_user_model()
 
 
@@ -32,11 +32,11 @@ class TestUserAdditionalFieldsMixin(object):
 class TestOrganizationMixin(object):
     def _create_user(self, **kwargs):
         opts = dict(
-            username='tester',
-            password='tester',
-            first_name='Tester',
-            last_name='Tester',
-            email='test@tester.com',
+            username="tester",
+            password="tester",
+            first_name="Tester",
+            last_name="Tester",
+            email="test@tester.com",
             birth_date=date(1987, 3, 23),
         )
         opts.update(kwargs)
@@ -53,13 +53,13 @@ class TestOrganizationMixin(object):
         a staff user with administrator group.
         """
         opts = dict(
-            username='admin', email='admin@admin.com', is_superuser=True, is_staff=True
+            username="admin", email="admin@admin.com", is_superuser=True, is_staff=True
         )
         opts.update(kwargs)
         return self._create_user(**opts)
 
     def _create_org(self, **kwargs):
-        options = {'name': 'test org', 'is_active': True, 'slug': 'test-org'}
+        options = {"name": "test org", "is_active": True, "slug": "test-org"}
         options.update(kwargs)
         org = Organization.objects.create(**options)
         return org
@@ -70,7 +70,7 @@ class TestOrganizationMixin(object):
         additional privileges to manage users
         """
         operator = self._create_operator(organizations, **kwargs)
-        user_permissions = Permission.objects.filter(codename__endswith='user')
+        user_permissions = Permission.objects.filter(codename__endswith="user")
         operator.user_permissions.add(*user_permissions)
         operator.organizations_dict  # force caching
         return operator
@@ -80,15 +80,15 @@ class TestOrganizationMixin(object):
         Creates a staff user with the operator group
         """
         opts = dict(
-            username='operator',
-            password='tester',
-            email='operator@test.com',
+            username="operator",
+            password="tester",
+            email="operator@test.com",
             is_staff=True,
             birth_date=date(1987, 3, 23),
         )
         opts.update(kwargs)
         operator = User.objects.create_user(**opts)
-        groups = Group.objects.filter(name='Operator')
+        groups = Group.objects.filter(name="Operator")
         operator.groups.set(groups)
         for organization in organizations:
             OrganizationUser.objects.create(
@@ -102,14 +102,14 @@ class TestOrganizationMixin(object):
         Creates a staff user with the administrator group
         """
         opts = dict(
-            username='administrator',
-            password='tester',
-            email='administrator@test.com',
+            username="administrator",
+            password="tester",
+            email="administrator@test.com",
             is_staff=True,
         )
         opts.update(kwargs)
         administrator = User.objects.create_user(**opts)
-        groups = Group.objects.filter(name='Administrator')
+        groups = Group.objects.filter(name="Administrator")
         administrator.groups.set(groups)
         for organization in organizations:
             OrganizationUser.objects.create(
@@ -118,25 +118,25 @@ class TestOrganizationMixin(object):
         administrator.organizations_dict  # force caching
         return administrator
 
-    def _get_org(self, org_name='test org'):
+    def _get_org(self, org_name="test org"):
         try:
             return Organization.objects.get(name=org_name)
         except Organization.DoesNotExist:
             return self._create_org(name=org_name)
 
-    def _get_user(self, username='tester'):
+    def _get_user(self, username="tester"):
         try:
             return User.objects.get(username=username)
         except User.DoesNotExist:
             return self._create_user()
 
-    def _get_admin(self, username='admin'):
+    def _get_admin(self, username="admin"):
         try:
             return User.objects.get(username=username)
         except User.DoesNotExist:
             return self._create_admin()
 
-    def _get_operator(self, username='operator'):
+    def _get_operator(self, username="operator"):
         try:
             return User.objects.get(username=username)
         except User.DoesNotExist:
@@ -144,9 +144,9 @@ class TestOrganizationMixin(object):
 
     def _create_org_user(self, **kwargs):
         options = {
-            'organization': self._get_org(),
-            'is_admin': False,
-            'user': self._get_user(),
+            "organization": self._get_org(),
+            "is_admin": False,
+            "user": self._get_user(),
         }
         options.update(kwargs)
         org = OrganizationUser.objects.create(**options)
@@ -162,8 +162,8 @@ class TestOrganizationMixin(object):
 
     def _create_org_owner(self, **kwargs):
         options = {
-            'organization_user': self._get_org_user(),
-            'organization': self._get_org(),
+            "organization_user": self._get_org_user(),
+            "organization": self._get_org(),
         }
         options.update(kwargs)
         org_owner = OrganizationOwner.objects.create(**options)
@@ -172,10 +172,10 @@ class TestOrganizationMixin(object):
 
 class TestMultitenantAdminMixin(TestOrganizationMixin):
     def setUp(self):
-        admin = self._create_admin(password='tester')
+        admin = self._create_admin(password="tester")
         admin.organizations_dict  # force caching
 
-    def _login(self, username='admin', password='tester'):
+    def _login(self, username="admin", password="tester"):
         self.client.login(username=username, password=password)
 
     def _logout(self):
@@ -192,22 +192,22 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
         a superuser can see everything.
         """
         if administrator:
-            self._login(username='administrator', password='tester')
+            self._login(username="administrator", password="tester")
         else:
-            self._login(username='operator', password='tester')
+            self._login(username="operator", password="tester")
         response = self.client.get(url)
 
         # utility format function
         def _f(el, select_widget=False):
             if select_widget:
-                return '{0}</option>'.format(el)
+                return "{0}</option>".format(el)
             return el
 
         # ensure elements in visible list are visible to operator
         for el in visible:
             with self.subTest(el):
                 self.assertContains(
-                    response, _f(el, select_widget), msg_prefix='[operator contains]'
+                    response, _f(el, select_widget), msg_prefix="[operator contains]"
                 )
         # ensure elements in hidden list are not visible to operator
         for el in hidden:
@@ -215,30 +215,30 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
                 self.assertNotContains(
                     response,
                     _f(el, select_widget),
-                    msg_prefix='[operator not-contains]',
+                    msg_prefix="[operator not-contains]",
                 )
 
         # now become superuser
         self._logout()
-        self._login(username='admin', password='tester')
+        self._login(username="admin", password="tester")
         response = self.client.get(url)
         # ensure all elements are visible to superuser
         all_elements = visible + hidden
         for el in all_elements:
             self.assertContains(
-                response, _f(el, select_widget), msg_prefix='[superuser contains]'
+                response, _f(el, select_widget), msg_prefix="[superuser contains]"
             )
 
     def _test_recoverlist_operator_403(self, app_label, model_label):
-        self._login(username='operator', password='tester')
+        self._login(username="operator", password="tester")
         response = self.client.get(
-            reverse('admin:{0}_{1}_recoverlist'.format(app_label, model_label))
+            reverse("admin:{0}_{1}_recoverlist".format(app_label, model_label))
         )
         self.assertEqual(response.status_code, 403)
 
     def _get_autocomplete_view_path(self, app_label, model_name, field_name):
-        path = reverse('admin:ow-auto-filter')
+        path = reverse("admin:ow-auto-filter")
         return (
-            f'{path}?app_label={app_label}'
-            f'&model_name={model_name}&field_name={field_name}'
+            f"{path}?app_label={app_label}"
+            f"&model_name={model_name}&field_name={field_name}"
         )

@@ -23,8 +23,8 @@ from openwisp_users.tests.test_backends import TestBackends as BaseTestBackends
 from openwisp_users.tests.test_models import TestUsers as BaseTestUsers
 
 additional_fields = [
-    ('social_security_number', '123-45-6789'),
-    ('details', 'Example value for detail used during testing.'),
+    ("social_security_number", "123-45-6789"),
+    ("details", "Example value for detail used during testing."),
 ]
 
 
@@ -44,12 +44,12 @@ class GetEditFormInlineMixin(object):
         params = super()._get_user_edit_form_inline_params(user, organization)
         params.update(
             {
-                'organizationinlinemodel-TOTAL_FORMS': 1,
-                'organizationinlinemodel-INITIAL_FORMS': 0,
-                'organizationinlinemodel-MIN_NUM_FORMS': 0,
-                'organizationinlinemodel-MAX_NUM_FORMS': 1,
-                'organizationinlinemodel-0-details': '',
-                'organizationinlinemodel-0-user': str(organization.pk),
+                "organizationinlinemodel-TOTAL_FORMS": 1,
+                "organizationinlinemodel-INITIAL_FORMS": 0,
+                "organizationinlinemodel-MIN_NUM_FORMS": 0,
+                "organizationinlinemodel-MAX_NUM_FORMS": 1,
+                "organizationinlinemodel-0-details": "",
+                "organizationinlinemodel-0-user": str(organization.pk),
             }
         )
         return params
@@ -63,19 +63,19 @@ class GetEditFormInlineMixin(object):
         params = super()._get_user_edit_form_inline_params(user, organization)
         params.update(
             {
-                'userinlinemodel-TOTAL_FORMS': 1,
-                'userinlinemodel-INITIAL_FORMS': 0,
-                'userinlinemodel-MIN_NUM_FORMS': 0,
-                'userinlinemodel-MAX_NUM_FORMS': 1,
-                'userinlinemodel-0-details': '',
-                'userinlinemodel-0-user': str(user.pk),
+                "userinlinemodel-TOTAL_FORMS": 1,
+                "userinlinemodel-INITIAL_FORMS": 0,
+                "userinlinemodel-MIN_NUM_FORMS": 0,
+                "userinlinemodel-MAX_NUM_FORMS": 1,
+                "userinlinemodel-0-details": "",
+                "userinlinemodel-0-user": str(user.pk),
             }
         )
         return params
 
 
 class TestUsersAdmin(GetEditFormInlineMixin, BaseTestUsersAdmin):
-    app_label = 'sample_users'
+    app_label = "sample_users"
     _additional_user_fields = additional_fields
 
 
@@ -84,12 +84,12 @@ class TestUserPasswordExpiration(BaseTestUserPasswordExpiration):
 
 
 class TestBasicUsersIntegration(GetEditFormInlineMixin, BaseTestBasicUsersIntegration):
-    app_label = 'sample_users'
+    app_label = "sample_users"
     _additional_user_fields = additional_fields
 
 
 class TestMultitenantAdmin(BaseTestMultitenantAdmin):
-    app_label = 'sample_users'
+    app_label = "sample_users"
 
 
 class TestUsers(BaseTestUsers):

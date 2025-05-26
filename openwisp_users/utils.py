@@ -1,6 +1,6 @@
 from django.conf import settings
 
-if 'reversion' in settings.INSTALLED_APPS:  # pragma: no cover
+if "reversion" in settings.INSTALLED_APPS:  # pragma: no cover
     from reversion.admin import VersionAdmin as BaseModelAdmin
 else:
     from django.contrib.admin import ModelAdmin as BaseModelAdmin
@@ -19,13 +19,13 @@ def usermodel_add_form(model, additional_fields):
     for field in additional_fields:
         modelMeta = model.add_form.Meta
         # Add form fieldsets
-        add_fieldsets = modelMeta.fieldsets[0][1]['fields'][:]
-        modelMeta.fieldsets[0][1]['fields'] = (
+        add_fieldsets = modelMeta.fieldsets[0][1]["fields"][:]
+        modelMeta.fieldsets[0][1]["fields"] = (
             add_fieldsets[: field[0]] + [field[1]] + add_fieldsets[field[0] :]
         )
         # Add form fieldsets_superuser
-        add_fieldsets_superuser = modelMeta.fieldsets_superuser[0][1]['fields'][:]
-        modelMeta.fieldsets_superuser[0][1]['fields'] = (
+        add_fieldsets_superuser = modelMeta.fieldsets_superuser[0][1]["fields"][:]
+        modelMeta.fieldsets_superuser[0][1]["fields"] = (
             add_fieldsets_superuser[: field[0]]
             + [field[1]]
             + add_fieldsets_superuser[field[0] :]
@@ -40,8 +40,8 @@ def usermodel_change_form(model, additional_fields):
 
     # Change form fieldsets
     for field in additional_fields:
-        fieldsets = model.fieldsets[1][1]['fields'][:]
-        model.fieldsets[1][1]['fields'] = (
+        fieldsets = model.fieldsets[1][1]["fields"][:]
+        model.fieldsets[1][1]["fields"] = (
             fieldsets[: field[0]] + [field[1]] + fieldsets[field[0] :]
         )
 

@@ -50,30 +50,30 @@ class AbstractUser(BaseUser):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(_('email address'), unique=True, blank=True, null=True)
-    bio = models.TextField(_('bio'), blank=True)
-    url = models.URLField(_('URL'), blank=True)
-    company = models.CharField(_('company'), max_length=30, blank=True)
-    location = models.CharField(_('location'), max_length=256, blank=True)
+    email = models.EmailField(_("email address"), unique=True, blank=True, null=True)
+    bio = models.TextField(_("bio"), blank=True)
+    url = models.URLField(_("URL"), blank=True)
+    company = models.CharField(_("company"), max_length=30, blank=True)
+    location = models.CharField(_("location"), max_length=256, blank=True)
     phone_number = PhoneNumberField(
-        _('phone number'), unique=True, blank=True, null=True
+        _("phone number"), unique=True, blank=True, null=True
     )
-    birth_date = models.DateField(_('birth date'), blank=True, null=True)
+    birth_date = models.DateField(_("birth date"), blank=True, null=True)
     notes = models.TextField(
-        _('notes'), help_text=_('notes for internal usage'), blank=True
+        _("notes"), help_text=_("notes for internal usage"), blank=True
     )
     language = models.CharField(
         max_length=8,
         choices=settings.LANGUAGES,
         default=settings.LANGUAGE_CODE,
     )
-    password_updated = models.DateField(_('password updated'), blank=True, null=True)
+    password_updated = models.DateField(_("password updated"), blank=True, null=True)
 
     objects = UserManager()
 
     class Meta(BaseUser.Meta):
         abstract = True
-        indexes = [models.Index(fields=['id', 'email'], name='user_id_email_idx')]
+        indexes = [models.Index(fields=["id", "email"], name="user_id_email_idx")]
 
     @staticmethod
     def _get_pk(obj):
@@ -85,7 +85,7 @@ class AbstractUser(BaseUser):
         elif obj is None:
             return None
         else:
-            raise ValueError('expected UUID, str or Organization instance')
+            raise ValueError("expected UUID, str or Organization instance")
         return str(pk)
 
     def set_password(self, *args, **kwargs):
@@ -112,16 +112,16 @@ class AbstractUser(BaseUser):
 
     def is_manager(self, organization):
         org_dict = self.organizations_dict.get(self._get_pk(organization))
-        return org_dict is not None and (org_dict['is_admin'] or org_dict['is_owner'])
+        return org_dict is not None and (org_dict["is_admin"] or org_dict["is_owner"])
 
     def is_owner(self, organization):
         org_dict = self.organizations_dict.get(self._get_pk(organization))
-        return org_dict is not None and org_dict['is_owner']
+        return org_dict is not None and org_dict["is_owner"]
 
     @cached_property
     def is_owner_of_any_organization(self):
         for value in self.organizations_dict.values():
-            if value['is_owner']:
+            if value["is_owner"]:
                 return True
         return False
 
@@ -131,23 +131,23 @@ class AbstractUser(BaseUser):
         Returns a dictionary which represents the organizations which
         the user is member of, or which the user manages or owns.
         """
-        cache_key = 'user_{}_organizations'.format(self.pk)
+        cache_key = "user_{}_organizations".format(self.pk)
         organizations = cache.get(cache_key)
         if organizations is not None:
             return organizations
 
-        manager = load_model('openwisp_users', 'OrganizationUser').objects
+        manager = load_model("openwisp_users", "OrganizationUser").objects
         org_users = manager.filter(
             user=self, organization__is_active=True
-        ).select_related('organization', 'organizationowner')
+        ).select_related("organization", "organizationowner")
 
         organizations = {}
         for org_user in org_users:
             org = org_user.organization
             org_id = str(org.pk)
             organizations[org_id] = {
-                'is_admin': org_user.is_admin,
-                'is_owner': hasattr(org_user, 'organizationowner'),
+                "is_admin": org_user.is_admin,
+                "is_owner": hasattr(org_user, "organizationowner"),
             }
 
         cache.set(cache_key, organizations, 86400 * 2)  # Cache for two days
@@ -162,16 +162,16 @@ class AbstractUser(BaseUser):
 
     @cached_property
     def organizations_managed(self):
-        return self.__get_orgs('is_admin')
+        return self.__get_orgs("is_admin")
 
     @cached_property
     def organizations_owned(self):
-        return self.__get_orgs('is_owner')
+        return self.__get_orgs("is_owner")
 
     def clean(self):
-        if self.email == '':
+        if self.email == "":
             self.email = None
-        if self.phone_number == '':
+        if self.phone_number == "":
             self.phone_number = None
         if (
             self.email
@@ -180,14 +180,14 @@ class AbstractUser(BaseUser):
             .exists()
         ):
             raise ValidationError(
-                {'email': _('User with this Email address already exists.')}
+                {"email": _("User with this Email address already exists.")}
             )
 
     def _invalidate_user_organizations_dict(self):
         """
         Invalidate the organizations cache of the user
         """
-        cache.delete(f'user_{self.pk}_organizations')
+        cache.delete(f"user_{self.pk}_organizations")
         try:
             del self.organizations_managed
         except AttributeError:
@@ -206,8 +206,8 @@ class BaseGroup(object):
 
     class Meta:
         proxy = True
-        verbose_name = _('group')
-        verbose_name_plural = _('groups')
+        verbose_name = _("group")
+        verbose_name_plural = _("groups")
 
 
 class BaseOrganization(models.Model):
@@ -216,14 +216,14 @@ class BaseOrganization(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    description = models.TextField(_('description'), blank=True)
-    email = models.EmailField(_('email'), blank=True)
-    url = models.URLField(_('URL'), blank=True)
+    description = models.TextField(_("description"), blank=True)
+    email = models.EmailField(_("email"), blank=True)
+    url = models.URLField(_("URL"), blank=True)
 
     def __str__(self):
         value = self.name
         if not self.is_active:
-            value = '{0} ({1})'.format(value, _('disabled'))
+            value = "{0} ({1})".format(value, _("disabled"))
         return value
 
     class Meta:
@@ -240,7 +240,7 @@ class BaseOrganization(models.Model):
         if not self.users.all().exists():
             is_admin = True
 
-        OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+        OrganizationUser = load_model("openwisp_users", "OrganizationUser")
         return OrganizationUser.objects.create(
             user=user, organization=self, is_admin=is_admin
         )
@@ -264,8 +264,8 @@ class BaseOrganizationUser(models.Model):
         ):
             raise ValidationError(
                 _(
-                    f'{self.user.username} is the owner of the organization: '
-                    f'{self.organization}, and cannot be downgraded'
+                    f"{self.user.username} is the owner of the organization: "
+                    f"{self.organization}, and cannot be downgraded"
                 )
             )
 
@@ -290,8 +290,8 @@ class BaseOrganizationOwner(models.Model):
         if self.organization_user.organization.pk != self.organization.pk:
             raise ValidationError(
                 {
-                    'organization_user': _(
-                        'The selected user is not member of this organization.'
+                    "organization_user": _(
+                        "The selected user is not member of this organization."
                     )
                 }
             )

@@ -6,28 +6,28 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('testapp', '0003_multitenancy'),
+        ("testapp", "0003_multitenancy"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Library',
+            name="Library",
             fields=[
                 (
-                    'id',
+                    "id",
                     models.AutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
-                        verbose_name='ID',
+                        verbose_name="ID",
                     ),
                 ),
-                ('name', models.CharField(max_length=64, verbose_name='name')),
-                ('address', models.TextField(blank=True, null=True)),
+                ("name", models.CharField(max_length=64, verbose_name="name")),
+                ("address", models.TextField(blank=True, null=True)),
                 (
-                    'book',
+                    "book",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to='testapp.book'
+                        on_delete=django.db.models.deletion.CASCADE, to="testapp.book"
                     ),
                 ),
             ],

@@ -23,16 +23,16 @@ class UsersAuthenticationBackend(ModelBackend):
         return User.objects.filter(conditions)
 
     def _get_phone_numbers(self, identifier):
-        prefixes = [''] + list(app_settings.AUTH_BACKEND_AUTO_PREFIXES)
+        prefixes = [""] + list(app_settings.AUTH_BACKEND_AUTO_PREFIXES)
         numbers = [identifier]
         found = []
         # support those countries which use
         # leading zeros for their local numbers
-        if str(identifier).startswith('0'):
+        if str(identifier).startswith("0"):
             numbers.append(identifier[1:])
         for prefix in prefixes:
             for number in numbers:
-                value = f'{prefix}{number}'
+                value = f"{prefix}{number}"
                 try:
                     phonenumbers.parse(value)
                     found.append(value)

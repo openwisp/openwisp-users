@@ -10,16 +10,16 @@ from openwisp_users.tests.utils import TestOrganizationMixin
 
 from ..models import Template
 
-Organization = load_model('openwisp_users', 'Organization')
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
-OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+Organization = load_model("openwisp_users", "Organization")
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
+OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 User = get_user_model()
-Group = load_model('openwisp_users', 'Group')
+Group = load_model("openwisp_users", "Group")
 
 
 class TestUsersAdmin(TestOrganizationMixin, TestCase):
     app_label = (
-        'openwisp_users' if not os.environ.get('SAMPLE_APP', False) else 'sample_users'
+        "openwisp_users" if not os.environ.get("SAMPLE_APP", False) else "sample_users"
     )
 
     def test_group_reversion(self):
@@ -27,18 +27,18 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.client.force_login(admin)
         test_group = Group.objects.create()
         self.client.post(
-            reverse(f'admin:{self.app_label}_group_change', args=(test_group.id,)),
-            {'name': 'test_group_v1'},
+            reverse(f"admin:{self.app_label}_group_change", args=(test_group.id,)),
+            {"name": "test_group_v1"},
             follow=True,
         )
         r = self.client.get(
-            reverse(f'admin:{self.app_label}_group_revision', args=(test_group.id, 1))
+            reverse(f"admin:{self.app_label}_group_revision", args=(test_group.id, 1))
         )
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, '<h1>Revert test_group_v1</h1>')
+        self.assertContains(r, "<h1>Revert test_group_v1</h1>")
 
     def test_accounts_login(self):
-        r = self.client.get(reverse('account_login'), follow=True)
+        r = self.client.get(reverse("account_login"), follow=True)
         self.assertEqual(r.status_code, 200)
         self.assertContains(
             r, '<input type="submit" class="button" value="Sign In" />', html=True
@@ -50,10 +50,10 @@ class TestTemplateAdmin(TestOrganizationMixin, TestCase):
         administrator = self._create_administrator()
         self.client.force_login(administrator)
         response = self.client.post(
-            reverse('admin:testapp_template_add'),
+            reverse("admin:testapp_template_add"),
             data={
-                'name': 'test-template',
-                'organization': '',
+                "name": "test-template",
+                "organization": "",
             },
             follow=True,
         )
@@ -62,8 +62,8 @@ class TestTemplateAdmin(TestOrganizationMixin, TestCase):
             (
                 '<div class="form-row errors field-organization">\n'
                 '            <ul class="errorlist"{}>'
-                '<li>This field is required.</li></ul>'
-            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else ''),
+                "<li>This field is required.</li></ul>"
+            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else ""),
         )
         self.assertEqual(Template.objects.count(), 0)
 
@@ -71,10 +71,10 @@ class TestTemplateAdmin(TestOrganizationMixin, TestCase):
         admin = self._create_admin()
         self.client.force_login(admin)
         response = self.client.post(
-            reverse('admin:testapp_template_add'),
+            reverse("admin:testapp_template_add"),
             data={
-                'name': 'test-template',
-                'organization': '',
+                "name": "test-template",
+                "organization": "",
             },
             follow=True,
         )

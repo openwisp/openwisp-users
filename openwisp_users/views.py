@@ -6,7 +6,7 @@ from openwisp_utils.admin_theme.views import (
 
 from .widgets import SHARED_SYSTEMWIDE_LABEL
 
-Organization = load_model('openwisp_users', 'Organization')
+Organization = load_model("openwisp_users", "Organization")
 
 
 class AutocompleteJsonView(BaseAutocompleteJsonView):
@@ -21,11 +21,11 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         except KeyError:
             return None
         for filter in source_model_admin.list_filter:
-            if getattr(filter, 'field_name', None) == self.source_field.name:
+            if getattr(filter, "field_name", None) == self.source_field.name:
                 return filter
 
     def get_org_lookup(self):
-        if hasattr(self.source_field_filter, 'org_lookup'):
+        if hasattr(self.source_field_filter, "org_lookup"):
             return self.source_field_filter.org_lookup
 
     def get_queryset(self):

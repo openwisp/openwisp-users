@@ -36,10 +36,10 @@ from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
 from .utils import BaseAdmin
 
-Group = load_model('openwisp_users', 'Group')
-Organization = load_model('openwisp_users', 'Organization')
-OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+Group = load_model("openwisp_users", "Group")
+Organization = load_model("openwisp_users", "Organization")
+OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 class EmailAddressInline(admin.StackedInline):
     model = EmailAddress
     extra = 0
-    readonly_fields = ['email']
+    readonly_fields = ["email"]
 
     def has_add_permission(self, *args, **kwargs):
         """
@@ -84,7 +84,7 @@ class RequiredInlineFormSet(BaseInlineFormSet):
 class OrganizationOwnerInline(admin.StackedInline):
     model = OrganizationOwner
     extra = 0
-    autocomplete_fields = ('organization_user',)
+    autocomplete_fields = ("organization_user",)
 
     def has_change_permission(self, request, obj=None):
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
@@ -96,7 +96,7 @@ class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
     view_on_site = False
-    autocomplete_fields = ('organization',)
+    autocomplete_fields = ("organization",)
 
     def get_formset(self, request, obj=None, **kwargs):
         """
@@ -108,10 +108,8 @@ class OrganizationUserInline(admin.StackedInline):
         if request.user.is_superuser:
             return formset
         if not request.user.is_superuser:
-            formset.form.base_fields[
-                'organization'
-            ].queryset = Organization.objects.filter(
-                pk__in=request.user.organizations_managed
+            formset.form.base_fields["organization"].queryset = (
+                Organization.objects.filter(pk__in=request.user.organizations_managed)
             )
         return formset
 
@@ -126,7 +124,7 @@ class OrganizationUserInlineReadOnly(OrganizationUserInline):
 
     def get_readonly_fields(self, request, obj=None):
         if obj and not request.user.is_superuser:
-            self.readonly_fields = ['is_admin']
+            self.readonly_fields = ["is_admin"]
         return self.readonly_fields
 
     def has_add_permission(self, request, obj=None):
@@ -139,15 +137,15 @@ class OrganizationUserInlineReadOnly(OrganizationUserInline):
 
 
 class UserFormMixin(forms.ModelForm):
-    email = forms.EmailField(label=_('Email'), max_length=254, required=True)
+    email = forms.EmailField(label=_("Email"), max_length=254, required=True)
 
     def validate_user_groups(self, data):
-        is_staff = data.get('is_staff')
-        is_superuser = data.get('is_superuser')
-        groups = data.get('groups')
+        is_staff = data.get("is_staff")
+        is_superuser = data.get("is_superuser")
+        groups = data.get("groups")
         if is_staff and not is_superuser and not groups:
             raise ValidationError(
-                {'groups': _('A staff user must belong to a group, please select one.')}
+                {"groups": _("A staff user must belong to a group, please select one.")}
             )
 
     def clean(self):
@@ -160,30 +158,30 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
     phone_number = PhoneNumberField(widget=forms.TextInput(), required=False)
 
     class Meta(BaseUserCreationForm.Meta):
-        fields = ['username', 'email', 'password1', 'password2']
-        personal_fields = ['first_name', 'last_name', 'phone_number', 'birth_date']
+        fields = ["username", "email", "password1", "password2"]
+        personal_fields = ["first_name", "last_name", "phone_number", "birth_date"]
         fieldsets = (
-            (None, {'classes': ('wide',), 'fields': fields}),
-            ('Personal Info', {'classes': ('wide',), 'fields': personal_fields}),
+            (None, {"classes": ("wide",), "fields": fields}),
+            ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
-                'Permissions',
-                {'classes': ('wide',), 'fields': ['is_active', 'is_staff', 'groups']},
+                "Permissions",
+                {"classes": ("wide",), "fields": ["is_active", "is_staff", "groups"]},
             ),
         )
         fieldsets_superuser = (
-            (None, {'classes': ('wide',), 'fields': fields}),
-            ('Personal Info', {'classes': ('wide',), 'fields': personal_fields}),
+            (None, {"classes": ("wide",), "fields": fields}),
+            ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
-                'Permissions',
+                "Permissions",
                 {
-                    'classes': ('wide',),
-                    'fields': ['is_active', 'is_staff', 'is_superuser', 'groups'],
+                    "classes": ("wide",),
+                    "fields": ["is_active", "is_staff", "is_superuser", "groups"],
                 },
             ),
         )
 
     class Media:
-        js = ('admin/js/jquery.init.js', 'openwisp-users/js/addform.js')
+        js = ("admin/js/jquery.init.js", "openwisp-users/js/addform.js")
 
 
 class UserChangeForm(UserFormMixin, BaseUserChangeForm):
@@ -193,24 +191,24 @@ class UserChangeForm(UserFormMixin, BaseUserChangeForm):
 class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
     form = UserChangeForm
-    ordering = ['-date_joined']
-    readonly_fields = ['last_login', 'date_joined', 'password_updated']
+    ordering = ["-date_joined"]
+    readonly_fields = ["last_login", "date_joined", "password_updated"]
     list_display = [
-        'username',
-        'email',
-        'is_active',
-        'is_staff',
-        'is_superuser',
-        'date_joined',
-        'last_login',
+        "username",
+        "email",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "date_joined",
+        "last_login",
     ]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
-    actions = ['delete_selected_overridden', 'make_inactive', 'make_active']
+    actions = ["delete_selected_overridden", "make_inactive", "make_active"]
     fieldsets = list(BaseUserAdmin.fieldsets)
 
     # To ensure extended apps use this template.
-    change_form_template = 'admin/openwisp_users/user/change_form.html'
+    change_form_template = "admin/openwisp_users/user/change_form.html"
 
     def require_confirmation(func):
         """
@@ -223,17 +221,17 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
         def wrapper(modeladmin, request, queryset):
             opts = modeladmin.model._meta
-            if request.POST.get('confirmation') is None:
+            if request.POST.get("confirmation") is None:
                 request.current_app = modeladmin.admin_site.name
                 context = {
                     **modeladmin.admin_site.each_context(request),
-                    'title': _('Are you sure?'),
-                    'action': request.POST['action'],
-                    'queryset': queryset,
-                    'opts': opts,
+                    "title": _("Are you sure?"),
+                    "action": request.POST["action"],
+                    "queryset": queryset,
+                    "opts": opts,
                 }
                 return TemplateResponse(
-                    request, 'admin/action_confirmation.html', context
+                    request, "admin/action_confirmation.html", context
                 )
             return func(modeladmin, request, queryset)
 
@@ -241,7 +239,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         return wrapper
 
     @admin.action(
-        description=_('Flag selected users as inactive'), permissions=['change']
+        description=_("Flag selected users as inactive"), permissions=["change"]
     )
     @require_confirmation
     def make_inactive(self, request, queryset):
@@ -251,14 +249,14 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} '
-                    f'{model_ngettext(self.opts, count)} inactive.'
+                    f"Successfully made {count} "
+                    f"{model_ngettext(self.opts, count)} inactive."
                 ),
                 messages.SUCCESS,
             )
 
     @admin.action(
-        description=_('Flag selected users as active'), permissions=['change']
+        description=_("Flag selected users as active"), permissions=["change"]
     )
     @require_confirmation
     def make_active(self, request, queryset):
@@ -268,8 +266,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             self.message_user(
                 request,
                 _(
-                    f'Successfully made {count} '
-                    f'{model_ngettext(self.opts, count)} active.'
+                    f"Successfully made {count} "
+                    f"{model_ngettext(self.opts, count)} active."
                 ),
                 messages.SUCCESS,
             )
@@ -279,19 +277,19 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         Hide `is_superuser` from column from operators
         """
         default_list_display = super().get_list_display(request)
-        if not request.user.is_superuser and 'is_superuser' in default_list_display:
+        if not request.user.is_superuser and "is_superuser" in default_list_display:
             # avoid editing the default_list_display
             operators_list_display = default_list_display[:]
-            operators_list_display.remove('is_superuser')
+            operators_list_display.remove("is_superuser")
             return operators_list_display
         return default_list_display
 
     def get_list_filter(self, request):
         filters = super().get_list_filter(request)
-        if not request.user.is_superuser and 'is_superuser' in filters:
+        if not request.user.is_superuser and "is_superuser" in filters:
             # hide is_superuser filter for non-superusers
             operators_filter_list = list(filters)
-            operators_filter_list.remove('is_superuser')
+            operators_filter_list.remove("is_superuser")
             return tuple(operators_filter_list)
         return filters
 
@@ -307,10 +305,10 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if not request.user.is_superuser:
             # edit this tuple to add / remove permission items
             # visible to non-superusers
-            user_permissions = ('is_active', 'is_staff', 'groups', 'user_permissions')
+            user_permissions = ("is_active", "is_staff", "groups", "user_permissions")
             # copy to avoid modifying reference
             non_superuser_fieldsets = deepcopy(fieldsets)
-            non_superuser_fieldsets[2][1]['fields'] = user_permissions
+            non_superuser_fieldsets[2][1]["fields"] = user_permissions
             return non_superuser_fieldsets
         return fieldsets
 
@@ -320,7 +318,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
             # copy to avoid modifying reference
-            fields = fields[:] + ['user_permissions', 'is_superuser']
+            fields = fields[:] + ["user_permissions", "is_superuser"]
         return fields
 
     def has_change_permission(self, request, obj=None):
@@ -341,20 +339,20 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     def get_actions(self, request):
         actions = super().get_actions(request)
-        if not request.POST.get('post') and 'delete_selected' in actions:
-            del actions['delete_selected']
+        if not request.POST.get("post") and "delete_selected" in actions:
+            del actions["delete_selected"]
         return actions
 
-    @admin.action(description=delete_selected.short_description, permissions=['delete'])
+    @admin.action(description=delete_selected.short_description, permissions=["delete"])
     def delete_selected_overridden(self, request, queryset):
         if not request.user.is_superuser:
-            users_pk = queryset.values_list('pk', flat=True)
+            users_pk = queryset.values_list("pk", flat=True)
             owners_list = list(
                 OrganizationOwner.objects.filter(organization_user__user__in=users_pk)
-                .select_related('organization_user__user')
-                .values_list('organization_user__user__username', flat=True)
+                .select_related("organization_user__user")
+                .values_list("organization_user__user__username", flat=True)
             )
-            owners = ', '.join(owners_list)
+            owners = ", ".join(owners_list)
             excluded_owners_qs = queryset.exclude(username__in=owners_list)
             # if trying to delete any owner, show an error message
             count = len(owners_list)
@@ -372,7 +370,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             # if trying to delete only owners, stop here
             if queryset.exists() and not excluded_owners_qs.exists():
                 redirect_url = reverse(
-                    f'admin:{self.model._meta.app_label}_user_changelist'
+                    f"admin:{self.model._meta.app_label}_user_changelist"
                 )
                 return HttpResponseRedirect(redirect_url)
             # otherwise proceed but remove owners from the delete queryset
@@ -400,7 +398,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             return inlines
         inline = OrganizationUserInline(self.model, self.admin_site)
         if request:
-            if hasattr(inline, '_has_add_permission'):
+            if hasattr(inline, "_has_add_permission"):
                 has_add_perm = inline._has_add_permission(request, obj)
             else:
                 has_add_perm = inline.has_add_permission(request, obj)
@@ -408,12 +406,12 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 return [inline]
         return []
 
-    def change_view(self, request, object_id, form_url='', extra_context=None):
+    def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
         obj = self.get_object(request, object_id)
         if obj is not None and user_not_allowed_to_change_owner(request.user, obj):
             show_owner_warning = True
-            extra_context.update({'show_owner_warning': show_owner_warning})
+            extra_context.update({"show_owner_warning": show_owner_warning})
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_model(self, request, obj, form, change):
@@ -429,8 +427,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 )
             except Exception as e:
                 logger.exception(
-                    'Got exception {} while sending '
-                    'verification email to user {}, email {}'.format(
+                    "Got exception {} while sending "
+                    "verification email to user {}, email {}".format(
                         type(e), obj.username, obj.email
                     )
                 )
@@ -446,11 +444,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if not_deleted:
             single_msg = (
                 f"Can't delete {not_deleted} organization user because it "
-                'belongs to an organization owner.'
+                "belongs to an organization owner."
             )
             multiple_msg = (
                 f"Can't delete {not_deleted} organization users because they "
-                'belong to some organization owners.'
+                "belong to some organization owners."
             )
             self.message_user(
                 request, ngettext(single_msg, multiple_msg, not_deleted), messages.ERROR
@@ -464,7 +462,7 @@ class OrganizationUserFilter(MultitenantOrgFilter):
     Allows filtering users by the organization they're related to
     """
 
-    field_name = f'{Organization._meta.app_label}_organization'
+    field_name = f"{Organization._meta.app_label}_organization"
 
     def queryset(self, request, queryset):
         if self.value():
@@ -474,24 +472,24 @@ class OrganizationUserFilter(MultitenantOrgFilter):
         return queryset
 
 
-base_fields = list(UserAdmin.fieldsets[1][1]['fields'])
-additional_fields = ['bio', 'url', 'company', 'location', 'phone_number', 'birth_date']
-UserAdmin.fieldsets[1][1]['fields'] = base_fields + additional_fields
-UserAdmin.fieldsets.insert(3, ('Internal', {'fields': ('notes',)}))
-primary_fields = list(UserAdmin.fieldsets[0][1]['fields'])
-UserAdmin.fieldsets[0][1]['fields'] = primary_fields + ['password_updated']
-UserAdmin.add_fieldsets[0][1]['fields'] = (
-    'username',
-    'email',
-    'password1',
-    'password2',
+base_fields = list(UserAdmin.fieldsets[1][1]["fields"])
+additional_fields = ["bio", "url", "company", "location", "phone_number", "birth_date"]
+UserAdmin.fieldsets[1][1]["fields"] = base_fields + additional_fields
+UserAdmin.fieldsets.insert(3, ("Internal", {"fields": ("notes",)}))
+primary_fields = list(UserAdmin.fieldsets[0][1]["fields"])
+UserAdmin.fieldsets[0][1]["fields"] = primary_fields + ["password_updated"]
+UserAdmin.add_fieldsets[0][1]["fields"] = (
+    "username",
+    "email",
+    "password1",
+    "password2",
 )
-UserAdmin.search_fields += ('phone_number',)
+UserAdmin.search_fields += ("phone_number",)
 UserAdmin.list_filter = (OrganizationUserFilter,) + UserAdmin.list_filter
 
 
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
-    if 'reversion' in settings.INSTALLED_APPS:
+    if "reversion" in settings.INSTALLED_APPS:
         # Correctly register the proxy model
         def reversion_register(self, model, **kwargs):
             return super().reversion_register(model, for_concrete_model=False, **kwargs)
@@ -504,9 +502,9 @@ class OrganizationAdmin(
     # this inline has an autocomplete field pointing to OrganizationUserAdmin
     if app_settings.ORGANIZATION_USER_ADMIN and app_settings.ORGANIZATION_OWNER_ADMIN:
         inlines = [OrganizationOwnerInline]
-    readonly_fields = ['uuid', 'created', 'modified']
-    ordering = ['name']
-    list_display = ['name', 'is_active', 'created', 'modified']
+    readonly_fields = ["uuid", "created", "modified"]
+    ordering = ["name"]
+    list_display = ["name", "is_active", "created", "modified"]
 
     def get_inline_instances(self, request, obj=None):
         """
@@ -529,15 +527,15 @@ class OrganizationAdmin(
         return super().has_change_permission(request, obj)
 
     class Media(UUIDAdmin.Media):
-        css = {'all': ('openwisp-users/css/admin.css',)}
+        css = {"all": ("openwisp-users/css/admin.css",)}
 
 
 class OrganizationUserAdmin(
     MultitenantAdminMixin, BaseOrganizationUserAdmin, BaseAdmin
 ):
     view_on_site = False
-    actions = ['delete_selected_overridden']
-    search_fields = ['user__username', 'organization__name']
+    actions = ["delete_selected_overridden"]
+    search_fields = ["user__username", "organization__name"]
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
@@ -545,7 +543,7 @@ class OrganizationUserAdmin(
         # do not allow operators to escalate their privileges
         if not request.user.is_superuser:
             # copy to avoid modifying reference
-            fields = ['is_admin']
+            fields = ["is_admin"]
         return fields
 
     def has_delete_permission(self, request, obj=None):
@@ -567,23 +565,23 @@ class OrganizationUserAdmin(
                 request,
                 _(
                     "Can't delete this organization user because "
-                    'it belongs to an organization owner.'
+                    "it belongs to an organization owner."
                 ),
                 messages.ERROR,
             )
             redirect_url = reverse(
-                f'admin:{self.model._meta.app_label}_organizationuser_change',
+                f"admin:{self.model._meta.app_label}_organizationuser_change",
                 args=[object_id],
             )
             return HttpResponseRedirect(redirect_url)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
-        if not request.POST.get('post') and 'delete_selected' in actions:
-            del actions['delete_selected']
+        if not request.POST.get("post") and "delete_selected" in actions:
+            del actions["delete_selected"]
         return actions
 
-    @admin.action(description=delete_selected.short_description, permissions=['delete'])
+    @admin.action(description=delete_selected.short_description, permissions=["delete"])
     def delete_selected_overridden(self, request, queryset):
         count = 0
         pks = []
@@ -599,7 +597,7 @@ class OrganizationUserAdmin(
                 messages.ERROR,
             )
             redirect_url = reverse(
-                f'admin:{self.model._meta.app_label}_organizationuser_changelist'
+                f"admin:{self.model._meta.app_label}_organizationuser_changelist"
             )
             return HttpResponseRedirect(redirect_url)
         # if some org owners' org users were selected
@@ -607,11 +605,11 @@ class OrganizationUserAdmin(
             queryset = queryset.exclude(pk__in=pks)
             single_msg = (
                 f"Can't delete {count} organization user because it "
-                'belongs to an organization owner.'
+                "belongs to an organization owner."
             )
             multiple_msg = (
                 f"Can't delete {count} organization users because they "
-                'belong to some organization owners.'
+                "belong to some organization owners."
             )
             self.message_user(
                 request, ngettext(single_msg, multiple_msg, count), messages.ERROR
@@ -623,9 +621,9 @@ class OrganizationUserAdmin(
 class OrganizationOwnerAdmin(
     MultitenantAdminMixin, BaseOrganizationOwnerAdmin, BaseAdmin
 ):
-    list_display = ('get_user', 'organization')
+    list_display = ("get_user", "organization")
     if app_settings.ORGANIZATION_USER_ADMIN and app_settings.ORGANIZATION_OWNER_ADMIN:
-        autocomplete_fields = ['organization_user', 'organization']
+        autocomplete_fields = ["organization_user", "organization"]
 
     def get_user(self, obj):
         return obj.organization_user.user
@@ -642,29 +640,29 @@ if app_settings.ORGANIZATION_OWNER_ADMIN:
     admin.site.register(OrganizationOwner, OrganizationOwnerAdmin)
 
 # unregister auth.Group
-base_group_model = apps.get_model('auth', 'Group')
+base_group_model = apps.get_model("auth", "Group")
 admin.site.unregister(base_group_model)
 # register openwisp_users.Group proxy model
 admin.site.register(Group, GroupAdmin)
 
 # unregister some admin components to keep the admin interface simple
 # we can re-enable these models later when they will be really needed
-EmailAddress = apps.get_model('account', 'EmailAddress')
+EmailAddress = apps.get_model("account", "EmailAddress")
 if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
 if allauth_settings.SOCIALACCOUNT_ENABLED:
     for model in [
-        ('socialaccount', 'SocialApp'),
-        ('socialaccount', 'SocialToken'),
-        ('socialaccount', 'SocialAccount'),
+        ("socialaccount", "SocialApp"),
+        ("socialaccount", "SocialToken"),
+        ("socialaccount", "SocialAccount"),
     ]:
         model_class = apps.get_model(*model)
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
 
-if 'rest_framework.authtoken' in settings.INSTALLED_APPS:  # pragma: no cover
-    TokenProxy = apps.get_model('authtoken', 'TokenProxy')
+if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
+    TokenProxy = apps.get_model("authtoken", "TokenProxy")
 
     if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)

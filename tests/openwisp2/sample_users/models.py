@@ -39,7 +39,7 @@ class User(DetailsModel, AbstractUser):
         max_length=11,
         null=True,
         blank=True,
-        validators=[RegexValidator(r'^\d\d\d-\d\d-\d\d\d\d$')],
+        validators=[RegexValidator(r"^\d\d\d-\d\d-\d\d\d\d$")],
     )
 
     class Meta(AbstractUser.Meta):

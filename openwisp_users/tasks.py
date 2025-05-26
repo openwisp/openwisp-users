@@ -18,7 +18,7 @@ from openwisp_utils.admin_theme.email import send_email
 from . import settings as app_settings
 
 User = get_user_model()
-OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 
 
 @shared_task
@@ -61,22 +61,22 @@ def password_expiration_email():
     for user in qs.iterator():
         with translation.override(user.language):
             send_email(
-                subject=_('Action Required: Password Expiry Notice'),
+                subject=_("Action Required: Password Expiry Notice"),
                 body_text=render_to_string(
-                    'account/email/password_expiration_message.txt',
-                    context={'username': user.username, 'expiry_date': expiry_date},
+                    "account/email/password_expiration_message.txt",
+                    context={"username": user.username, "expiry_date": expiry_date},
                 ).strip(),
                 body_html=render_to_string(
-                    'account/email/password_expiration_message.html',
-                    context={'username': user.username, 'expiry_date': expiry_date},
+                    "account/email/password_expiration_message.html",
+                    context={"username": user.username, "expiry_date": expiry_date},
                 ).strip(),
                 recipients=[user.email],
                 extra_context={
-                    'call_to_action_url': 'https://{0}{1}'.format(
+                    "call_to_action_url": "https://{0}{1}".format(
                         current_site.domain,
-                        reverse('account_change_password'),
+                        reverse("account_change_password"),
                     ),
-                    'call_to_action_text': _('Change password'),
+                    "call_to_action_text": _("Change password"),
                 },
             )
         # Avoid overloading the SMTP server by sending multiple
@@ -97,6 +97,6 @@ def invalidate_org_membership_cache(organization_pk):
     """
     qs = OrganizationUser.objects.filter(
         organization_id=organization_pk
-    ).select_related('user')
+    ).select_related("user")
     for org_user in qs.iterator():
         org_user.user._invalidate_user_organizations_dict()

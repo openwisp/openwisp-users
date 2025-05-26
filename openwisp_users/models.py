@@ -23,17 +23,17 @@ class User(AbstractUser):
 
 class Organization(BaseOrganization, AbstractOrganization):
     class Meta(AbstractOrganization.Meta):
-        swapper.swappable_setting('openwisp_users', 'Organization')
+        swapper.swappable_setting("openwisp_users", "Organization")
 
 
 class OrganizationUser(BaseOrganizationUser, AbstractOrganizationUser):
     class Meta(AbstractOrganizationUser.Meta):
-        swapper.swappable_setting('openwisp_users', 'OrganizationUser')
+        swapper.swappable_setting("openwisp_users", "OrganizationUser")
 
 
 class OrganizationOwner(BaseOrganizationOwner, AbstractOrganizationOwner):
     class Meta(AbstractOrganizationOwner.Meta):
-        swapper.swappable_setting('openwisp_users', 'OrganizationOwner')
+        swapper.swappable_setting("openwisp_users", "OrganizationOwner")
 
 
 # only needed for compatibility with django-organizations~=2.x
@@ -43,9 +43,9 @@ class OrganizationOwner(BaseOrganizationOwner, AbstractOrganizationOwner):
 # https://django-organizations.readthedocs.io/
 class OrganizationInvitation(AbstractOrganizationInvitation):
     class Meta(AbstractOrganizationInvitation.Meta):
-        swapper.swappable_setting('openwisp_users', 'OrganizationInvitation')
+        swapper.swappable_setting("openwisp_users", "OrganizationInvitation")
 
 
 class Group(BaseGroup, AbstractGroup):
     class Meta(BaseGroup.Meta):
-        swapper.swappable_setting('openwisp_users', 'Group')
+        swapper.swappable_setting("openwisp_users", "Group")

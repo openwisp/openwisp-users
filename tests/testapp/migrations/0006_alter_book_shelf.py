@@ -6,18 +6,18 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('testapp', '0005_default_groups'),
+        ("testapp", "0005_default_groups"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='book',
-            name='shelf',
+            model_name="book",
+            name="shelf",
             field=models.ForeignKey(
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='testapp.shelf',
+                to="testapp.shelf",
             ),
         ),
     ]

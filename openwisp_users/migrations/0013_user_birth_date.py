@@ -5,13 +5,13 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('openwisp_users', '0012_user_location_max_length_256'),
+        ("openwisp_users", "0012_user_location_max_length_256"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='birth_date',
-            field=models.DateField(blank=True, null=True, verbose_name='birth date'),
+            model_name="user",
+            name="birth_date",
+            field=models.DateField(blank=True, null=True, verbose_name="birth date"),
         ),
     ]

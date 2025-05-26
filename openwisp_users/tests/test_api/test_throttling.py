@@ -12,8 +12,8 @@ class RatelimitTests(APITestCase):
         self._create_operator()
 
     def test_auth_rate_throttle(self):
-        AuthRateThrottle.rate = '1/day'
-        url = reverse('users:user_auth_token')
+        AuthRateThrottle.rate = "1/day"
+        url = reverse("users:user_auth_token")
         data = {"username": "operator", "password": "tester"}
         r = self.client.post(url, data)
         self.assertEqual(r.status_code, 200)

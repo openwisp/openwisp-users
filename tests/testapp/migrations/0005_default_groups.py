@@ -6,7 +6,7 @@ from testapp.migrations import update_administrator_permissions
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('testapp', '0004_library'),
+        ("testapp", "0004_library"),
     ]
 
     operations = [

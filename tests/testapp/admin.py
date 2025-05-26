@@ -15,44 +15,44 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
 
 
 class ShelfAdmin(BaseAdmin):
-    list_display = ['name', 'organization']
+    list_display = ["name", "organization"]
     list_filter = [MultitenantOrgFilter]
-    fields = ['name', 'organization', 'tags', 'created', 'modified']
-    search_fields = ['name']
-    multitenant_shared_relations = ['tags']
+    fields = ["name", "organization", "tags", "created", "modified"]
+    search_fields = ["name"]
+    multitenant_shared_relations = ["tags"]
 
 
 class ShelfFilter(MultitenantRelatedOrgFilter):
-    field_name = 'shelf'
-    parameter_name = 'shelf'
-    title = _('Shelf')
+    field_name = "shelf"
+    parameter_name = "shelf"
+    title = _("Shelf")
 
 
 class BookAdmin(BaseAdmin):
-    list_display = ['name', 'author', 'organization', 'shelf']
+    list_display = ["name", "author", "organization", "shelf"]
     list_filter = [
         MultitenantOrgFilter,
         ShelfFilter,
     ]
-    fields = ['name', 'author', 'organization', 'shelf', 'created', 'modified']
-    multitenant_shared_relations = ['shelf']
+    fields = ["name", "author", "organization", "shelf", "created", "modified"]
+    multitenant_shared_relations = ["shelf"]
 
-    def change_view(self, request, object_id, form_url='', extra_context=None):
+    def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
         extra_context.update(
             {
-                'additional_buttons': [
+                "additional_buttons": [
                     {
-                        'type': 'button',
-                        'url': 'DUMMY',
-                        'class': 'previewbook',
-                        'value': 'Preview book',
+                        "type": "button",
+                        "url": "DUMMY",
+                        "class": "previewbook",
+                        "value": "Preview book",
                     },
                     {
-                        'type': 'button',
-                        'url': 'DUMMY',
-                        'class': 'downloadbook',
-                        'value': 'Download book',
+                        "type": "button",
+                        "url": "DUMMY",
+                        "class": "downloadbook",
+                        "value": "Download book",
                     },
                 ]
             }

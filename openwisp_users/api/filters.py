@@ -13,7 +13,7 @@ class BaseOrganizationFilter:
     """
 
     class Meta:
-        fields = ['organization', 'organization_slug']
+        fields = ["organization", "organization_slug"]
 
 
 class OrganizationMembershipFilter(BaseOrganizationFilter, FilterDjangoByOrgMembership):
@@ -22,7 +22,7 @@ class OrganizationMembershipFilter(BaseOrganizationFilter, FilterDjangoByOrgMemb
     to filter relation fields based on the user organization membership
     """
 
-    organization_slug = filters.CharFilter(field_name='organization__slug')
+    organization_slug = filters.CharFilter(field_name="organization__slug")
 
 
 class OrganizationManagedFilter(BaseOrganizationFilter, FilterDjangoByOrgManaged):
@@ -31,7 +31,7 @@ class OrganizationManagedFilter(BaseOrganizationFilter, FilterDjangoByOrgManaged
     to filter relation fields based on the organization managed by the user
     """
 
-    organization_slug = filters.CharFilter(field_name='organization__slug')
+    organization_slug = filters.CharFilter(field_name="organization__slug")
 
 
 class OrganizationOwnedFilter(BaseOrganizationFilter, FilterDjangoByOrgOwned):
@@ -40,4 +40,4 @@ class OrganizationOwnedFilter(BaseOrganizationFilter, FilterDjangoByOrgOwned):
     to filter relation fields based on the organization owned by the user
     """
 
-    organization_slug = filters.CharFilter(field_name='organization__slug')
+    organization_slug = filters.CharFilter(field_name="organization__slug")

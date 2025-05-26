@@ -1,6 +1,6 @@
 class CreateMixin(object):
     def _create_book(self, **kwargs):
-        options = dict(name='test-book', author='test-author')
+        options = dict(name="test-book", author="test-author")
         options.update(kwargs)
         b = self.book_model(**options)
         b.full_clean()
@@ -8,7 +8,7 @@ class CreateMixin(object):
         return b
 
     def _create_shelf(self, **kwargs):
-        options = dict(name='test-shelf')
+        options = dict(name="test-shelf")
         options.update(kwargs)
         s = self.shelf_model(**options)
         s.full_clean()
@@ -16,7 +16,7 @@ class CreateMixin(object):
         return s
 
     def _create_template(self, **kwargs):
-        options = dict(name='test-template')
+        options = dict(name="test-template")
         options.update(kwargs)
         t = self.template_model(**options)
         t.full_clean()
@@ -24,7 +24,7 @@ class CreateMixin(object):
         return t
 
     def _create_library(self, **kwargs):
-        options = dict(name='test-library', address='test-address')
+        options = dict(name="test-library", address="test-address")
         options.update(kwargs)
         lib = self.library_model(**options)
         lib.full_clean()
@@ -32,7 +32,7 @@ class CreateMixin(object):
         return lib
 
     def _create_tag(self, **kwargs):
-        options = dict(name='test-tag')
+        options = dict(name="test-tag")
         options.update(kwargs)
         tag = self.tag_model(**options)
         tag.full_clean()

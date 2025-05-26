@@ -14,15 +14,15 @@ User = get_user_model()
 
 
 class TestAccountView(TestOrganizationMixin, TestCase):
-    def _login_user(self, username='tester', password='tester'):
+    def _login_user(self, username="tester", password="tester"):
         response = self.client.post(
-            reverse('account_login'),
-            data={'login': username, 'password': password},
+            reverse("account_login"),
+            data={"login": username, "password": password},
             follow=True,
         )
         return response
 
-    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_password_expired_user_logins(self):
         self._create_org_user()
         User.objects.update(password_updated=now() - timedelta(days=60))
@@ -33,12 +33,12 @@ class TestAccountView(TestOrganizationMixin, TestCase):
                 '<ul class="messagelist">\n'
                 '<li class="success">Successfully signed in as tester.</li>\n\n'
                 '<li class="warning">Your password has expired, please update '
-                'your password.</li>\n</ul>'
+                "your password.</li>\n</ul>"
             ),
             html=True,
         )
         self.assertEqual(
-            response.request.get('PATH_INFO'), reverse('account_change_password')
+            response.request.get("PATH_INFO"), reverse("account_change_password")
         )
         # Password expired users can browse accounts views
         self.assertContains(
@@ -52,38 +52,38 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         self.assertEqual(user.has_password_expired(), True)
         response = self.client.post(
             reverse(
-                'account_reset_password',
+                "account_reset_password",
             ),
-            data={'email': user.email},
+            data={"email": user.email},
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.request.get('PATH_INFO'), reverse('account_reset_password_done')
+            response.request.get("PATH_INFO"), reverse("account_reset_password_done")
         )
-        self.assertContains(response, 'We have sent you an email')
+        self.assertContains(response, "We have sent you an email")
         email = mail.outbox.pop()
-        password_reset_url = re.search(r'https?://[^\s]+', email.body).group(0)
+        password_reset_url = re.search(r"https?://[^\s]+", email.body).group(0)
         response = self.client.get(
             password_reset_url,
         )
         response = self.client.post(
             response.url,
-            data={'password1': 'newpassword', 'password2': 'newpassword'},
+            data={"password1": "newpassword", "password2": "newpassword"},
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.request.get('PATH_INFO'),
-            reverse('account_reset_password_from_key_done'),
+            response.request.get("PATH_INFO"),
+            reverse("account_reset_password_from_key_done"),
         )
 
-    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_password_expired_user_reset_password(self):
         user = self._create_org_user().user
         self._test_expired_user_password_reset(user)
 
-    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 30)
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_password_expired_user_reset_password_after_login(self):
         user = self._create_org_user().user
         self._login_user()
@@ -105,15 +105,15 @@ class TestAccountView(TestOrganizationMixin, TestCase):
             response,
             (
                 '<li class="warning">Your password has expired, please update '
-                'your password at http://testserver/accounts/password/change/</li>'
+                "your password at http://testserver/accounts/password/change/</li>"
             ),
         )
 
-    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 0)
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 0)
     def test_user_login_password_expiration_disabled(self):
         self._test_login_flow()
 
-    @patch.object(app_settings, 'USER_PASSWORD_EXPIRATION', 90)
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 90)
     def test_user_login_password_expiration_enabled(self):
         self._test_login_flow()
 
@@ -121,23 +121,23 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         user = self._create_operator()
         self.client.force_login(user)
         response = self.client.post(
-            reverse('account_change_password'),
+            reverse("account_change_password"),
             data={
-                'oldpassword': 'tester',
-                'password1': 'newpassword',
-                'password2': 'newpassword',
+                "oldpassword": "tester",
+                "password1": "newpassword",
+                "password2": "newpassword",
             },
             follow=True,
         )
-        self.assertContains(response, 'Your password has been changed successfully.')
-        self.assertContains(response, 'This web page can be closed.')
+        self.assertContains(response, "Your password has been changed successfully.")
+        self.assertContains(response, "This web page can be closed.")
 
     def test_inactive_user_login(self):
         self._create_org_user()
         User.objects.update(is_active=False)
         response = self._login_user()
         self.assertContains(
-            response, 'The username and/or password you specified are not correct.'
+            response, "The username and/or password you specified are not correct."
         )
 
     def test_social_login_user_change_password(self):
@@ -153,15 +153,15 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         user.set_unusable_password()
         user.save()
         self.client.force_login(user)
-        response = self.client.get(reverse('account_change_password'))
+        response = self.client.get(reverse("account_change_password"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
             (
-                '<h1>You cannot change your password from this application because'
-                ' your account is linked to a third-party authentication provider.</h1>'
-                '<h1>Please visit the provider\'s website to manage your password.</h1>'
-                '<h1>This web page can be closed.</h1>'
+                "<h1>You cannot change your password from this application because"
+                " your account is linked to a third-party authentication provider.</h1>"
+                "<h1>Please visit the provider's website to manage your password.</h1>"
+                "<h1>This web page can be closed.</h1>"
             ),
             html=True,
         )

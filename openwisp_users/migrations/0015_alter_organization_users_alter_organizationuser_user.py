@@ -7,26 +7,26 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('openwisp_users', '0014_user_notes'),
+        ("openwisp_users", "0014_user_notes"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='organization',
-            name='users',
+            model_name="organization",
+            name="users",
             field=models.ManyToManyField(
-                related_name='%(app_label)s_%(class)s',
-                through='openwisp_users.OrganizationUser',
+                related_name="%(app_label)s_%(class)s",
+                through="openwisp_users.OrganizationUser",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AlterField(
-            model_name='organizationuser',
-            name='user',
+            model_name="organizationuser",
+            name="user",
             field=models.ForeignKey(
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name='%(app_label)s_%(class)s',
-                to='openwisp_users.user',
+                related_name="%(app_label)s_%(class)s",
+                to="openwisp_users.user",
             ),
         ),
     ]

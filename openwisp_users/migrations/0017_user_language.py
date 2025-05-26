@@ -6,13 +6,13 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('openwisp_users', '0016_organizationinvitation'),
+        ("openwisp_users", "0016_organizationinvitation"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='language',
+            model_name="user",
+            name="language",
             field=models.CharField(
                 choices=settings.LANGUAGES,
                 default=settings.LANGUAGE_CODE,

@@ -4,7 +4,7 @@ from . import allow_operator_view_organization
 
 
 class Migration(migrations.Migration):
-    dependencies = [('openwisp_users', '0017_user_language')]
+    dependencies = [("openwisp_users", "0017_user_language")]
 
     operations = [
         migrations.RunPython(

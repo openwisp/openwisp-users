@@ -11,7 +11,7 @@ from sesame.utils import get_user as get_user_from_one_time_auth_token
 
 
 class BearerAuthentication(TokenAuthentication):
-    keyword = 'Bearer'
+    keyword = "Bearer"
 
 
 class SesameAuthentication(BaseAuthentication):
@@ -23,18 +23,18 @@ class SesameAuthentication(BaseAuthentication):
             return None
 
         if len(auth) == 1:
-            msg = _('Invalid token header. No credentials provided.')
+            msg = _("Invalid token header. No credentials provided.")
             raise exceptions.AuthenticationFailed(msg)
         elif len(auth) > 2:
-            msg = _('Invalid token header. Token string should not contain spaces.')
+            msg = _("Invalid token header. Token string should not contain spaces.")
             raise exceptions.AuthenticationFailed(msg)
 
         try:
             token = auth[1].decode()
         except UnicodeError:
             msg = _(
-                'Invalid token header. '
-                'Token string should not contain invalid characters.'
+                "Invalid token header. "
+                "Token string should not contain invalid characters."
             )
             raise exceptions.AuthenticationFailed(msg)
 
@@ -43,5 +43,5 @@ class SesameAuthentication(BaseAuthentication):
     def authenticate_credentials(self, key):
         user = get_user_from_one_time_auth_token(key)
         if user is None:
-            raise exceptions.AuthenticationFailed(_('Invalid or expired token.'))
+            raise exceptions.AuthenticationFailed(_("Invalid or expired token."))
         return (user, key)

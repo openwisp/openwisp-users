@@ -13,7 +13,7 @@ class ValidateOrgMixin(object):
     - implements ``_validate_org_relation`` method
     """
 
-    def _validate_org_relation(self, rel, field_error='organization'):
+    def _validate_org_relation(self, rel, field_error="organization"):
         """
         if the relation is owned by a specific organization
         this object must be related to the same organization
@@ -28,8 +28,8 @@ class ValidateOrgMixin(object):
             and str(self.organization_id) != str(rel.organization_id)
         ):
             message = _(
-                'Please ensure that the organization of this {object_label} '
-                'and the organization of the related {related_object_label} match.'
+                "Please ensure that the organization of this {object_label} "
+                "and the organization of the related {related_object_label} match."
             )
             message = message.format(
                 object_label=self._meta.verbose_name,
@@ -37,7 +37,7 @@ class ValidateOrgMixin(object):
             )
             raise ValidationError({field_error: message})
 
-    def _validate_org_reverse_relation(self, rel_name, field_error='organization'):
+    def _validate_org_reverse_relation(self, rel_name, field_error="organization"):
         """
         prevents changing organization for existing objects
         which have relations specified by ``rel_name`` pointing to them,
@@ -60,11 +60,11 @@ class ValidateOrgMixin(object):
             related_label = (
                 rel_meta.verbose_name if count == 1 else rel_meta.verbose_name_plural
             )
-            verb = _('is') if count == 1 else _('are')
+            verb = _("is") if count == 1 else _("are")
             message = _(
-                'The organization of this {object_label} cannot be changed '
-                'because {0} {related_object_label} {verb} still '
-                'related to it'.format(
+                "The organization of this {object_label} cannot be changed "
+                "because {0} {related_object_label} {verb} still "
+                "related to it".format(
                     count,
                     object_label=self._meta.verbose_name,
                     related_object_label=related_label,
@@ -82,8 +82,8 @@ class OrgMixin(ValidateOrgMixin, models.Model):
     """
 
     organization = models.ForeignKey(
-        get_model_name('openwisp_users', 'Organization'),
-        verbose_name=_('organization'),
+        get_model_name("openwisp_users", "Organization"),
+        verbose_name=_("organization"),
         on_delete=models.CASCADE,
     )
 
@@ -101,6 +101,6 @@ class ShareableOrgMixin(OrgMixin):
         abstract = True
 
 
-_org_field = ShareableOrgMixin._meta.get_field('organization')
+_org_field = ShareableOrgMixin._meta.get_field("organization")
 _org_field.blank = True
 _org_field.null = True

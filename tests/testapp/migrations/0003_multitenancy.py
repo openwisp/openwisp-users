@@ -13,16 +13,16 @@ import openwisp_users.mixins
 
 class Migration(migrations.Migration):
     dependencies = [
-        swapper.dependency('openwisp_users', 'Group'),
-        ('testapp', '0002_config_template'),
+        swapper.dependency("openwisp_users", "Group"),
+        ("testapp", "0002_config_template"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Book',
+            name="Book",
             fields=[
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -31,40 +31,40 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    'created',
+                    "created",
                     model_utils.fields.AutoCreatedField(
                         default=django.utils.timezone.now,
                         editable=False,
-                        verbose_name='created',
+                        verbose_name="created",
                     ),
                 ),
                 (
-                    'modified',
+                    "modified",
                     model_utils.fields.AutoLastModifiedField(
                         default=django.utils.timezone.now,
                         editable=False,
-                        verbose_name='modified',
+                        verbose_name="modified",
                     ),
                 ),
-                ('name', models.CharField(max_length=64, verbose_name='name')),
-                ('author', models.CharField(max_length=64, verbose_name='author')),
+                ("name", models.CharField(max_length=64, verbose_name="name")),
+                ("author", models.CharField(max_length=64, verbose_name="author")),
                 (
-                    'organization',
+                    "organization",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        to=swapper.get_model_name('openwisp_users', 'Organization'),
-                        verbose_name='organization',
+                        to=swapper.get_model_name("openwisp_users", "Organization"),
+                        verbose_name="organization",
                     ),
                 ),
             ],
-            options={'abstract': False},
+            options={"abstract": False},
             bases=(openwisp_users.mixins.ValidateOrgMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='Shelf',
+            name="Shelf",
             fields=[
                 (
-                    'id',
+                    "id",
                     models.UUIDField(
                         default=uuid.uuid4,
                         editable=False,
@@ -73,75 +73,75 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    'created',
+                    "created",
                     model_utils.fields.AutoCreatedField(
                         default=django.utils.timezone.now,
                         editable=False,
-                        verbose_name='created',
+                        verbose_name="created",
                     ),
                 ),
                 (
-                    'modified',
+                    "modified",
                     model_utils.fields.AutoLastModifiedField(
                         default=django.utils.timezone.now,
                         editable=False,
-                        verbose_name='modified',
+                        verbose_name="modified",
                     ),
                 ),
-                ('name', models.CharField(max_length=64, verbose_name='name')),
+                ("name", models.CharField(max_length=64, verbose_name="name")),
                 (
-                    'organization',
+                    "organization",
                     models.ForeignKey(
                         blank=True,
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
-                        to=swapper.get_model_name('openwisp_users', 'Organization'),
-                        verbose_name='organization',
+                        to=swapper.get_model_name("openwisp_users", "Organization"),
+                        verbose_name="organization",
                     ),
                 ),
             ],
-            options={'abstract': False},
+            options={"abstract": False},
             bases=(openwisp_users.mixins.ValidateOrgMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='book',
-            name='shelf',
+            model_name="book",
+            name="shelf",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to='testapp.Shelf'
+                on_delete=django.db.models.deletion.CASCADE, to="testapp.Shelf"
             ),
         ),
         migrations.CreateModel(
-            name='Tag',
+            name="Tag",
             fields=[
                 (
-                    'id',
+                    "id",
                     models.AutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
-                        verbose_name='ID',
+                        verbose_name="ID",
                     ),
                 ),
-                ('name', models.CharField(max_length=50)),
+                ("name", models.CharField(max_length=50)),
                 (
-                    'organization',
+                    "organization",
                     models.ForeignKey(
                         blank=True,
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
-                        to=swapper.get_model_name('openwisp_users', 'Organization'),
-                        verbose_name='organization',
+                        to=swapper.get_model_name("openwisp_users", "Organization"),
+                        verbose_name="organization",
                     ),
                 ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
             bases=(openwisp_users.mixins.ValidateOrgMixin, models.Model),
         ),
         migrations.AddField(
-            model_name='shelf',
-            name='tags',
-            field=models.ManyToManyField(blank=True, to='testapp.Tag'),
+            model_name="shelf",
+            name="tags",
+            field=models.ManyToManyField(blank=True, to="testapp.Tag"),
         ),
     ]

@@ -5,13 +5,13 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('openwisp_users', '0020_populate_password_updated_field'),
+        ("openwisp_users", "0020_populate_password_updated_field"),
     ]
 
     operations = [
         migrations.RenameIndex(
-            model_name='user',
-            new_name='user_id_email_idx',
-            old_fields=('id', 'email'),
+            model_name="user",
+            new_name="user_id_email_idx",
+            old_fields=("id", "email"),
         ),
     ]

@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class OpenwispUsersConfig(AppConfig):
-    name = 'openwisp_users'
-    app_label = 'openwisp_users'
-    verbose_name = _('Users and Organizations')
-    default_auto_field = 'django.db.models.AutoField'
+    name = "openwisp_users"
+    app_label = "openwisp_users"
+    verbose_name = _("Users and Organizations")
+    default_auto_field = "django.db.models.AutoField"
 
     def ready(self):
         self.register_menu_group()
@@ -31,84 +31,84 @@ class OpenwispUsersConfig(AppConfig):
     def register_menu_group(self):
         items = {
             1: {
-                'label': _('Users'),
-                'model': settings.AUTH_USER_MODEL,
-                'name': 'changelist',
-                'icon': 'user',
+                "label": _("Users"),
+                "model": settings.AUTH_USER_MODEL,
+                "name": "changelist",
+                "icon": "user",
             },
             2: {
-                'label': _('Organizations'),
-                'model': get_model_name(self.app_label, 'Organization'),
-                'name': 'changelist',
-                'icon': 'ow-org',
+                "label": _("Organizations"),
+                "model": get_model_name(self.app_label, "Organization"),
+                "name": "changelist",
+                "icon": "ow-org",
             },
             3: {
-                'label': _('Groups & Permissions'),
-                'model': get_model_name(self.app_label, 'Group'),
-                'name': 'changelist',
-                'icon': 'ow-permission',
+                "label": _("Groups & Permissions"),
+                "model": get_model_name(self.app_label, "Group"),
+                "name": "changelist",
+                "icon": "ow-permission",
             },
         }
         if app_settings.ORGANIZATION_OWNER_ADMIN:
             items[4] = {
-                'label': _('Organization Owners'),
-                'model': get_model_name(self.app_label, 'OrganizationOwner'),
-                'name': 'changelist',
-                'icon': 'ow-org-owner',
+                "label": _("Organization Owners"),
+                "model": get_model_name(self.app_label, "OrganizationOwner"),
+                "name": "changelist",
+                "icon": "ow-org-owner",
             }
         if app_settings.ORGANIZATION_USER_ADMIN:
             items[5] = {
-                'label': _('Organization Users'),
-                'model': get_model_name(self.app_label, 'OrganizationUser'),
-                'name': 'changelist',
-                'icon': 'ow-org-user',
+                "label": _("Organization Users"),
+                "model": get_model_name(self.app_label, "OrganizationUser"),
+                "name": "changelist",
+                "icon": "ow-org-user",
             }
         register_menu_group(
             position=40,
             config={
-                'label': _('Users & Organizations'),
-                'items': items,
-                'icon': 'ow-user-and-org',
+                "label": _("Users & Organizations"),
+                "items": items,
+                "icon": "ow-user-and-org",
             },
         )
 
     def set_default_settings(self):
-        LOGIN_URL = getattr(settings, 'LOGIN_URL', None)
+        LOGIN_URL = getattr(settings, "LOGIN_URL", None)
         if not LOGIN_URL:
-            setattr(settings, 'LOGIN_URL', 'account_login')
+            setattr(settings, "LOGIN_URL", "account_login")
 
-        LOGOUT_URL = getattr(settings, 'LOGOUT_URL', None)
+        LOGOUT_URL = getattr(settings, "LOGOUT_URL", None)
         if not LOGOUT_URL:
-            setattr(settings, 'LOGOUT_URL', 'account_logout')
+            setattr(settings, "LOGOUT_URL", "account_logout")
 
         if app_settings.USERS_AUTH_API and utils_settings.API_DOCS:
-            SWAGGER_SETTINGS = getattr(settings, 'SWAGGER_SETTINGS', {})
-            SWAGGER_SETTINGS['SECURITY_DEFINITIONS'] = {
-                'Bearer': {'type': 'apiKey', 'in': 'header', 'name': 'Authorization'}
+            SWAGGER_SETTINGS = getattr(settings, "SWAGGER_SETTINGS", {})
+            SWAGGER_SETTINGS["SECURITY_DEFINITIONS"] = {
+                "Bearer": {"type": "apiKey", "in": "header", "name": "Authorization"}
             }
-            setattr(settings, 'SWAGGER_SETTINGS', SWAGGER_SETTINGS)
+            setattr(settings, "SWAGGER_SETTINGS", SWAGGER_SETTINGS)
 
-        ACCOUNT_ADAPTER = getattr(settings, 'ACCOUNT_ADAPTER', None)
+        ACCOUNT_ADAPTER = getattr(settings, "ACCOUNT_ADAPTER", None)
         if not ACCOUNT_ADAPTER:
             setattr(
                 settings,
-                'ACCOUNT_ADAPTER',
-                'openwisp_users.accounts.adapter.EmailAdapter',
+                "ACCOUNT_ADAPTER",
+                "openwisp_users.accounts.adapter.EmailAdapter",
             )
 
     def connect_receivers(self):
-        OrganizationUser = load_model('openwisp_users', 'OrganizationUser')
-        OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
-        Organization = load_model('openwisp_users', 'Organization')
+        OrganizationUser = load_model("openwisp_users", "OrganizationUser")
+        OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+        Organization = load_model("openwisp_users", "Organization")
         signal_tuples = [
-            (post_save, 'post_save'),
-            (post_delete, 'post_delete'),
+            (post_save, "post_save"),
+            (post_delete, "post_delete"),
         ]
 
         pre_save.connect(
             self.handle_org_is_active_change,
             sender=Organization,
-            dispatch_uid='handle_org_is_active_change',
+            dispatch_uid="handle_org_is_active_change",
         )
 
         for model in [OrganizationUser, OrganizationOwner]:
@@ -116,7 +116,7 @@ class OpenwispUsersConfig(AppConfig):
                 signal.connect(
                     self.update_organizations_dict,
                     sender=model,
-                    dispatch_uid='{}_{}_update_organizations_dict'.format(
+                    dispatch_uid="{}_{}_update_organizations_dict".format(
                         name, model.__name__
                     ),
                 )
@@ -128,14 +128,14 @@ class OpenwispUsersConfig(AppConfig):
             pre_save.connect(
                 self.pre_save_update_organizations_dict,
                 sender=model,
-                dispatch_uid='{}_{}_pre_save_organizations_dict'.format(
+                dispatch_uid="{}_{}_pre_save_organizations_dict".format(
                     name, model.__name__
                 ),
             )
         post_save.connect(
             self.create_organization_owner,
             sender=OrganizationUser,
-            dispatch_uid='make_first_org_user_org_owner',
+            dispatch_uid="make_first_org_user_org_owner",
         )
 
     @classmethod
@@ -145,7 +145,7 @@ class OpenwispUsersConfig(AppConfig):
             return
         Organization = instance._meta.model
         try:
-            old_instance = Organization.objects.only('is_active').get(pk=instance.pk)
+            old_instance = Organization.objects.only("is_active").get(pk=instance.pk)
         except Organization.DoesNotExist:
             return
         from .tasks import invalidate_org_membership_cache
@@ -172,10 +172,10 @@ class OpenwispUsersConfig(AppConfig):
                 if getattr(db_obj, check_field) != getattr(instance, check_field):
                     cls._invalidate_user_cache(getattr(db_obj, check_field))
 
-        if hasattr(instance, 'user'):
-            _invalidate_old_related_obj_cache(instance, 'user')
+        if hasattr(instance, "user"):
+            _invalidate_old_related_obj_cache(instance, "user")
         else:
-            _invalidate_old_related_obj_cache(instance, 'organization_user')
+            _invalidate_old_related_obj_cache(instance, "organization_user")
 
     @classmethod
     def _invalidate_user_cache(cls, user):
@@ -187,7 +187,7 @@ class OpenwispUsersConfig(AppConfig):
 
     @classmethod
     def update_organizations_dict(cls, instance, signal, **kwargs):
-        if hasattr(instance, 'user'):
+        if hasattr(instance, "user"):
             user = instance.user
         else:
             user = instance.organization_user.user
@@ -199,7 +199,7 @@ class OpenwispUsersConfig(AppConfig):
     def create_organization_owner(cls, instance, created, **kwargs):
         if not created or not instance.is_admin:
             return
-        OrganizationOwner = load_model('openwisp_users', 'OrganizationOwner')
+        OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
         org_owner_exist = OrganizationOwner.objects.filter(
             organization=instance.organization
         ).exists()
@@ -213,7 +213,7 @@ class OpenwispUsersConfig(AppConfig):
                     owner.save()
                 except (ValidationError, IntegrityError) as e:
                     logger.exception(
-                        f'Got exception {type(e)} while saving '
-                        f'OrganizationOwner with organization_user {instance} and '
-                        f'organization {instance.organization}'
+                        f"Got exception {type(e)} while saving "
+                        f"OrganizationOwner with organization_user {instance} and "
+                        f"organization {instance.organization}"
                     )

@@ -5,17 +5,17 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('openwisp_users', '0013_user_birth_date'),
+        ("openwisp_users", "0013_user_birth_date"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='user',
-            name='notes',
+            model_name="user",
+            name="notes",
             field=models.TextField(
                 blank=True,
-                help_text='notes for internal usage',
-                verbose_name='notes',
+                help_text="notes for internal usage",
+                verbose_name="notes",
             ),
         ),
     ]

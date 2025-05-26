@@ -6,17 +6,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('testapp', '0001_initial')]
+    dependencies = [("testapp", "0001_initial")]
 
     operations = [
         migrations.AddField(
-            model_name='config',
-            name='template',
+            model_name="config",
+            name="template",
             field=models.ForeignKey(
                 blank=True,
                 null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                to='testapp.Template',
+                to="testapp.Template",
             ),
         )
     ]

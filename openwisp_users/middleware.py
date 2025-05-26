@@ -7,17 +7,17 @@ from django.utils.translation import gettext_lazy as _
 
 class PasswordExpirationMiddleware:
     exempted_url_names = [
-        'account_change_password',
-        'admin:logout',
-        'account_logout',
-        'account_reset_password',
-        'account_reset_password_done',
-        'account_reset_password_from_key',
-        'account_reset_password_from_key_done',
+        "account_change_password",
+        "admin:logout",
+        "account_logout",
+        "account_reset_password",
+        "account_reset_password_done",
+        "account_reset_password_from_key",
+        "account_reset_password_from_key_done",
     ]
-    admin_login_path = reverse_lazy('admin:login')
-    admin_index_path = reverse_lazy('admin:index')
-    account_change_password_path = reverse_lazy('account_change_password')
+    admin_login_path = reverse_lazy("admin:login")
+    admin_index_path = reverse_lazy("admin:index")
+    account_change_password_path = reverse_lazy("account_change_password")
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -35,7 +35,7 @@ class PasswordExpirationMiddleware:
         ):
             messages.warning(
                 request,
-                _('Your password has expired, please update your password.'),
+                _("Your password has expired, please update your password."),
             )
             redirect_path = self.account_change_password_path
             if request.user.is_staff:
@@ -44,6 +44,6 @@ class PasswordExpirationMiddleware:
                     if request.path != self.admin_login_path
                     else self.admin_index_path
                 )
-                redirect_path = f'{redirect_path}?{REDIRECT_FIELD_NAME}={next_path}'
+                redirect_path = f"{redirect_path}?{REDIRECT_FIELD_NAME}={next_path}"
             return redirect(redirect_path)
         return response
