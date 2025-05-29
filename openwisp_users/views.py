@@ -43,5 +43,5 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
 
     def get_allow_null(self):
         if self.object_list.model == Organization:
-            return self.request.user.is_superuser
+            return self.request.user.is_superuser or self.request.GET.get("is_filter")
         return super().get_allow_null()
