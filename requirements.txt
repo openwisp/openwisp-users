@@ -5,4 +5,4 @@ django-phonenumber-field~=8.1.0
 phonenumbers~=9.0.4
 openwisp-utils[rest,celery] @ https://github.com/openwisp/openwisp-utils/tarball/1.2
 packaging
-django-sesame~=3.2.2
+django-sesame~=3.2.3
