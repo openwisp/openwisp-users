@@ -49,14 +49,49 @@ class MultitenantAdminMixin(object):
         if user.is_superuser:
             return qs
         if hasattr(self.model, "organization"):
-            return qs.filter(organization__in=user.organizations_managed)
+            return qs.filter(
+                Q(organization__in=user.organizations_managed) | Q(organization=None)
+            )
         if self.model.__name__ == "Organization":
             return qs.filter(pk__in=user.organizations_managed)
         elif not self.multitenant_parent:
             return qs
         else:
-            qsarg = "{0}__organization__in".format(self.multitenant_parent)
-            return qs.filter(**{qsarg: user.organizations_managed})
+            qsarg = f"{self.multitenant_parent}__organization"
+            return qs.filter(
+                Q(**{f"{qsarg}__in": user.organizations_managed}) | Q(**{qsarg: None})
+            )
+
+    def _has_org_permission(self, request, obj, perm_func):
+        """
+        Helper method to check object-level permissions for users
+        associated with specific organizations.
+        """
+        perm = perm_func(request, obj)
+        if obj and self.multitenant_parent:
+            # In case of a multitenant parent, we need to check if the
+            # user has permission on the parent object.
+            obj = getattr(obj, self.multitenant_parent)
+        if not request.user.is_superuser and obj and hasattr(obj, "organization_id"):
+            perm = perm and (
+                obj.organization_id
+                and str(obj.organization_id) in request.user.organizations_managed
+            )
+        return perm
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Returns True if the user has permission to change the object.
+        Non-superusers cannot change shared objects.
+        """
+        return self._has_org_permission(request, obj, super().has_change_permission)
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Returns True if the user has permission to delete the object.
+        Non-superusers cannot change shared objects.
+        """
+        return self._has_org_permission(request, obj, super().has_delete_permission)
 
     def _edit_form(self, request, form):
         """
@@ -149,7 +184,9 @@ class MultitenantOrgFilter(AutocompleteFilter):
     org_lookup = "id__in"
     title = _("organization")
     widget_attrs = AutocompleteFilter.widget_attrs.copy()
-    widget_attrs.update({"data-empty-label": SHARED_SYSTEMWIDE_LABEL})
+    widget_attrs.update(
+        {"data-empty-label": SHARED_SYSTEMWIDE_LABEL, "data-is-filter": "true"}
+    )
 
 
 class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
