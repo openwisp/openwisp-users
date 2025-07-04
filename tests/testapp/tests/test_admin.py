@@ -91,3 +91,23 @@ class TestTemplateAdmin(TestMultitenantAdminMixin, TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Template.objects.count(), 1)
+
+    def test_hide_sensitive_fields_for_shared_object(self):
+        """
+        Test that sensitive fields are hidden for shared objects for non-superusers.
+        """
+        org = self._get_org()
+        shared_template = self._create_template(
+            organization=None, secrets="shared-secret"
+        )
+        org_template = self._create_template(organization=org, secrets="org-secret")
+        self._test_sensitive_fields_visibility_on_shared_and_org_objects(
+            sensitive_fields=["secrets"],
+            shared_obj_path=reverse(
+                "admin:testapp_template_change", args=(shared_template.id,)
+            ),
+            org_obj_path=reverse(
+                "admin:testapp_template_change", args=(org_template.id,)
+            ),
+            organization=org,
+        )

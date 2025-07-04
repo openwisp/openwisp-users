@@ -290,6 +290,40 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
             )
         self.assertContains(response, expected_element, html=True)
 
+    def _test_sensitive_fields_visibility_on_shared_and_org_objects(
+        self,
+        sensitive_fields,
+        shared_obj_path,
+        org_obj_path,
+        organization,
+        org_admin=None,
+        super_user=None,
+    ):
+        org_admin = org_admin or self._create_administrator(
+            organizations=[organization]
+        )
+        super_user = super_user or self._get_admin()
+
+        self.client.force_login(org_admin)
+        with self.subTest("Org admin should not see sensitive fields in shared object"):
+            response = self.client.get(shared_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertNotContains(response, field)
+
+        with self.subTest("Org admin should see sensitive fields in org object"):
+            response = self.client.get(org_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertContains(response, field)
+
+        self.client.force_login(super_user)
+        with self.subTest("Superuser should see sensitive fields in shared object"):
+            response = self.client.get(shared_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertContains(response, field)
+
     def _test_object_organization_fk_autocomplete_view(
         self,
         model,

@@ -20,6 +20,10 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
+    sensitive_fields = []
+
+    def get_sensitive_fields(self, request, obj=None):
+        return self.sensitive_fields
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,6 +40,21 @@ class MultitenantAdminMixin(object):
         return str(obj)
 
     get_repr.short_description = _("name")
+
+    def get_fields(self, request, obj=None):
+        """
+        Return the list of fields to be displayed in the admin.
+
+        If the user is not a superuser, it will remove sensitive fields.
+        """
+        fields = super().get_fields(request, obj)
+        if obj and not request.user.is_superuser:
+            if self.multitenant_parent:
+                obj = getattr(obj, self.multitenant_parent)
+            if getattr(obj, "organization_id", None) is None:
+                sensitive_fields = self.get_sensitive_fields(request, obj)
+                return [f for f in fields if f not in sensitive_fields]
+        return fields
 
     def get_queryset(self, request):
         """
