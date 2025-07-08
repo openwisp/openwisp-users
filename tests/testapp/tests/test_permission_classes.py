@@ -291,3 +291,21 @@ class TestPermissionClasses(CreateMixin, APITestCase):
                 "option": 200,
             },
         )
+
+    def test_template_sensitive_fields_visibility(self):
+        """
+        Test that sensitive fields are hidden for shared objects for non-superusers.
+        """
+        org = self._get_org()
+        shared_template = self._create_template(
+            organization=None, secrets="shared-secret"
+        )
+        org_template = self._create_template(organization=org, secrets="org-secret")
+        self._test_sensitive_fields_visibility_on_shared_and_org_objects(
+            sensitive_fields=["secrets"],
+            shared_obj=shared_template,
+            org_obj=org_template,
+            detailview_name="test_template_detail",
+            listview_name="test_template_list",
+            organization=org,
+        )

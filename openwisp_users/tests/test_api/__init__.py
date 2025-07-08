@@ -165,6 +165,67 @@ class TestMultitenantApiMixin(TestMultitenantAdminMixin):
             expected_status_codes=expected_status_codes,
         )
 
+    def _test_sensitive_fields_visibility_on_shared_and_org_objects(
+        self,
+        sensitive_fields,
+        shared_obj,
+        org_obj,
+        detailview_name,
+        listview_name,
+        organization,
+        org_admin=None,
+        super_user=None,
+    ):
+        def assert_sensitive_fields_visibility(obj, user, should_be_visible=False):
+            token = self._obtain_auth_token(user.username, "tester")
+            auth = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+            # List view
+            listview_path = reverse(listview_name)
+            response = self.client.get(listview_path, **auth)
+            self.assertEqual(response.status_code, 200)
+            results = (
+                response.data
+                if "results" not in response.data
+                else response.data["results"]
+            )
+            for item in results:
+                if str(item["id"]) == str(obj.pk):
+                    break
+            for field in sensitive_fields:
+                self.assertEqual(
+                    field in item,
+                    should_be_visible,
+                )
+            # Detail view
+            detailview_path = reverse(detailview_name, args=[obj.pk])
+            response = self.client.get(detailview_path, **auth)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                if should_be_visible:
+                    self.assertIn(field, response.data)
+                else:
+                    self.assertNotIn(field, response.data)
+
+        org_admin = org_admin or self._create_administrator(
+            organizations=[organization]
+        )
+        super_user = super_user or self._get_admin()
+
+        with self.subTest("Org admin should not see sensitive fields in shared object"):
+            assert_sensitive_fields_visibility(
+                shared_obj, org_admin, should_be_visible=False
+            )
+
+        with self.subTest("Org admin should see sensitive fields in org object"):
+            assert_sensitive_fields_visibility(
+                org_obj, org_admin, should_be_visible=True
+            )
+
+        with self.subTest("Superuser should see sensitive fields in shared object"):
+            assert_sensitive_fields_visibility(
+                shared_obj, super_user, should_be_visible=True
+            )
+
 
 class APITestCase(TestMultitenantApiMixin, AuthenticationMixin, TestCase):
     pass

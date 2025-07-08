@@ -61,7 +61,7 @@ class BookAdmin(BaseAdmin):
 
 
 class TemplateAdmin(BaseAdmin):
-    sensitive_fields = ["secrets"]
+    pass
 
 
 class TagAdmin(BaseAdmin):

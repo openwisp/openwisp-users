@@ -182,12 +182,39 @@ class FilterSerializerByOrganization(OrgLookup):
             except AttributeError:
                 pass
 
+    def get_sensitive_fields(self):
+        """
+        Returns a list of sensitive fields that should be hidden
+        when the organization is None and the user is not a superuser.
+        """
+        ModelClass = self.Meta.model
+        return getattr(ModelClass, "sensitive_fields", [])
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # only filter related fields if the serializer
         # is being initiated during an HTTP request
         if "request" in self.context:
             self.filter_fields()
+
+    def to_representation(self, data):
+        rep = super().to_representation(data)
+        # Handle single object serializers
+        self.hide_sensitive_fields(rep)
+        return rep
+
+    def hide_sensitive_fields(self, obj):
+        request = self.context.get("request")
+        if (
+            request
+            and not request.user.is_superuser
+            and "organization" in obj
+            and obj["organization"] is None
+        ):
+            for field in self.get_sensitive_fields():
+                if field in obj:
+                    del obj[field]
+        return obj
 
 
 class FilterSerializerByOrgMembership(FilterSerializerByOrganization):

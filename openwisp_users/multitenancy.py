@@ -20,10 +20,9 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
-    sensitive_fields = []
 
     def get_sensitive_fields(self, request, obj=None):
-        return self.sensitive_fields
+        return getattr(self.model, "sensitive_fields", [])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
