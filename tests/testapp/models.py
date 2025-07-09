@@ -7,7 +7,12 @@ from openwisp_utils.base import TimeStampedEditableModel
 
 
 class Template(ShareableOrgMixin):
+    sensitive_fields = ["secrets"]
     name = models.CharField(max_length=16)
+    secrets = models.TextField(
+        blank=True,
+        null=True,
+    )
 
     def __str__(self):
         return self.name

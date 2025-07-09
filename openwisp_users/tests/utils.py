@@ -1,9 +1,12 @@
 from datetime import date
 
+import django
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 from swapper import load_model
+
+from openwisp_users.multitenancy import SHARED_SYSTEMWIDE_LABEL
 
 Organization = load_model("openwisp_users", "Organization")
 OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
@@ -236,9 +239,124 @@ class TestMultitenantAdminMixin(TestOrganizationMixin):
         )
         self.assertEqual(response.status_code, 403)
 
-    def _get_autocomplete_view_path(self, app_label, model_name, field_name):
+    def _test_org_admin_create_shareable_object(
+        self,
+        path,
+        payload,
+        model,
+        expected_count=0,
+        user=None,
+        error_message=None,
+        raises_error=True,
+    ):
+        """
+        Verifies a non-superuser cannot create a shareable object
+        """
+        if not user:
+            user = self._create_administrator(organizations=[self._get_org()])
+        self.client.force_login(user)
+        response = self.client.post(
+            path,
+            data=payload,
+            follow=True,
+        )
+        if raises_error:
+            error_message = error_message or (
+                '<div class="form-row errors field-organization">\n'
+                '            <ul class="errorlist"{}>'
+                "<li>This field is required.</li></ul>"
+            ).format(' id="id_organization_error"' if django.VERSION >= (5, 2) else "")
+            self.assertContains(response, error_message)
+        self.assertEqual(model.objects.count(), expected_count)
+
+    def _test_org_admin_view_shareable_object(
+        self, path, user=None, expected_element=None
+    ):
+        """
+        Verifies a non-superuser can view a shareable object
+        """
+        if not user:
+            user = self._create_administrator(organizations=[self._get_org()])
+        self.client.force_login(user)
+        response = self.client.get(path, follow=True)
+        self.assertEqual(response.status_code, 200)
+        if not expected_element:
+            expected_element = (
+                '<div class="form-row field-organization">\n\n\n<div>\n\n'
+                '<div class="flex-container">\n\n'
+                "<label>Organization:</label>\n\n"
+                '<div class="readonly">-</div>\n\n\n'
+                "</div>\n\n</div>\n\n\n</div>"
+            )
+        self.assertContains(response, expected_element, html=True)
+
+    def _test_sensitive_fields_visibility_on_shared_and_org_objects(
+        self,
+        sensitive_fields,
+        shared_obj_path,
+        org_obj_path,
+        organization,
+        org_admin=None,
+        super_user=None,
+    ):
+        org_admin = org_admin or self._create_administrator(
+            organizations=[organization]
+        )
+        super_user = super_user or self._get_admin()
+
+        self.client.force_login(org_admin)
+        with self.subTest("Org admin should not see sensitive fields in shared object"):
+            response = self.client.get(shared_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertNotContains(response, field)
+
+        with self.subTest("Org admin should see sensitive fields in org object"):
+            response = self.client.get(org_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertContains(response, field)
+
+        self.client.force_login(super_user)
+        with self.subTest("Superuser should see sensitive fields in shared object"):
+            response = self.client.get(shared_obj_path)
+            self.assertEqual(response.status_code, 200)
+            for field in sensitive_fields:
+                self.assertContains(response, field)
+
+    def _test_object_organization_fk_autocomplete_view(
+        self,
+        model,
+    ):
+        app_label = model._meta.app_label
+        model_name = model._meta.model_name
+        path = self._get_autocomplete_view_path(app_label, model_name, "organization")
+        org = self._get_org()
+        admin = User.objects.filter(is_superuser=True).first()
+        if not admin:
+            admin = self._create_admin()
+        org_admin = self._create_administrator(organizations=[org])
+
+        with self.subTest("Org admin should only see their own org"):
+            self.client.force_login(org_admin)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, org.name)
+            self.assertNotContains(response, SHARED_SYSTEMWIDE_LABEL)
+
+        with self.subTest("Superuser should see all orgs and shared label"):
+            self.client.force_login(admin)
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, org.name)
+            self.assertContains(response, SHARED_SYSTEMWIDE_LABEL)
+
+    def _get_autocomplete_view_path(
+        self, app_label, model_name, field_name, is_filter=False
+    ):
         path = reverse("admin:ow-auto-filter")
         return (
             f"{path}?app_label={app_label}"
             f"&model_name={model_name}&field_name={field_name}"
+            "{}".format("&is_filter=true" if is_filter else "")
         )
