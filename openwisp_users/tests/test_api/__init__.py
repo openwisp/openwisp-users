@@ -47,7 +47,7 @@ class TestMultitenantApiMixin(TestMultitenantAdminMixin):
                     **auth,
                 )
                 self.assertEqual(response.status_code, expected_status_codes["create"])
-                if expected_status_codes["create"] == 400:
+                if expected_status_codes["create"] == 400 and 'organization' in create_payload:
                     self.assertEqual(
                         str(response.data["organization"][0]),
                         "This field may not be null.",
@@ -62,7 +62,7 @@ class TestMultitenantApiMixin(TestMultitenantAdminMixin):
                 self.assertEqual(len(data), expected_count)
 
         if detailview_name or detailview_path:
-            if not detailview_path and listview_name and expected_count > 0:
+            if not detailview_path and listview_path and expected_count > 0:
                 detailview_path = reverse(detailview_name, args=[data[0]["id"]])
 
             with self.subTest("Retrieve shared object"):
@@ -141,7 +141,7 @@ class TestMultitenantApiMixin(TestMultitenantAdminMixin):
         Superusers can perform all operations on shared objects.
         """
         if not token:
-            user = self._create_admin()
+            user = self._get_admin()
             token = self._obtain_auth_token(user.username, "tester")
         if not expected_status_codes:
             expected_status_codes = {

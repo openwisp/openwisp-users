@@ -31,7 +31,8 @@ class SharedObjectsLookup:
         # If user has access to any organization, then include shared
         # objects in the queryset.
         if len(organizations):
-            conditions |= Q(**{f"{self.org_field}__isnull": True})
+            lookup_field = self.organization_lookup.replace("__in", "__isnull")
+            conditions |= Q(**{lookup_field: True})
         return conditions
 
 
@@ -114,9 +115,16 @@ class FilterByParent(OrgLookup):
         except (AssertionError, ValidationError):
             raise NotFound()
 
+    @property
+    def queryset_organization_conditions(self):
+        return Q(
+            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
+        )
+
     def get_organization_queryset(self, qs):
-        lookup = {self.organization_lookup: getattr(self.request.user, self._user_attr)}
-        return qs.filter(**lookup)
+        if self.request.user.is_anonymous:
+            return
+        return qs.filter(self.queryset_organization_conditions)
 
     def get_parent_queryset(self):
         raise NotImplementedError()
@@ -130,7 +138,7 @@ class FilterByParentMembership(FilterByParent):
     _user_attr = "organizations_dict"
 
 
-class FilterByParentManaged(FilterByParent):
+class FilterByParentManaged(SharedObjectsLookup, FilterByParent):
     """
     Filter queryset based on parent organizations managed by user
     """
@@ -138,7 +146,7 @@ class FilterByParentManaged(FilterByParent):
     _user_attr = "organizations_managed"
 
 
-class FilterByParentOwned(FilterByParent):
+class FilterByParentOwned(SharedObjectsLookup, FilterByParent):
     """
     Filter queryset based on parent organizations owned by user
     """
