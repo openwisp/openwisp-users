@@ -47,7 +47,10 @@ class TestMultitenantApiMixin(TestMultitenantAdminMixin):
                     **auth,
                 )
                 self.assertEqual(response.status_code, expected_status_codes["create"])
-                if expected_status_codes["create"] == 400 and 'organization' in create_payload:
+                if (
+                    expected_status_codes["create"] == 400
+                    and "organization" in create_payload
+                ):
                     self.assertEqual(
                         str(response.data["organization"][0]),
                         "This field may not be null.",

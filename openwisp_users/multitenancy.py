@@ -80,7 +80,8 @@ class MultitenantAdminMixin(object):
             # if there is no organization field, return the queryset as is
             return qs
         return qs.filter(
-            Q(**{f"{self.org_field}__in": user.organizations_managed}) | Q(**{self.org_field: None})
+            Q(**{f"{self.org_field}__in": user.organizations_managed})
+            | Q(**{self.org_field: None})
         )
 
     def get_search_results(self, request, queryset, search_term):
@@ -88,14 +89,15 @@ class MultitenantAdminMixin(object):
         Override to ensure that the search results are filtered by the
         organization of the current user.
         """
-        if request.GET.get('field_name') and not request.user.is_superuser and not self.multitenant_shared_relations:
+        if (
+            request.GET.get("field_name")
+            and not request.user.is_superuser
+            and not self.multitenant_shared_relations
+        ):
             queryset = queryset.filter(
-                **{
-                    f"{self.org_field}__in": request.user.organizations_managed
-                }
+                **{f"{self.org_field}__in": request.user.organizations_managed}
             )
         return super().get_search_results(request, queryset, search_term)
-
 
     def _has_org_permission(self, request, obj, perm_func):
         """
