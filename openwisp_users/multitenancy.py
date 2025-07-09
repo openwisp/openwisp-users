@@ -93,6 +93,7 @@ class MultitenantAdminMixin(object):
             request.GET.get("field_name")
             and not request.user.is_superuser
             and not self.multitenant_shared_relations
+            and self.org_field
         ):
             queryset = queryset.filter(
                 **{f"{self.org_field}__in": request.user.organizations_managed}
