@@ -26,8 +26,8 @@ OpenWISP's REST APIs. It is based on `TokenAuthentication
 <https://www.django-rest-framework.org/api-guide/authentication/#tokenauthentication>`_
 from Django REST Framework.
 
-For detailed usage instructions, please refer to the `authenticating with
-the user token :ref:`authenticating_rest_api` section.
+For detailed usage instructions, please refer to the :ref:`authenticating with
+the user token <authenticating_rest_api>` section.
 
 .. _users_sesameauthentication:
 
