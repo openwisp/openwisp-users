@@ -31,7 +31,8 @@ class SharedObjectsLookup:
         # If user has access to any organization, then include shared
         # objects in the queryset.
         if len(organizations):
-            conditions |= Q(**{f"{self.org_field}__isnull": True})
+            lookup_field = self.organization_lookup.replace("__in", "__isnull")
+            conditions |= Q(**{lookup_field: True})
         return conditions
 
 
@@ -114,9 +115,16 @@ class FilterByParent(OrgLookup):
         except (AssertionError, ValidationError):
             raise NotFound()
 
+    @property
+    def queryset_organization_conditions(self):
+        return Q(
+            **{self.organization_lookup: getattr(self.request.user, self._user_attr)}
+        )
+
     def get_organization_queryset(self, qs):
-        lookup = {self.organization_lookup: getattr(self.request.user, self._user_attr)}
-        return qs.filter(**lookup)
+        if self.request.user.is_anonymous:
+            return
+        return qs.filter(self.queryset_organization_conditions)
 
     def get_parent_queryset(self):
         raise NotImplementedError()
@@ -130,7 +138,7 @@ class FilterByParentMembership(FilterByParent):
     _user_attr = "organizations_dict"
 
 
-class FilterByParentManaged(FilterByParent):
+class FilterByParentManaged(SharedObjectsLookup, FilterByParent):
     """
     Filter queryset based on parent organizations managed by user
     """
@@ -138,12 +146,58 @@ class FilterByParentManaged(FilterByParent):
     _user_attr = "organizations_managed"
 
 
-class FilterByParentOwned(FilterByParent):
+class FilterByParentOwned(SharedObjectsLookup, FilterByParent):
     """
     Filter queryset based on parent organizations owned by user
     """
 
     _user_attr = "organizations_owned"
+
+
+class HideSensitiveFieldsMixin:
+    """
+    Mixin to hide sensitive fields in the serializer representation
+    based on the organization of the user.
+    """
+
+    def get_sensitive_fields(self):
+        """
+        Returns a list of sensitive fields that should be hidden.
+        """
+        ModelClass = self.Meta.model
+        return getattr(ModelClass, "sensitive_fields", [])
+
+    def _is_object_shared(self, instance):
+        """
+        Returns the organization of the instance if it exists.
+        """
+        view = self.context.get("view")
+        organization_field = getattr(view, "organization_field", "organization_id")
+        related_field = instance
+        for field in organization_field.split("__"):
+            if hasattr(related_field, field):
+                related_field = getattr(related_field, field)
+            else:
+                return False
+        return related_field is None
+
+    def hide_sensitive_fields(self, obj):
+        request = self.context.get("request")
+        if (
+            request
+            and not request.user.is_superuser
+            and "organization" in obj
+            and obj["organization"] is None
+        ):
+            for field in self.get_sensitive_fields():
+                if field in obj:
+                    del obj[field]
+        return obj
+
+    def to_representation(self, data):
+        rep = super().to_representation(data)
+        self.hide_sensitive_fields(rep)
+        return rep
 
 
 class FilterSerializerByOrganization(OrgLookup):
@@ -190,7 +244,9 @@ class FilterSerializerByOrganization(OrgLookup):
             self.filter_fields()
 
 
-class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
+class FilterSerializerByOrgMembership(
+    HideSensitiveFieldsMixin, FilterSerializerByOrganization
+):
     """
     Filter serializer by organizations the user is member of
     """
@@ -198,7 +254,9 @@ class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
     _user_attr = "organizations_dict"
 
 
-class FilterSerializerByOrgManaged(FilterSerializerByOrganization):
+class FilterSerializerByOrgManaged(
+    HideSensitiveFieldsMixin, FilterSerializerByOrganization
+):
     """
     Filter serializer by organizations managed by user
     """
@@ -206,7 +264,9 @@ class FilterSerializerByOrgManaged(FilterSerializerByOrganization):
     _user_attr = "organizations_managed"
 
 
-class FilterSerializerByOrgOwned(FilterSerializerByOrganization):
+class FilterSerializerByOrgOwned(
+    HideSensitiveFieldsMixin, FilterSerializerByOrganization
+):
     """
     Filter serializer by organizations owned by user
     """

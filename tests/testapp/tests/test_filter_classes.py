@@ -1,22 +1,22 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
 from django.urls import reverse
 from packaging.version import parse as version_parse
 from rest_framework import VERSION as REST_FRAMEWORK_VERSION
 from swapper import load_model
 
 from openwisp_users.api.throttling import AuthRateThrottle
+from openwisp_users.tests.test_api import APITestCase
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
+from .. import CreateMixin
 from ..models import Book, Library, Shelf, Tag
-from .mixins import TestMultitenancyMixin
 
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 User = get_user_model()
 
 
-class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, TestCase):
+class TestFilterClasses(AssertNumQueriesSubTestMixin, CreateMixin, APITestCase):
     def setUp(self):
         AuthRateThrottle.rate = 0
         self.shelf_model = Shelf

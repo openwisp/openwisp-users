@@ -157,6 +157,8 @@ different roles in each.
 
 Here's a summary of the default organization roles.
 
+.. _users_organization_manager:
+
 Organization Manager
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -240,6 +242,18 @@ systemwide (no organization)"* as shown in the screenshot above. These
 objects are defined and managed by super administrators and can include
 configurations, policies, or other data that need to be consistent across
 all organizations.
+
+Shared objects can only be created by superusers. Non-superusers (e.g.
+:ref:`users_organization_manager`) have view-only access to shared
+objects, both through the admin interface and the REST API. However, they
+can use these shared objects when creating related organization-specific
+resources. For example, an organization manager can use a shared VPN
+server to create a configuration template for their organization.
+
+In some cases, non-superusers may be restricted from viewing sensitive
+details of shared objects—particularly if such information could allow
+them to gain unauthorized access to infrastructure or data used by other
+organizations.
 
 By sharing common resources, global uniformity and consistency can be
 enforced across the entire system.

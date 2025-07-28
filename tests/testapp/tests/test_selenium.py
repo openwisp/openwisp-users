@@ -24,13 +24,17 @@ class TestOrganizationAutocompleteField(
         )
 
     def _test_multitenant_autocomplete_org_field(
-        self, username, password, path, visible, hidden
+        self,
+        username,
+        password,
+        path,
+        visible,
+        hidden,
+        select2_selector="#select2-id_organization-container",
     ):
         self.login(username=username, password=password)
         self.open(path)
-        self.web_driver.find_element(
-            By.CSS_SELECTOR, "#select2-id_organization-container"
-        ).click()
+        self.web_driver.find_element(By.CSS_SELECTOR, select2_selector).click()
         WebDriverWait(self.web_driver, 2).until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, ".select2-results__option.loading-results")
@@ -142,4 +146,31 @@ class TestOrganizationAutocompleteField(
             )
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
+        self.logout()
+
+    def test_organization_autocomplete_filter(self):
+        """
+        The autocomplete_filter should show the "Shared systemwide (no organization)"
+        option to non-superuser users.
+        """
+        path = reverse("admin:testapp_shelf_changelist")
+        org1 = self._create_org(name="org1")
+        administrator = self._create_administrator(
+            organizations=[org1], username="tester", password="tester"
+        )
+        administrator.user_permissions.add(
+            *Permission.objects.filter(
+                Q(codename__contains="shelf") | Q(codename="view_organization")
+            ).values_list("id", flat=True),
+        )
+        self._test_multitenant_autocomplete_org_field(
+            path=path,
+            username="tester",
+            password="tester",
+            visible=[org1.name, "Shared systemwide (no organization)"],
+            hidden=list(
+                Organization.objects.exclude(id=org1.id).values_list("name", flat=True)
+            ),
+            select2_selector="#select2-id-organization-dal-filter-container",
+        )
         self.logout()
