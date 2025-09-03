@@ -24,9 +24,7 @@
     staff.change(function (e) {
       // enable also is_admin in org unless superuser
       if (!superuser.is(":checked")) {
-        orgs
-          .find(".field-is_admin input")
-          .prop("checked", staff.is(":checked"));
+        orgs.find(".field-is_admin input").prop("checked", staff.is(":checked"));
       }
     });
     staff.trigger("change");
