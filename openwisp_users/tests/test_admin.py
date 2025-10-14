@@ -5,7 +5,7 @@ import uuid
 from unittest.mock import patch
 
 import django
-from django.contrib import admin
+from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
@@ -1967,7 +1967,7 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestCase):
         class TestAdmin(MultitenantAdminMixin):
             multitenant_parent = "test"
 
-        owner_admin = OrganizationOwnerAdmin(Organization, admin.site)
+        owner_admin = OrganizationOwnerAdmin(Organization, django_admin.site)
 
         test_admin = TestAdmin()
         with self.subTest("multitenant_parent added to multitenant_shared_relations"):
