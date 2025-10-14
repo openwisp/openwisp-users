@@ -162,6 +162,9 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 LOGIN_REDIRECT_URL = "admin:index"
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = "email_confirmation_success"
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = "email_confirmation_success"
+# disable allauth ratelimiting during automated tests
+if TESTING:
+    ACCOUNT_RATE_LIMITS = False
 
 if not PARALLEL:
     CACHES = {
