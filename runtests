@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+
+echo "Run standard tests"
+coverage run ./runtests.py --parallel
+
+echo "Test extensibility"
+SAMPLE_APP=1 coverage run ./runtests.py --parallel
+
+echo "Run basic tests without allauth.socialaccount"
+NO_SOCIAL_APP=1 coverage run ./tests/manage.py test testapp.tests.test_admin.TestUsersAdmin --parallel
+
+coverage combine
+coverage xml

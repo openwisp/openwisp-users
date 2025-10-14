@@ -65,8 +65,7 @@ Run tests with:
 
 .. code-block:: shell
 
-    # --parallel and --keepdb are optional but help to speed up the operation
-    ./runtests.py --parallel --keepdb
+    ./runtests
 
 Alternative Sources
 -------------------
