@@ -3,6 +3,6 @@ django-extensions>=3.2,<4.2
 django-allauth[socialaccount]>=65.12.0,<65.13.0
 django-phonenumber-field>=8.1.0,<8.2.0
 phonenumbers>=9.0.10,<9.1.0
-openwisp-utils[rest,celery] @ https://github.com/openwisp/openwisp-utils/tarball/1.2
+openwisp-utils[rest,celery]~=1.2.0
 packaging
 django-sesame>=3.2.3,<3.3.0
