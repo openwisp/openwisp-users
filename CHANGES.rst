@@ -1,10 +1,26 @@
 Changelog
 =========
 
-Version 1.2.0 [Unreleased]
+Version 1.2.0 [2025-10-23]
 --------------------------
 
-Work in progress.
+Changes
+~~~~~~~
+
+Dependencies
+++++++++++++
+
+- Bumped ``django-organizations>=2.5.0,<2.6.0``.
+- Bumped ``django-extensions>=3.2,<4.2``.
+- Bumped ``django-allauth[socialaccount]>=65.12.0,<65.13.0``.
+- Bumped ``django-phonenumber-field>=8.1.0,<8.2.0``.
+- Bumped ``phonenumbers>=9.0.10,<9.1.0``.
+- Bumped ``openwisp-utils[rest,celery]~=1.2.0``.
+- Removed ``coveralls`` in favor of ``coverage`` package.
+- Added support for Django ``5.x``.
+- Dropped support for Django ``3.2.0`` and Django ``4.1.0``.
+- Added support for Python ``3.11``, ``3.12``, and ``3.13``.
+- Dropped support for Python ``3.8``.
 
 Version 1.1.0 [2024-11-20]
 --------------------------
