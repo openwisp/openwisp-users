@@ -11,6 +11,11 @@ User = get_user_model()
 
 class UsersAuthenticationBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
+        # Only proceed if a username is provided. Other auth backends may attempt
+        # authentication without a username; returning early here avoids querying
+        # the database with a `None` username, which can be inefficient.
+        if not username:
+            return
         for user in self.get_users(username):
             if user.check_password(password) and self.user_can_authenticate(user):
                 return user
