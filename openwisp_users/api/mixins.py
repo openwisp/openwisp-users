@@ -148,7 +148,9 @@ class FilterByParentOwned(FilterByParent):
 
 class FilterSerializerByOrganization(OrgLookup):
     """
-    Filter the options in browsable API for serializers
+    Filter serializer related-field querysets based on the organizations the
+    current user is allowed to access.
+
     """
 
     include_shared = False
@@ -157,35 +159,106 @@ class FilterSerializerByOrganization(OrgLookup):
     def _user_attr(self):
         raise NotImplementedError()
 
+    def _get_org_related_fields(self, model):
+        org_fields = []
+        for f in model._meta.get_fields():
+            if getattr(f, "is_relation", False) and getattr(f, "related_model", None):
+                if f.related_model is Organization:
+                    org_fields.append(f.name)
+        return org_fields
+
     def filter_fields(self):
-        user = self.context["request"].user
-        # superuser can see everything
+        request = self.context.get("request")
+        if not request:
+            return
+
+        user = request.user
+
+        # Superusers or anonymous -> no filtering
         if user.is_superuser or user.is_anonymous:
             return
-        # non superusers can see only items of organizations they're related to
-        organization_filter = getattr(user, self._user_attr)
-        for field in self.fields:
-            if field == "organization" and not self.fields[field].read_only:
-                # queryset attribute will not be present if set to read_only
-                self.fields[field].allow_null = False
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            conditions = Q(**{self.organization_lookup: organization_filter})
-            if self.include_shared:
-                conditions |= Q(organization__isnull=True)
+
+        allowed_orgs = getattr(user, self._user_attr)
+
+        # Detect if user has any organizations (used for include_shared visibility)
+        try:
+            has_allowed_orgs = bool(allowed_orgs.exists())
+        except Exception:
             try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    conditions
-                )
-            except AttributeError:
+                has_allowed_orgs = bool(len(allowed_orgs))
+            except Exception:
+                has_allowed_orgs = bool(allowed_orgs)
+
+        for field_name, field in self.fields.items():
+            queryset = getattr(field, "queryset", None)
+            if queryset is None:
+                continue
+
+            model = getattr(queryset, "model", None)
+            if model is None:
+                continue
+
+            # CASE A: Field points directly to the Organization model
+            if model is Organization:
+                try:
+                    qs = queryset.filter(pk__in=allowed_orgs)
+                    if self.include_shared and has_allowed_orgs:
+                        qs = qs | queryset.filter(pk__isnull=True)
+                    field.queryset = qs.distinct()
+                except Exception:
+                    pass
+
+                # Enforce: non-superusers cannot CREATE shared objects
+                if field_name == "organization" and not user.is_superuser:
+                    try:
+                        field.allow_null = False
+                        field.required = True
+                    except Exception:
+                        pass
+                continue
+
+            # CASE B: Related model — look for org-related fields
+            org_fields = self._get_org_related_fields(model)
+            if not org_fields:
+                continue
+
+            # Build: org_field__in = allowed_orgs
+            conditions = Q()
+            for org_field in org_fields:
+                conditions |= Q(**{f"{org_field}__in": allowed_orgs})
+
+            # Visibility: include shared objects (organization=None)
+            if self.include_shared and has_allowed_orgs:
+                null_conditions = Q()
+                for org_field in org_fields:
+                    null_conditions |= Q(**{f"{org_field}__isnull": True})
+                conditions |= null_conditions
+            else:
+                # Normal users must NOT see shared objects if include_shared=False
+                for org_field in org_fields:
+                    queryset = queryset.exclude(**{f"{org_field}__isnull": True})
+
+            # Remove nulls entirely if field disallows null
+            if not getattr(field, "allow_null", False):
+                for org_field in org_fields:
+                    queryset = queryset.exclude(**{f"{org_field}__isnull": True})
+
+            try:
+                field.queryset = queryset.filter(conditions).distinct()
+            except Exception:
                 pass
+
+            # If this field is the organization FK on the serializer,
+            # enforce NO shared creation for non-superusers
+            if field_name == "organization" and not user.is_superuser:
+                try:
+                    field.allow_null = False
+                    field.required = True
+                except Exception:
+                    pass
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # only filter related fields if the serializer
-        # is being initiated during an HTTP request
         if "request" in self.context:
             self.filter_fields()
 
