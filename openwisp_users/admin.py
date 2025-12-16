@@ -44,6 +44,36 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+class SensitiveFieldsAdminMixin:
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if request.user.is_superuser:
+            return fieldsets
+        sensitive_fields = getattr(self.model, "sensitive_fields", [])
+        if not sensitive_fields:
+            return fieldsets
+        fieldsets = deepcopy(fieldsets)
+        for fieldset in fieldsets:
+            fieldset_fields = fieldset[1].get("fields", ())
+            if isinstance(fieldset_fields, (list, tuple)):
+                fieldset[1]["fields"] = tuple(
+                    field for field in fieldset_fields
+                    if field not in sensitive_fields
+                )
+        return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = super().get_readonly_fields(request, obj)
+        if request.user.is_superuser:
+            return readonly
+        sensitive_fields = getattr(self.model, "sensitive_fields", [])
+        if not sensitive_fields:
+            return readonly
+        return list(readonly) + [
+            field for field in sensitive_fields if field not in readonly
+        ]
+
+
 class EmailAddressInline(admin.StackedInline):
     model = EmailAddress
     extra = 0
