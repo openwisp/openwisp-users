@@ -19,6 +19,19 @@ logger = logging.getLogger(__name__)
 OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 
 
+class SensitiveFieldsSerializerMixin:
+    def get_fields(self):
+        fields = super().get_fields()
+        request = self.context.get("request")
+        if not request or request.user.is_superuser:
+            return fields
+        model = self.Meta.model
+        sensitive_fields = getattr(model, "sensitive_fields", [])
+        for field_name in sensitive_fields:
+            fields.pop(field_name, None)
+        return fields
+
+
 class OrganizationSerializer(ValidatedModelSerializer):
     class Meta:
         model = Organization
