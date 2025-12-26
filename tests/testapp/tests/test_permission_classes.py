@@ -64,8 +64,9 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             self.assertEqual(response.status_code, 200)
         with self.subTest("Organization Manager"):
             # Query breakdown for IsOrganizationManager permission check:
-            # 1 query for IsOrganizationManager.has_permission() checking organizations_managed
-            # Remaining queries are for object creation/get and object-level permission checks
+            # 1 query for IsOrganizationManager.has_permission() checking
+            # organizations_managed. Remaining queries are for object
+            # creation/get and object-level permission checks
             with self.assertNumQueries(5):
                 response = self.client.get(self.manager_url, **auth)
             self.assertEqual(response.status_code, 200)
