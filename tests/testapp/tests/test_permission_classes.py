@@ -36,20 +36,32 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             response = self.client.get(self.owner_url, **auth)
             self.assertEqual(response.status_code, 403)
 
-    def test_operator_member(self):
-        operator = self._get_operator()
-        self._create_org_user(user=operator)
-        token = self._obtain_auth_token()
-        auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
-        with self.subTest("Organization Member"):
-            response = self.client.get(self.member_url, **auth)
-            self.assertEqual(response.status_code, 200)
-        with self.subTest("Organization Manager"):
-            response = self.client.get(self.manager_url, **auth)
-            self.assertEqual(response.status_code, 403)
-        with self.subTest("Organization Owner"):
-            response = self.client.get(self.owner_url, **auth)
-            self.assertEqual(response.status_code, 403)
+    def test_operator_manager(self):
+    operator = self._get_operator()
+    # First user is automatically owner, so created dummy
+    # user to keep operator as manager only.
+    self._create_org_user(user=self._get_user(), is_admin=True)
+    self._create_org_user(user=operator, is_admin=True)
+    token = self._obtain_auth_token()
+    auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    with self.subTest("Organization Member"):
+        response = self.client.get(self.member_url, **auth)
+        self.assertEqual(response.status_code, 200)
+
+    # Organization Manager
+    # Query breakdown for IsOrganizationManager permission check:
+    # 1 query for IsOrganizationManager.has_permission() checking
+    # organizations_managed. Remaining queries are for object
+    # creation/get and object-level permission checks
+    with self.assertNumQueries(5):
+        response = self.client.get(self.manager_url, **auth)
+    self.assertEqual(response.status_code, 200)
+
+    with self.subTest("Organization Owner"):
+        response = self.client.get(self.owner_url, **auth)
+        self.assertEqual(response.status_code, 403)
+
 
     def test_operator_manager(self):
         operator = self._get_operator()
