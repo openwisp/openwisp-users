@@ -153,3 +153,13 @@ class TestBackends(TestOrganizationMixin, TestCase):
                 password="tester2",
             )
             self.assertEqual(auth_backend.get_users("911524370").count(), 0)
+
+    @mock.patch("openwisp_users.backends.UsersAuthenticationBackend.get_users")
+    def test_user_auth_without_email(self, mocked_get_users):
+        self._create_user(
+            username="tester",
+            password="tester",
+            email=None,
+        )
+        self.client.login(username=None, password=None)
+        mocked_get_users.assert_not_called()
