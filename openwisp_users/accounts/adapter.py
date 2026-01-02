@@ -1,4 +1,5 @@
 from allauth.account.adapter import DefaultAccountAdapter
+from django.contrib.sites.shortcuts import get_current_site
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
@@ -8,6 +9,13 @@ from openwisp_utils.admin_theme.email import send_email
 
 class EmailAdapter(DefaultAccountAdapter):
     def send_mail(self, template_prefix, email, context):
+        if "current_site" not in context:
+            try:
+                if getattr(self, "request", None):
+                    context["current_site"] = get_current_site(self.request)
+            except Exception:
+                pass
+
         subject = render_to_string("{0}_subject.txt".format(template_prefix), context)
         subject = " ".join(subject.splitlines()).strip()
         subject = self.format_email_subject(subject)
