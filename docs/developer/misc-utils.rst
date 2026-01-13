@@ -96,7 +96,7 @@ The cache is automatically invalidated on the following events:
 
 Usage example:
 
-.. code-block::
+.. code-block:: python
 
     >>> user.organizations_dict
     ... {'20135c30-d486-4d68-993f-322b8acb51c4': {'is_admin': True, 'is_owner': False}}
@@ -110,7 +110,7 @@ Returns a list of primary keys of organizations the user can manage.
 
 Usage example:
 
-.. code-block::
+.. code-block:: python
 
     >>> user.organizations_managed
     ... ['20135c30-d486-4d68-993f-322b8acb51c4']
@@ -122,7 +122,7 @@ Returns a list of primary keys of organizations the user owns.
 
 Usage example:
 
-.. code-block::
+.. code-block:: python
 
     >>> user.organizations_owned
     ... ['20135c30-d486-4d68-993f-322b8acb51c4']
