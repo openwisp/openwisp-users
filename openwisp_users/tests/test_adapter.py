@@ -43,3 +43,16 @@ class TestEmailAdapter(TestOrganizationMixin, TestCase):
         self.assertFalse(email.alternatives)
         self.assertIn("Password Reset Email", email.subject)
         self.assertIn("Click the link below to reset your password", email.body)
+
+    def test_password_reset_includes_site_name(self):
+        self._create_user()
+        params = {"email": "test@tester.com"}
+        self.client.post(reverse("account_reset_password"), params, follow=True)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        # plain text body should contain example.com from site name
+        self.assertIn("example.com", email.body)
+        # if there is an HTML alternative, check it too
+        if email.alternatives:
+            html = email.alternatives[0][0]
+            self.assertIn("example.com", html)
