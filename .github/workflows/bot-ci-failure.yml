@@ -2,7 +2,7 @@ name: CI Failure Bot
 
 on:
   workflow_run:
-    workflows: ["OpenWisp WiFi Login Pages CI BUILD"]
+    workflows: ["OpenWISP Users CI Build"]
     types:
       - completed
 
