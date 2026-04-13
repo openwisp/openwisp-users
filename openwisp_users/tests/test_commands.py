@@ -15,8 +15,6 @@ from .utils import TestOrganizationMixin
 
 
 class TestManagementCommands(TestOrganizationMixin, TestCase):
-    app_label = "openwisp_users"
-
     def setUp(self):
         super().setUp()
         self.temp_file = NamedTemporaryFile(mode="wt", delete=False)
@@ -126,6 +124,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             "prefetch_related": [],
         },
     )
+    @capture_stdout()
     def test_related_fields_no_n_plus_1(self):
         """Query count must not grow with additional users."""
         user1 = self._create_user()
@@ -173,12 +172,12 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
                 {"name": "birth_date", "fields": ["year"]},
                 # manager with single subfield
                 {
-                    "name": f"{app_label}_organizationuser",
+                    "name": "openwisp_users_organizationuser",
                     "fields": ["organization_id"],
                 },
                 # manager with multiple subfields
                 {
-                    "name": f"{app_label}_organizationuser",
+                    "name": "openwisp_users_organizationuser",
                     "fields": ["organization_id", "is_admin"],
                 },
                 # dot-notation on a manager
@@ -188,6 +187,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             "prefetch_related": ["openwisp_users_organizationuser"],
         },
     )
+    @capture_stdout()
     def test_subfields_dict_field(self):
         org = self._create_org(name="org1")
         user1 = self._create_user(birth_date=None)

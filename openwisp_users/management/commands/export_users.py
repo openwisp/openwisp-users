@@ -2,7 +2,7 @@ import csv
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from ... import settings as app_settings
 
@@ -53,7 +53,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         fields = app_settings.EXPORT_USERS_COMMAND_CONFIG.get("fields", []).copy()
         # Get the fields to be excluded from the command-line argument
-        exclude_fields = options.get("exclude_fields").split(",")
+        exclude_fields = [
+            t.strip() for t in options.get("exclude_fields").split(",") if t.strip()
+        ]
         # Remove excluded fields from the export fields (match on the field name)
         fields = [
             field
@@ -97,7 +99,7 @@ class Command(BaseCommand):
             try:
                 return callable_fn(user)
             except Exception as e:
-                raise Exception(f"Error calling function for field '{name}': {e}")
+                raise CommandError(f"Error calling function for field '{name}': {e}")
         if subfields is not None:
             try:
                 attr = getattr(user, name)
