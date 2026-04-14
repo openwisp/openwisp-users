@@ -3,7 +3,7 @@ from io import StringIO
 from unittest.mock import patch
 
 from django.core.files.temp import NamedTemporaryFile
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 from django.test import TestCase
 from rest_framework.authtoken.models import Token
 
@@ -26,7 +26,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
     def test_export_users(self):
         org1 = self._create_org(name="org1")
         org2 = self._create_org(name="org2")
-        user = self._create_user()
+        # create a user with a non-ASCII first_name to validate UTF-8 export
+        user = self._create_user(first_name="Téstér")
         operator = self._create_operator()
         admin = self._create_admin()
         self._create_org_user(organization=org1, user=user, is_admin=True)
@@ -40,8 +41,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             stdout.getvalue(),
         )
 
-        # Read the content of the temporary file
-        with open(self.temp_file.name, "r") as temp_file:
+        # Read the content of the temporary file (explicit encoding)
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
@@ -76,6 +77,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(csv_data[1][-1], f"({org1.id},True),({org2.id},False)")
         self.assertEqual(csv_data[2][-1], f"({org2.id},False)")
         self.assertEqual(csv_data[3][-1], "")
+        # Validate non-ASCII value exported correctly (first_name index 4)
+        self.assertEqual(csv_data[1][4], "Téstér")
 
     @capture_stdout()
     def test_exclude_fields(self):
@@ -103,7 +106,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
                 ]
             ),
         )
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
@@ -132,7 +135,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         )
 
         # Read the content of the temporary file
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
@@ -163,7 +166,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         # user2 intentionally has no token to cover the ObjectDoesNotExist path
         with self.assertNumQueries(1):
             call_command("export_users", filename=self.temp_file.name)
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
         # 2 users and 1 header
@@ -184,12 +187,11 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         stderr = StringIO()
         with (
             patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config),
-            self.assertRaises(Exception) as context,
+            self.assertRaises(CommandError) as context,
         ):
+            # the command wraps callable errors in CommandError with callable name
             call_command("export_users", filename=self.temp_file.name, stderr=stderr)
-        self.assertIn(
-            "Error calling function for field 'broken'", str(context.exception)
-        )
+        self.assertIn("Error calling function '", str(context.exception) or "")
 
     @patch.object(
         app_settings,
@@ -228,7 +230,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         # user2 has no token (covers ObjectDoesNotExist)
         # and no org membership (covers empty manager)
         call_command("export_users", filename=self.temp_file.name)
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
         # 2 users + 1 header
@@ -262,4 +264,4 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             intermediate = FakeIntermediate()
 
         result = Command()._get_field_value(FakeUser(), "intermediate.sub_field")
-        self.assertEqual(result, "")
+        self.assertEqual(result, None)

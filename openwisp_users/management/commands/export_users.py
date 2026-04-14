@@ -3,6 +3,7 @@ import csv
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models.query import QuerySet
 
 from ... import settings as app_settings
 
@@ -61,16 +62,18 @@ class Command(BaseCommand):
 
         # Prepare a CSV writer
         filename = options.get("filename")
-        with open(filename, "w", newline="") as csv_file:
+        with open(filename, "w", newline="", encoding="utf-8") as csv_file:
             csv_writer = csv.writer(csv_file)
             # Write header row using the name of each field
             csv_writer.writerow([normalize_field(f)["name"] for f in fields])
 
             # Write data rows
             for user in queryset.iterator(chunk_size=1000):
-                csv_writer.writerow(
-                    [self._get_field_value(user, field) for field in fields]
-                )
+                row = []
+                for field in fields:
+                    val = self._get_field_value(user, field)
+                    row.append(val if val is not None else "")
+                csv_writer.writerow(row)
         self.stdout.write(
             self.style.SUCCESS(f"User data exported successfully to {filename}!")
         )
@@ -86,7 +89,12 @@ class Command(BaseCommand):
         # prefetch_related queryset cache. The iterator() method would bypass the cache
         # and cause additional queries.
         for obj in manager.all():
-            rows.append([str(self._get_nested_attr(obj, f)) for f in subfields])
+            # convert None -> empty string to avoid 'None' literals in CSV
+            row = []
+            for f in subfields:
+                val = self._get_nested_attr(obj, f)
+                row.append("" if val is None else str(val))
+            rows.append(row)
         if not rows:
             return ""
         if len(subfields) == 1:
@@ -94,6 +102,14 @@ class Command(BaseCommand):
         return "(" + ",".join("(" + ",".join(row) + ")" for row in rows) + ")"
 
     def _get_nested_attr(self, obj, attr_path):
+        """Resolve a dotted attribute path on an object.
+
+        Returns the resolved value or None when an intermediate attribute
+        is missing or raises ObjectDoesNotExist/AttributeError. When a
+        related manager/queryset is encountered (detected via QuerySet
+        instance or presence of `all()`), the remaining path is resolved
+        for each item and results are combined.
+        """
         if not attr_path:
             return obj
         parts = attr_path.split(".")
@@ -102,16 +118,21 @@ class Command(BaseCommand):
             try:
                 current = getattr(current, part)
             except (ObjectDoesNotExist, AttributeError):
-                return ""
-            if hasattr(current, "iterator") and i < len(parts) - 1:
+                # missing attribute or intermediate raises -> None sentinel
+                return None
+            # Detect querysets/related managers robustly.
+            if (isinstance(current, QuerySet) or hasattr(current, "all")) and i < len(
+                parts
+            ) - 1:
                 remaining_path = ".".join(parts[i + 1 :])
                 # We use current.all() instead of current.iterator() to utilize
                 # the prefetch_related queryset cache. The iterator() method
                 # would bypass the cache and cause additional queries.
-                return ",".join(
-                    str(self._get_nested_attr(item, remaining_path))
-                    for item in current.all()
-                )
+                values = []
+                for item in current.all():
+                    v = self._get_nested_attr(item, remaining_path)
+                    values.append("" if v is None else str(v))
+                return ",".join(values)
         return current
 
     def _get_field_value(self, user, field):
@@ -124,12 +145,15 @@ class Command(BaseCommand):
             try:
                 return callable_fn(user)
             except Exception as e:
-                raise CommandError(f"Error calling function for field '{name}': {e}")
+                func_name = getattr(callable_fn, "__name__", repr(callable_fn))
+                raise CommandError(
+                    f"Error calling function {func_name!r} for field '{name}': {e}"
+                )
         if subfields is not None:
             attr = self._get_nested_attr(user, name)
             if attr is None:
                 return ""
-            if hasattr(attr, "iterator"):
+            if isinstance(attr, QuerySet) or hasattr(attr, "all"):
                 return self.serialize_related(attr, subfields)
             return ",".join(str(self._get_nested_attr(attr, f)) for f in subfields)
         return self._get_nested_attr(user, name)
