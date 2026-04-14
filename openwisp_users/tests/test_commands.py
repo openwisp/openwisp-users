@@ -191,7 +191,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         ):
             # the command wraps callable errors in CommandError with callable name
             call_command("export_users", filename=self.temp_file.name, stderr=stderr)
-        self.assertIn("Error calling function '", str(context.exception) or "")
+        self.assertIn("Error calling function '", str(context.exception))
 
     @patch.object(
         app_settings,
@@ -264,4 +264,11 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             intermediate = FakeIntermediate()
 
         result = Command()._get_field_value(FakeUser(), "intermediate.sub_field")
+        self.assertEqual(result, "")
+
+    def test_plain_relation_field_returns_empty_string(self):
+        org = self._create_org(name="org1")
+        user = self._create_user()
+        self._create_org_user(organization=org, user=user, is_admin=True)
+        result = Command()._get_field_value(user, "openwisp_users_organizationuser")
         self.assertEqual(result, "")

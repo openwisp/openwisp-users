@@ -16,6 +16,8 @@ AUTH_BACKEND_AUTO_PREFIXES = getattr(
 
 
 def _export_organizations(user):
+    # _export_organizations reads user.organizations_dict which is populated
+    # when the user is added to the organization.
     return ",".join(
         f'({org_id},{perm["is_admin"]})'
         for org_id, perm in user.organizations_dict.items()

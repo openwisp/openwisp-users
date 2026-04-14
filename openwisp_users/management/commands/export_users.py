@@ -170,4 +170,6 @@ class Command(BaseCommand):
                 self._normalize_value(self._get_nested_attr(attr, f)) for f in subfields
             )
         val = self._get_nested_attr(user, name)
+        if isinstance(val, (QuerySet, BaseManager)):
+            return ""
         return self._normalize_value(val)
