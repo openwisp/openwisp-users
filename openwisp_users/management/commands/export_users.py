@@ -16,20 +16,6 @@ def normalize_field(field):
     return {"name": field}
 
 
-def serialize_related(manager, subfields):
-    """Serialize a RelatedManager queryset using the given subfields.
-
-    Single subfield → comma-separated values: val1,val2,...
-    Multiple subfields → tuple-per-row format: ((v1,v2),(v3,v4))
-    """
-    rows = [[str(getattr(obj, f, "")) for f in subfields] for obj in manager.all()]
-    if not rows:
-        return ""
-    if len(subfields) == 1:
-        return ",".join(row[0] for row in rows)
-    return "(" + ",".join("(" + ",".join(row) + ")" for row in rows) + ")"
-
-
 class Command(BaseCommand):
     help = "Exports user data to a CSV file"
 
@@ -51,7 +37,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        fields = app_settings.EXPORT_USERS_COMMAND_CONFIG.get("fields", []).copy()
+        raw_fields = app_settings.EXPORT_USERS_COMMAND_CONFIG.get("fields", []).copy()
         # Get the fields to be excluded from the command-line argument
         exclude_fields = [
             t.strip() for t in options.get("exclude_fields").split(",") if t.strip()
@@ -59,7 +45,7 @@ class Command(BaseCommand):
         # Remove excluded fields from the export fields (match on the field name)
         fields = [
             field
-            for field in fields
+            for field in raw_fields
             if normalize_field(field)["name"] not in exclude_fields
         ]
         # Fetch all user data using select_related and prefetch_related
@@ -89,6 +75,40 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"User data exported successfully to {filename}!")
         )
 
+    def serialize_related(self, manager, subfields):
+        """Serialize a RelatedManager queryset using the given subfields.
+
+        Single subfield → comma-separated values: val1,val2,...
+        Multiple subfields → tuple-per-row format: ((v1,v2),(v3,v4))
+        """
+        rows = [
+            [str(self._get_nested_attr(obj, f)) for f in subfields]
+            for obj in manager.all()
+        ]
+        if not rows:
+            return ""
+        if len(subfields) == 1:
+            return ",".join(row[0] for row in rows)
+        return "(" + ",".join("(" + ",".join(row) + ")" for row in rows) + ")"
+
+    def _get_nested_attr(self, obj, attr_path):
+        if not attr_path:
+            return obj
+        parts = attr_path.split(".")
+        current = obj
+        for i, part in enumerate(parts):
+            try:
+                current = getattr(current, part)
+            except (ObjectDoesNotExist, AttributeError):
+                return ""
+            if hasattr(current, "iterator") and i < len(parts) - 1:
+                remaining_path = ".".join(parts[i + 1 :])
+                return ",".join(
+                    str(self._get_nested_attr(item, remaining_path))
+                    for item in current.iterator()
+                )
+        return current
+
     def _get_field_value(self, user, field):
         normalized = normalize_field(field)
         name = normalized["name"]
@@ -101,30 +121,14 @@ class Command(BaseCommand):
             except Exception as e:
                 raise CommandError(f"Error calling function for field '{name}': {e}")
         if subfields is not None:
-            try:
-                attr = getattr(user, name)
-            except ObjectDoesNotExist:
-                return ""
+            attr = self._get_nested_attr(user, name)
             if attr is None:
                 return ""
             if hasattr(attr, "iterator"):
-                return serialize_related(attr, subfields)
-            return ",".join(str(getattr(attr, f, "")) for f in subfields)
+                return self.serialize_related(attr, subfields)
+            return ",".join(str(self._get_nested_attr(attr, f)) for f in subfields)
 
         # Dot-notation: e.g. "auth_token.key" or "profile.phone_number"
         if "." in name:
-            model_attr, sub_attr = name.split(".", 1)
-            try:
-                intermediate = getattr(user, model_attr)
-            except ObjectDoesNotExist:
-                return ""
-            if hasattr(intermediate, "iterator"):
-                # Related manager accessed via dot notation → comma-separated values
-                return ",".join(
-                    str(getattr(obj, sub_attr, "")) for obj in intermediate.iterator()
-                )
-            try:
-                return getattr(intermediate, sub_attr)
-            except ObjectDoesNotExist:
-                return ""
-        return getattr(user, name)
+            return self._get_nested_attr(user, name)
+        return self._get_nested_attr(user, name)

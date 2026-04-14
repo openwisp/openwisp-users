@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 from openwisp_utils.tests import capture_stdout
 
 from .. import settings as app_settings
-from ..management.commands.export_users import Command, normalize_field
+from ..management.commands.export_users import Command
 from .utils import TestOrganizationMixin
 
 
@@ -47,9 +47,25 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
 
         # 3 user and 1 header
         self.assertEqual(len(csv_data), 4)
+        # Expected headers are the keys produced by normalize_field for the
+        # default EXPORT_USERS_COMMAND_CONFIG. These are stable values and
+        # asserted explicitly to avoid mirroring production code in the test.
         expected_headers = [
-            normalize_field(f)["name"]
-            for f in app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"]
+            "id",
+            "username",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_active",
+            "date_joined",
+            "phone_number",
+            "birth_date",
+            "location",
+            "notes",
+            "language",
+            "organizations",
         ]
         self.assertEqual(csv_data[0], expected_headers)
         # Ensuring ordering
@@ -67,9 +83,24 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         call_command(
             "export_users",
             filename=self.temp_file.name,
+            # Exclude all fields except "id"
             exclude_fields=",".join(
-                normalize_field(f)["name"]
-                for f in app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"][1:]
+                [
+                    "username",
+                    "email",
+                    "password",
+                    "first_name",
+                    "last_name",
+                    "is_staff",
+                    "is_active",
+                    "date_joined",
+                    "phone_number",
+                    "birth_date",
+                    "location",
+                    "notes",
+                    "language",
+                    "organizations",
+                ]
             ),
         )
         with open(self.temp_file.name, "r") as temp_file:
@@ -107,10 +138,9 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
 
         # 3 user and 1 header
         self.assertEqual(len(csv_data), 2)
-        expected_headers = [
-            normalize_field(f)["name"]
-            for f in app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"]
-        ]
+        # When fields are ["id", "auth_token.key"] the expected headers
+        # are the literal keys used to identify columns in the CSV.
+        expected_headers = ["id", "auth_token.key"]
         self.assertEqual(csv_data[0], expected_headers)
         self.assertEqual(csv_data[1][0], str(user.id))
         self.assertEqual(csv_data[1][1], str(token.key))
@@ -152,9 +182,10 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         }
         self._create_user()
         stderr = StringIO()
-        with patch.object(
-            app_settings, "EXPORT_USERS_COMMAND_CONFIG", config
-        ), self.assertRaises(Exception) as context:
+        with (
+            patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config),
+            self.assertRaises(Exception) as context,
+        ):
             call_command("export_users", filename=self.temp_file.name, stderr=stderr)
         self.assertIn(
             "Error calling function for field 'broken'", str(context.exception)
