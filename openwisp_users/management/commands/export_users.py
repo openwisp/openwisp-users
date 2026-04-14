@@ -3,6 +3,7 @@ import csv
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models.manager import BaseManager
 from django.db.models.query import QuerySet
 from django.utils.translation import gettext_lazy as _
 
@@ -20,6 +21,10 @@ def normalize_field(field):
 
 class Command(BaseCommand):
     help = _("Exports user data to a CSV file")
+
+    def _normalize_value(self, value):
+        """Convert None to empty string, otherwise stringify the value."""
+        return "" if value is None else str(value)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -73,7 +78,7 @@ class Command(BaseCommand):
                 row = []
                 for field in fields:
                     val = self._get_field_value(user, field)
-                    row.append(val if val is not None else "")
+                    row.append(val)
                 csv_writer.writerow(row)
         self.stdout.write(
             self.style.SUCCESS(
@@ -98,7 +103,7 @@ class Command(BaseCommand):
             row = []
             for f in subfields:
                 val = self._get_nested_attr(obj, f)
-                row.append("" if val is None else str(val))
+                row.append(self._normalize_value(val))
             rows.append(row)
         if not rows:
             return ""
@@ -126,9 +131,7 @@ class Command(BaseCommand):
                 # missing attribute or intermediate raises -> None sentinel
                 return None
             # Detect querysets/related managers robustly.
-            if (isinstance(current, QuerySet) or hasattr(current, "all")) and i < len(
-                parts
-            ) - 1:
+            if (isinstance(current, (QuerySet, BaseManager))) and (i < len(parts) - 1):
                 remaining_path = ".".join(parts[i + 1 :])
                 # We use current.all() instead of current.iterator() to utilize
                 # the prefetch_related queryset cache. The iterator() method
@@ -136,7 +139,7 @@ class Command(BaseCommand):
                 values = []
                 for item in current.all():
                     v = self._get_nested_attr(item, remaining_path)
-                    values.append("" if v is None else str(v))
+                    values.append(self._normalize_value(v))
                 return ",".join(values)
         return current
 
@@ -148,7 +151,7 @@ class Command(BaseCommand):
         # Priority: callable > fields > name
         if callable_fn is not None:
             try:
-                return callable_fn(user)
+                val = callable_fn(user)
             except Exception as e:
                 func_name = getattr(callable_fn, "__name__", repr(callable_fn))
                 raise CommandError(
@@ -156,11 +159,15 @@ class Command(BaseCommand):
                         "Error calling function {func_name!r} for field '{name}': {e}"
                     ).format(func_name=func_name, name=name, e=e)
                 )
+            return self._normalize_value(val)
         if subfields is not None:
             attr = self._get_nested_attr(user, name)
             if attr is None:
                 return ""
-            if isinstance(attr, QuerySet) or hasattr(attr, "all"):
+            if isinstance(attr, (QuerySet, BaseManager)):
                 return self.serialize_related(attr, subfields)
-            return ",".join(str(self._get_nested_attr(attr, f)) for f in subfields)
-        return self._get_nested_attr(user, name)
+            return ",".join(
+                self._normalize_value(self._get_nested_attr(attr, f)) for f in subfields
+            )
+        val = self._get_nested_attr(user, name)
+        return self._normalize_value(val)

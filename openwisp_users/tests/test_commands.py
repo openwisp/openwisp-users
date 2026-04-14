@@ -139,7 +139,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
-        # 3 user and 1 header
+        # 1 user and 1 header
         self.assertEqual(len(csv_data), 2)
         # When fields are ["id", "auth_token.key"] the expected headers
         # are the literal keys used to identify columns in the CSV.
@@ -264,4 +264,4 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             intermediate = FakeIntermediate()
 
         result = Command()._get_field_value(FakeUser(), "intermediate.sub_field")
-        self.assertEqual(result, None)
+        self.assertEqual(result, "")
