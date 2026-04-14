@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models.query import QuerySet
+from django.utils.translation import gettext_lazy as _
 
 from ... import settings as app_settings
 
@@ -18,20 +19,20 @@ def normalize_field(field):
 
 
 class Command(BaseCommand):
-    help = "Exports user data to a CSV file"
+    help = _("Exports user data to a CSV file")
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--exclude-fields",
             dest="exclude_fields",
             default="",
-            help="Comma-separated list of fields to exclude from export",
+            help=_("Comma-separated list of fields to exclude from export"),
         )
         parser.add_argument(
             "--filename",
             dest="filename",
             default="openwisp_exported_users.csv",
-            help=(
+            help=_(
                 "Filename for the exported CSV, defaults to"
                 ' "openwisp_exported_users.csv"'
             ),
@@ -75,7 +76,11 @@ class Command(BaseCommand):
                     row.append(val if val is not None else "")
                 csv_writer.writerow(row)
         self.stdout.write(
-            self.style.SUCCESS(f"User data exported successfully to {filename}!")
+            self.style.SUCCESS(
+                _("User data exported successfully to {filename}!").format(
+                    filename=filename
+                )
+            )
         )
 
     def serialize_related(self, manager, subfields):
@@ -147,7 +152,9 @@ class Command(BaseCommand):
             except Exception as e:
                 func_name = getattr(callable_fn, "__name__", repr(callable_fn))
                 raise CommandError(
-                    f"Error calling function {func_name!r} for field '{name}': {e}"
+                    _(
+                        "Error calling function {func_name!r} for field '{name}': {e}"
+                    ).format(func_name=func_name, name=name, e=e)
                 )
         if subfields is not None:
             attr = self._get_nested_attr(user, name)
