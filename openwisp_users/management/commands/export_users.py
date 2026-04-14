@@ -81,10 +81,12 @@ class Command(BaseCommand):
         Single subfield → comma-separated values: val1,val2,...
         Multiple subfields → tuple-per-row format: ((v1,v2),(v3,v4))
         """
-        rows = [
-            [str(self._get_nested_attr(obj, f)) for f in subfields]
-            for obj in manager.all()
-        ]
+        rows = []
+        # We use manager.all() instead of manager.iterator() to utilize the
+        # prefetch_related queryset cache. The iterator() method would bypass the cache
+        # and cause additional queries.
+        for obj in manager.all():
+            rows.append([str(self._get_nested_attr(obj, f)) for f in subfields])
         if not rows:
             return ""
         if len(subfields) == 1:
@@ -103,9 +105,12 @@ class Command(BaseCommand):
                 return ""
             if hasattr(current, "iterator") and i < len(parts) - 1:
                 remaining_path = ".".join(parts[i + 1 :])
+                # We use current.all() instead of current.iterator() to utilize
+                # the prefetch_related queryset cache. The iterator() method
+                # would bypass the cache and cause additional queries.
                 return ",".join(
                     str(self._get_nested_attr(item, remaining_path))
-                    for item in current.iterator()
+                    for item in current.all()
                 )
         return current
 
@@ -127,8 +132,4 @@ class Command(BaseCommand):
             if hasattr(attr, "iterator"):
                 return self.serialize_related(attr, subfields)
             return ",".join(str(self._get_nested_attr(attr, f)) for f in subfields)
-
-        # Dot-notation: e.g. "auth_token.key" or "profile.phone_number"
-        if "." in name:
-            return self._get_nested_attr(user, name)
         return self._get_nested_attr(user, name)
