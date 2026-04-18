@@ -89,14 +89,11 @@ STATIC_URL = "/static/"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            os.path.join(os.path.dirname(BASE_DIR), "openwisp_users", "templates")
-        ],
         "OPTIONS": {
             "loaders": [
                 "django.template.loaders.filesystem.Loader",
-                "openwisp_utils.loaders.DependencyLoader",
                 "django.template.loaders.app_directories.Loader",
+                "openwisp_utils.loaders.DependencyLoader",
             ],
             "context_processors": [
                 "django.template.context_processors.debug",
