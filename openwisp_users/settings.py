@@ -50,11 +50,12 @@ setattr(
     ),
 )
 
-# if OAuth/SAML is enabled, allow manging keys/secrets
-if any(
-    app.startswith("allauth.socialaccount.providers") for app in settings.INSTALLED_APPS
-):  # pragma: no cover
-    SOCIALACCOUNT_ADMIN_NEEDED = True
-# otherwise hide the socialaccount admin (not needed)
-else:
-    SOCIALACCOUNT_ADMIN_NEEDED = False
+# if any OAuth/SAML provider is enabled, allow managing keys/secrets
+SOCIALACCOUNT_ADMIN_NEEDED = getattr(
+    settings,
+    "OPENWISP_USERS_SOCIALACCOUNT_ADMIN_NEEDED",
+    any(
+        app.startswith("allauth.socialaccount.providers.")
+        for app in settings.INSTALLED_APPS
+    ),
+)
