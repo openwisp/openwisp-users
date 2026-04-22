@@ -49,3 +49,12 @@ setattr(
         "openwisp_users.views.AutocompleteJsonView",
     ),
 )
+
+# if OAuth/SAML is enabled, allow manging keys/secrets
+if any(
+    app.startswith("allauth.socialaccount.providers") for app in settings.INSTALLED_APPS
+):  # pragma: no cover
+    SOCIALACCOUNT_ADMIN_NEEDED = True
+# otherwise hide the socialaccount admin (not needed)
+else:
+    SOCIALACCOUNT_ADMIN_NEEDED = False
