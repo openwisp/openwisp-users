@@ -652,11 +652,14 @@ if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
 if allauth_settings.SOCIALACCOUNT_ENABLED:
-    for model in [
-        ("socialaccount", "SocialApp"),
+    socialaccount_models = [
         ("socialaccount", "SocialToken"),
         ("socialaccount", "SocialAccount"),
-    ]:
+    ]
+    # Allow managing secrets if OAuth/SAML is enabled
+    if not app_settings.SOCIALACCOUNT_ADMIN_NEEDED:
+        socialaccount_models.append(("socialaccount", "SocialApp"))
+    for model in socialaccount_models:
         model_class = apps.get_model(*model)
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
