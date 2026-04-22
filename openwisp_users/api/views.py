@@ -158,7 +158,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         class if loggedin user wants to change
         his own password.
         """
-        if str(self.request.user.id) == self.kwargs["pk"]:
+        if self.request.user.id == self.kwargs["pk"]:
             self.permission_classes = [IsAuthenticated]
         else:
             self.permission_classes = [IsAuthenticated, DjangoModelPermissions]
