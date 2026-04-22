@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Download PR metadata
         id: download
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: changelog-metadata
           github-token: ${{ secrets.GITHUB_TOKEN }}
