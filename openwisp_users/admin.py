@@ -660,38 +660,36 @@ EmailAddress = apps.get_model("account", "EmailAddress")
 if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
-_unregister_socialaccount_models = [
-    ("socialaccount", "SocialToken"),
-    ("socialaccount", "SocialAccount"),
-]
-# allauth OAuth/SAML not enabled
-if (
-    allauth_settings.SOCIALACCOUNT_ENABLED
-    and not app_settings.SOCIALACCOUNT_ADMIN_NEEDED
-):  # pragma: no cover
-    _unregister_socialaccount_models.append(("socialaccount", "SocialApp"))
-# allauth OAuth/SAML enabled
-elif allauth_settings.SOCIALACCOUNT_ENABLED and app_settings.SOCIALACCOUNT_ADMIN_NEEDED:
-    from allauth.socialaccount.admin import SocialAccount
+if allauth_settings.SOCIALACCOUNT_ENABLED:
+    _unregister_socialaccount_models = [
+        ("socialaccount", "SocialToken"),
+        ("socialaccount", "SocialAccount"),
+    ]
+    # allauth OAuth/SAML not enabled
+    if not app_settings.SOCIALACCOUNT_ADMIN_NEEDED:  # pragma: no cover
+        _unregister_socialaccount_models.append(("socialaccount", "SocialApp"))
+    # allauth OAuth/SAML enabled
+    else:
+        from allauth.socialaccount.models import SocialAccount
 
-    class SocialAccountInline(admin.StackedInline):
-        model = SocialAccount
-        extra = 0
-        readonly_fields = ("provider", "uid", "extra_data")
+        class SocialAccountInline(admin.StackedInline):
+            model = SocialAccount
+            extra = 0
+            readonly_fields = ("provider", "uid", "extra_data")
 
-        def has_add_permission(self, request, obj):
-            return False
+            def has_add_permission(self, request, obj=None):
+                return False
 
-        def has_delete_permission(self, request, obj=None):
-            return False
+            def has_delete_permission(self, request, obj=None):
+                return False
 
-    UserAdmin.inlines.append(SocialAccountInline)
+        UserAdmin.inlines.append(SocialAccountInline)
 
-# Un-register cluttering socialaccount models
-for model in _unregister_socialaccount_models:
-    model_class = apps.get_model(*model)
-    if admin.site.is_registered(model_class):
-        admin.site.unregister(model_class)
+    # Un-register cluttering socialaccount models
+    for model in _unregister_socialaccount_models:
+        model_class = apps.get_model(*model)
+        if admin.site.is_registered(model_class):
+            admin.site.unregister(model_class)
 
 if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
