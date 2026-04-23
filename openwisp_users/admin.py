@@ -44,6 +44,15 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+def user_not_allowed_to_change_owner(user, obj):
+    return (
+        obj
+        and not user.is_superuser
+        and user.pk != obj.pk
+        and obj.is_owner_of_any_organization
+    )
+
+
 class EmailAddressInline(admin.StackedInline):
     model = EmailAddress
     extra = 0
@@ -669,12 +678,3 @@ if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
 
     if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)
-
-
-def user_not_allowed_to_change_owner(user, obj):
-    return (
-        obj
-        and not user.is_superuser
-        and user.pk != obj.pk
-        and obj.is_owner_of_any_organization
-    )
