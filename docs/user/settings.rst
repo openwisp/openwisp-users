@@ -136,6 +136,12 @@ without having to specify the international prefix.
                  }
 ============ ==========================================================================
 
+.. note::
+
+    The ``callable`` value must be a Python callable (function or method),
+    not a string path. Ensure the function is imported in your settings
+    file before referencing it.
+
 This setting configures the fields exported by the :ref:`export_users`
 management command.
 

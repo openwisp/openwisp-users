@@ -175,23 +175,50 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(csv_data[2][1], "")
 
     def test_callable_error_handling(self):
-        def _broken_callable(user):
-            raise ValueError("test error")
+        with self.subTest("Callable that raises non-CommandError"):
 
-        config = {
-            "fields": ["id", {"name": "broken", "callable": _broken_callable}],
-            "select_related": [],
-            "prefetch_related": [],
-        }
-        self._create_user()
-        stderr = StringIO()
-        with (
-            patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config),
-            self.assertRaises(CommandError) as context,
-        ):
-            # the command wraps callable errors in CommandError with callable name
-            call_command("export_users", filename=self.temp_file.name, stderr=stderr)
-        self.assertIn("Error calling function '", str(context.exception))
+            def _broken_callable(user):
+                raise ValueError("test error")
+
+            config = {
+                "fields": ["id", {"name": "broken", "callable": _broken_callable}],
+                "select_related": [],
+                "prefetch_related": [],
+            }
+            self._create_user()
+            stderr = StringIO()
+            with (
+                patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config),
+                self.assertRaises(CommandError) as context,
+            ):
+                # the command wraps callable errors in CommandError with callable name
+                call_command(
+                    "export_users", filename=self.temp_file.name, stderr=stderr
+                )
+            self.assertIn("Error calling function '", str(context.exception))
+
+        with self.subTest("Callable raises CommandError"):
+
+            def _broken_command_error_callable(user):
+                raise CommandError("original msg")
+
+            config2 = {
+                "fields": [
+                    "id",
+                    {"name": "broken", "callable": _broken_command_error_callable},
+                ],
+                "select_related": [],
+                "prefetch_related": [],
+            }
+            stderr = StringIO()
+            with (
+                patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config2),
+                self.assertRaises(CommandError) as context2,
+            ):
+                call_command(
+                    "export_users", filename=self.temp_file.name, stderr=stderr
+                )
+            self.assertIn("original msg", str(context2.exception))
 
     @patch.object(
         app_settings,

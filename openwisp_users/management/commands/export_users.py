@@ -22,7 +22,8 @@ def normalize_field(field):
 class Command(BaseCommand):
     help = _("Exports user data to a CSV file")
 
-    def _normalize_value(self, value):
+    @staticmethod
+    def _normalize_value(value):
         """Convert None to empty string, otherwise stringify the value."""
         return "" if value is None else str(value)
 
@@ -152,6 +153,9 @@ class Command(BaseCommand):
         if callable_fn is not None:
             try:
                 val = callable_fn(user)
+            except CommandError:
+                # Allow CommandError raised by callable to propagate unchanged.
+                raise
             except Exception as e:
                 func_name = getattr(callable_fn, "__name__", repr(callable_fn))
                 raise CommandError(
