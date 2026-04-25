@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Version 1.2.2 [2026-04-25]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Added SocialAccount inline to UserAdmin when needed `#501
+  <https://github.com/openwisp/openwisp-users/issues/501>`_
+
 Version 1.2.1 [2026-04-22]
 --------------------------
 
