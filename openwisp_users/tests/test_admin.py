@@ -73,7 +73,7 @@ class TestUsersAdmin(
 
     @property
     def add_user_inline_params(self):
-        return {
+        params = {
             "emailaddress_set-TOTAL_FORMS": 0,
             "emailaddress_set-INITIAL_FORMS": 0,
             "emailaddress_set-MIN_NUM_FORMS": 0,
@@ -83,6 +83,19 @@ class TestUsersAdmin(
             f"{self.app_label}_organizationuser-MIN_NUM_FORMS": 0,
             f"{self.app_label}_organizationuser-MAX_NUM_FORMS": 0,
         }
+        self._add_socialaccount_inline_params(params)
+        return params
+
+    def _add_socialaccount_inline_params(self, params):
+        if app_settings.SOCIALACCOUNT_ADMIN_NEEDED:
+            params.update(
+                {
+                    "socialaccount_set-TOTAL_FORMS": 0,
+                    "socialaccount_set-INITIAL_FORMS": 0,
+                    "socialaccount_set-MIN_NUM_FORMS": 0,
+                    "socialaccount_set-MAX_NUM_FORMS": 0,
+                }
+            )
 
     def test_admin_add_user_auto_email(self):
         admin = self._create_admin()
@@ -1702,6 +1715,7 @@ class TestBasicUsersIntegration(
 
     app_label = "openwisp_users"
     is_integration_test = True
+    _add_socialaccount_inline_params = TestUsersAdmin._add_socialaccount_inline_params
 
     def _get_user_edit_form_inline_params(self, user, organization):
         params = {
@@ -1740,6 +1754,7 @@ class TestBasicUsersIntegration(
                     f"{self.app_label}_organizationuser-0-user": str(user.pk),
                 }
             )
+        self._add_socialaccount_inline_params(params)
         return params
 
     def test_change_user(self):
