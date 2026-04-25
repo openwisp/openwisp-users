@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",  # for test coverage
     "openwisp_users",
     # openwisp2 admin theme
     # (must be loaded here)
