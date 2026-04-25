@@ -106,7 +106,7 @@ without having to specify the international prefix.
 ``OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG``
 ----------------------------------------------
 
-============ =============================
+============ ==========================================================================
 **type**:    ``dict``
 **default**: .. code-block:: python
 
@@ -126,17 +126,107 @@ without having to specify the international prefix.
                          "location",
                          "notes",
                          "language",
-                         "organizations",
+                         {
+                             "name": "organizations",
+                             "callable": openwisp_users.settings._export_organizations,
+                         },
                      ],
                      "select_related": [],
+                     "prefetch_related": [],
                  }
-============ =============================
+============ ==========================================================================
 
-This setting can be used to configure the exported fields for the
-:ref:`export_users` command.
+.. note::
 
-The ``select_related`` property can be used to optimize the database
-query.
+    The ``callable`` value must be a Python callable (function or method),
+    not a string path. Ensure the function is imported in your settings
+    file before referencing it.
+
+This setting configures the fields exported by the :ref:`export_users`
+management command.
+
+Field definitions
+~~~~~~~~~~~~~~~~~
+
+Each entry in ``fields`` can be either:
+
+- A string, representing a direct attribute of the user model:
+
+  .. code-block:: python
+
+      "email"
+
+- A dictionary, allowing advanced customization:
+
+  .. code-block:: python
+
+      {
+          "name": "organizations",
+          "callable": my_custom_function,
+      }
+
+The following keys are supported in field dictionaries:
+
+- ``name`` (str): the field name used as the CSV column header.
+- ``callable`` (callable, optional): a function that takes the user
+  instance as input and returns the value to be exported.
+- ``fields`` (list of str, optional): a list of attributes to extract from
+  a related object or queryset.
+
+Priority order:
+
+- If ``callable`` is provided, it is used.
+- Else if ``fields`` is provided, the related object(s) are serialized.
+- Otherwise, the value is resolved using ``name``.
+
+Related objects
+~~~~~~~~~~~~~~~
+
+You can export fields from related models in two ways:
+
+- **Dot notation** (for ``ForeignKey`` or ``OneToOne``):
+
+  .. code-block:: python
+
+      "profile.phone_number"
+
+- **Structured extraction using ``fields``**:
+
+  .. code-block:: python
+
+      {
+          "name": "groups",
+          "fields": ["name"],
+      }
+
+If the attribute resolves to a queryset (e.g. reverse ``ForeignKey`` or
+``ManyToMany``), multiple values are serialized into a single CSV cell.
+
+Query optimization
+~~~~~~~~~~~~~~~~~~
+
+- ``select_related`` can be used for ``ForeignKey`` and ``OneToOne``
+  relations.
+- ``prefetch_related`` can be used for reverse relations and
+  ``ManyToMany`` fields.
+
+Example:
+
+.. code-block:: python
+
+    {
+        "fields": [
+            "username",
+            "email",
+            "profile.phone_number",
+            {
+                "name": "groups",
+                "fields": ["name"],
+            },
+        ],
+        "select_related": ["profile"],
+        "prefetch_related": ["groups"],
+    }
 
 .. _openwisp_users_user_password_expiration:
 

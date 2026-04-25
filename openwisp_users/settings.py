@@ -13,6 +13,17 @@ USERS_AUTH_THROTTLE_RATE = getattr(
 AUTH_BACKEND_AUTO_PREFIXES = getattr(
     settings, "OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES", tuple()
 )
+
+
+def _export_organizations(user):
+    # _export_organizations reads user.organizations_dict which is populated
+    # when the user is added to the organization.
+    return ",".join(
+        f'({org_id},{perm["is_admin"]})'
+        for org_id, perm in user.organizations_dict.items()
+    )
+
+
 EXPORT_USERS_COMMAND_CONFIG = {
     "fields": [
         "id",
@@ -29,9 +40,10 @@ EXPORT_USERS_COMMAND_CONFIG = {
         "location",
         "notes",
         "language",
-        "organizations",
+        {"name": "organizations", "callable": _export_organizations},
     ],
     "select_related": [],
+    "prefetch_related": [],
 }
 USER_PASSWORD_EXPIRATION = getattr(
     settings, "OPENWISP_USERS_USER_PASSWORD_EXPIRATION", 0
