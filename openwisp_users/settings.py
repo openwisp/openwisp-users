@@ -15,36 +15,41 @@ AUTH_BACKEND_AUTO_PREFIXES = getattr(
 )
 
 
-def _export_organizations(user):
-    # _export_organizations reads user.organizations_dict which is populated
-    # when the user is added to the organization.
-    return ",".join(
-        f'({org_id},{perm["is_admin"]})'
-        for org_id, perm in user.organizations_dict.items()
-    )
+def export_organizations(user):
+    """
+    Export organizations using prefetch_related data when available.
+    """
+    orgs = user.openwisp_users_organizationuser.all()
+    if not orgs:
+        return ""
+    return "\n".join(f"({org.organization_id},{org.is_admin})" for org in orgs)
 
 
-EXPORT_USERS_COMMAND_CONFIG = {
-    "fields": [
-        "id",
-        "username",
-        "email",
-        "password",
-        "first_name",
-        "last_name",
-        "is_staff",
-        "is_active",
-        "date_joined",
-        "phone_number",
-        "birth_date",
-        "location",
-        "notes",
-        "language",
-        {"name": "organizations", "callable": _export_organizations},
-    ],
-    "select_related": [],
-    "prefetch_related": [],
-}
+EXPORT_USERS_COMMAND_CONFIG = getattr(
+    settings,
+    "OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG",
+    {
+        "fields": [
+            "id",
+            "username",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_active",
+            "date_joined",
+            "phone_number",
+            "birth_date",
+            "location",
+            "notes",
+            "language",
+            {"name": "organizations", "callable": export_organizations},
+        ],
+        "select_related": [],
+        "prefetch_related": ["openwisp_users_organizationuser"],
+    },
+)
 USER_PASSWORD_EXPIRATION = getattr(
     settings, "OPENWISP_USERS_USER_PASSWORD_EXPIRATION", 0
 )

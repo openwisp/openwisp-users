@@ -106,7 +106,7 @@ without having to specify the international prefix.
 ``OPENWISP_USERS_EXPORT_USERS_COMMAND_CONFIG``
 ----------------------------------------------
 
-============ ==========================================================================
+============ =========================================================================
 **type**:    ``dict``
 **default**: .. code-block:: python
 
@@ -128,13 +128,13 @@ without having to specify the international prefix.
                          "language",
                          {
                              "name": "organizations",
-                             "callable": openwisp_users.settings._export_organizations,
+                             "callable": openwisp_users.settings.export_organizations,
                          },
                      ],
                      "select_related": [],
                      "prefetch_related": [],
                  }
-============ ==========================================================================
+============ =========================================================================
 
 .. note::
 

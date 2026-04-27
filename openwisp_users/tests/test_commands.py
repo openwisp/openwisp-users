@@ -74,7 +74,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(csv_data[2][0], str(operator.id))
         self.assertEqual(csv_data[3][0], str(admin.id))
         # Check organizations formatting
-        self.assertEqual(csv_data[1][-1], f"({org1.id},True),({org2.id},False)")
+        self.assertEqual(csv_data[1][-1], f"({org1.id},True)\n({org2.id},False)")
         self.assertEqual(csv_data[2][-1], f"({org2.id},False)")
         self.assertEqual(csv_data[3][-1], "")
         # Validate non-ASCII value exported correctly (first_name index 4)

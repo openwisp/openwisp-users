@@ -45,7 +45,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        raw_fields = app_settings.EXPORT_USERS_COMMAND_CONFIG.get("fields", []).copy()
+        raw_fields = app_settings.EXPORT_USERS_COMMAND_CONFIG.get("fields", [])
         # Get the fields to be excluded from the command-line argument
         exclude_fields = [
             t.strip() for t in options.get("exclude_fields").split(",") if t.strip()
