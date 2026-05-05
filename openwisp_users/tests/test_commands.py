@@ -1,4 +1,5 @@
 import csv
+import re
 from io import StringIO
 from unittest.mock import patch
 
@@ -226,8 +227,10 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         {
             "fields": [
                 "id",
-                # single related object with subfields
+                # single related object with single subfield
                 {"name": "auth_token", "fields": ["key"]},
+                # single related object with multiple subfields
+                {"name": "auth_token", "fields": ["key", "created"]},
                 # nullable field
                 {"name": "birth_date", "fields": ["year"]},
                 # manager with single subfield
@@ -264,18 +267,34 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(len(csv_data), 3)
         # user1: token present, birth_date None, one org membership
         self.assertEqual(csv_data[1][0], str(user1.id))
-        self.assertEqual(csv_data[1][1], str(token.key))  # subfields, single obj
-        self.assertEqual(csv_data[1][2], "")  # birth_date is None
-        self.assertEqual(csv_data[1][3], str(org.id))  # single-subfield manager
-        self.assertEqual(csv_data[1][4], f"(({org.id},True))")  # multi-subfield manager
-        self.assertEqual(csv_data[1][5], str(org.id))  # dot-notation manager
+        # subfields, single obj
+        self.assertEqual(csv_data[1][1], str(token.key))
+        # single-obj multi-subfield: wrapped shape ((key,created))
+        self.assertRegex(
+            csv_data[1][2],
+            rf"^\({re.escape(token.key)},",
+        )
+        # birth_date is None
+        self.assertEqual(csv_data[1][3], "")
+        # single-subfield manager
+        self.assertEqual(csv_data[1][4], str(org.id))
+        # multi-subfield manager
+        self.assertEqual(csv_data[1][5], f"({org.id},True)")
+        # dot-notation manager
+        self.assertEqual(csv_data[1][6], str(org.id))
         # user2: no token, no org membership
         self.assertEqual(csv_data[2][0], str(user2.id))
-        self.assertEqual(csv_data[2][1], "")  # ObjectDoesNotExist auth_token
-        self.assertEqual(csv_data[2][2], "")  # birth_date is None
-        self.assertEqual(csv_data[2][3], "")  # empty manager
-        self.assertEqual(csv_data[2][4], "")  # empty manager
-        self.assertEqual(csv_data[2][5], "")  # empty dot-notation manager
+        # ObjectDoesNotExist auth_token
+        self.assertEqual(csv_data[2][1], "")
+        # ObjectDoesNotExist auth_token multi-subfield
+        self.assertEqual(csv_data[2][2], "")
+        # birth_date is None
+        self.assertEqual(csv_data[2][3], "")
+        # empty manager
+        self.assertEqual(csv_data[2][4], "")
+        self.assertEqual(csv_data[2][5], "")
+        # empty dot-notation manager
+        self.assertEqual(csv_data[2][6], "")
 
     def test_dot_notation_objectdoesnotexist_on_sub_attr(self):
         """Returns empty string when sub-attribute access raises ObjectDoesNotExist."""

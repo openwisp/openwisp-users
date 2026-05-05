@@ -89,12 +89,20 @@ class Command(BaseCommand):
             )
         )
 
-    def serialize_related(self, manager, subfields):
-        """Serialize a RelatedManager queryset using the given subfields.
+    def _format_rows(self, rows):
+        """Format rows into a cell string.
 
         Single subfield → comma-separated values: val1,val2,...
         Multiple subfields → tuple-per-row format: ((v1,v2),(v3,v4))
         """
+        if not rows:
+            return ""
+        if len(rows[0]) == 1:
+            return ",".join(row[0] for row in rows)
+        return "\n".join("(" + ",".join(row) + ")" for row in rows)
+
+    def serialize_related(self, manager, subfields):
+        """Serialize a RelatedManager queryset using the given subfields."""
         rows = []
         # We use manager.all() instead of manager.iterator() to utilize the
         # prefetch_related queryset cache. The iterator() method would bypass the cache
@@ -106,11 +114,7 @@ class Command(BaseCommand):
                 val = self._get_nested_attr(obj, f)
                 row.append(self._normalize_value(val))
             rows.append(row)
-        if not rows:
-            return ""
-        if len(subfields) == 1:
-            return ",".join(row[0] for row in rows)
-        return "(" + ",".join("(" + ",".join(row) + ")" for row in rows) + ")"
+        return self._format_rows(rows)
 
     def _get_nested_attr(self, obj, attr_path):
         """Resolve a dotted attribute path on an object.
@@ -170,9 +174,10 @@ class Command(BaseCommand):
                 return ""
             if isinstance(attr, (QuerySet, BaseManager)):
                 return self.serialize_related(attr, subfields)
-            return ",".join(
+            row = [
                 self._normalize_value(self._get_nested_attr(attr, f)) for f in subfields
-            )
+            ]
+            return self._format_rows([row])
         val = self._get_nested_attr(user, name)
         if isinstance(val, (QuerySet, BaseManager)):
             return ""
