@@ -44,7 +44,11 @@ EXPORT_USERS_COMMAND_CONFIG = getattr(
             "location",
             "notes",
             "language",
-            {"name": "organizations", "callable": export_organizations},
+            {
+                "name": "organizations",
+                "header_fields": ["organization_id", "is_admin"],
+                "callable": export_organizations,
+            },
         ],
         "select_related": [],
         "prefetch_related": ["openwisp_users_organizationuser"],

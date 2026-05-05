@@ -27,6 +27,17 @@ class Command(BaseCommand):
         """Convert None to empty string, otherwise stringify the value."""
         return "" if value is None else str(value)
 
+    @staticmethod
+    def _get_header(field):
+        normalized = normalize_field(field)
+        header = normalized.get("header")
+        if header:
+            return header
+        header_fields = normalized.get("header_fields") or normalized.get("fields")
+        if header_fields:
+            return f"{normalized['name']} ({', '.join(header_fields)})"
+        return normalized["name"]
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--exclude-fields",
@@ -72,7 +83,7 @@ class Command(BaseCommand):
         with open(filename, "w", newline="", encoding="utf-8") as csv_file:
             csv_writer = csv.writer(csv_file)
             # Write header row using the name of each field
-            csv_writer.writerow([normalize_field(f)["name"] for f in fields])
+            csv_writer.writerow([self._get_header(f) for f in fields])
 
             # Write data rows
             for user in queryset.iterator(chunk_size=1000):

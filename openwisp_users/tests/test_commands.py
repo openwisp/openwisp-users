@@ -67,7 +67,7 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             "location",
             "notes",
             "language",
-            "organizations",
+            "organizations (organization_id, is_admin)",
         ]
         self.assertEqual(csv_data[0], expected_headers)
         # Ensuring ordering
@@ -265,6 +265,16 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             csv_data = list(csv_reader)
         # 2 users + 1 header
         self.assertEqual(len(csv_data), 3)
+        expected_headers = [
+            "id",
+            "auth_token (key)",
+            "auth_token (key, created)",
+            "birth_date (year)",
+            "openwisp_users_organizationuser (organization_id)",
+            "openwisp_users_organizationuser (organization_id, is_admin)",
+            "openwisp_users_organizationuser.organization_id",
+        ]
+        self.assertEqual(csv_data[0], expected_headers)
         # user1: token present, birth_date None, one org membership
         self.assertEqual(csv_data[1][0], str(user1.id))
         # subfields, single obj
@@ -318,3 +328,37 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self._create_org_user(organization=org, user=user, is_admin=True)
         result = Command()._get_field_value(user, "openwisp_users_organizationuser")
         self.assertEqual(result, "")
+
+    @capture_stdout()
+    def test_custom_header(self):
+        def _get_is_active(user):
+            return "yes" if user.is_active else "no"
+
+        config = {
+            "fields": [
+                "id",
+                {
+                    "name": "active_status",
+                    "header": "Active?",
+                    "callable": _get_is_active,
+                },
+                {
+                    "name": "custom_orgs",
+                    "header_fields": ["org_id", "is_admin"],
+                    "callable": _get_is_active,
+                },
+            ],
+            "select_related": [],
+            "prefetch_related": [],
+        }
+        self._create_user(is_active=True)
+        with patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config):
+            call_command("export_users", filename=self.temp_file.name)
+        with open(self.temp_file.name, "r", encoding="utf-8") as f:
+            csv_reader = csv.reader(f)
+            csv_data = list(csv_reader)
+        self.assertEqual(
+            csv_data[0], ["id", "Active?", "custom_orgs (org_id, is_admin)"]
+        )
+        self.assertEqual(csv_data[1][1], "yes")
+        self.assertEqual(csv_data[1][2], "yes")
