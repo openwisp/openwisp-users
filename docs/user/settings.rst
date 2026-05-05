@@ -167,11 +167,16 @@ Each entry in ``fields`` can be either:
 
 The following keys are supported in field dictionaries:
 
-- ``name`` (str): the field name used as the CSV column header.
+- ``name`` (str): the field name used as the fallback CSV column header.
 - ``callable`` (callable, optional): a function that takes the user
   instance as input and returns the value to be exported.
 - ``fields`` (list of str, optional): a list of attributes to extract from
   a related object or queryset.
+- ``header`` (str, optional): a custom CSV column header. When provided,
+  it overrides the default header generation.
+- ``header_fields`` (list of str, optional): a list of subfield names to
+  display in the header as ``name (field1, field2)``. If not provided,
+  falls back to ``fields``.
 
 Priority order:
 

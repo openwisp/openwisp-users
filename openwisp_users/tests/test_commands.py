@@ -253,10 +253,12 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
     @capture_stdout()
     def test_subfields_dict_field(self):
         org = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
         user1 = self._create_user(birth_date=None)
         user2 = self._create_operator(birth_date=None)
         token = Token.objects.create(user=user1)
         self._create_org_user(organization=org, user=user1, is_admin=True)
+        self._create_org_user(organization=org2, user=user1, is_admin=False)
         # user2 has no token (covers ObjectDoesNotExist)
         # and no org membership (covers empty manager)
         call_command("export_users", filename=self.temp_file.name)
@@ -277,8 +279,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(csv_data[0], expected_headers)
         # user1: token present, birth_date None, one org membership
         self.assertEqual(csv_data[1][0], str(user1.id))
-        # subfields, single obj
-        self.assertEqual(csv_data[1][1], str(token.key))
+        # subfields, single obj, single subfield → no wrapping
+        self.assertEqual(csv_data[1][1], token.key)
         # single-obj multi-subfield: wrapped shape ((key,created))
         self.assertRegex(
             csv_data[1][2],
@@ -286,12 +288,12 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         )
         # birth_date is None
         self.assertEqual(csv_data[1][3], "")
-        # single-subfield manager
-        self.assertEqual(csv_data[1][4], str(org.id))
+        # single-subfield manager, single object → no wrapping
+        self.assertEqual(csv_data[1][4], f"({org.id},{org2.id})")
         # multi-subfield manager
-        self.assertEqual(csv_data[1][5], f"({org.id},True)")
+        self.assertEqual(csv_data[1][5], f"({org.id},True)\n({org2.id},False)")
         # dot-notation manager
-        self.assertEqual(csv_data[1][6], str(org.id))
+        self.assertEqual(csv_data[1][6], f"({org.id},{org2.id})")
         # user2: no token, no org membership
         self.assertEqual(csv_data[2][0], str(user2.id))
         # ObjectDoesNotExist auth_token

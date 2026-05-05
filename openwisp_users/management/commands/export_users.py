@@ -103,13 +103,15 @@ class Command(BaseCommand):
     def _format_rows(self, rows):
         """Format rows into a cell string.
 
-        Single subfield → comma-separated values: val1,val2,...
-        Multiple subfields → tuple-per-row format: ((v1,v2),(v3,v4))
+        Single subfield, single value → val
+        Single subfield, multiple values → (val1,val2,...)
+        Multiple subfields → tuple-per-row format: ((v1,v2)\n(v3,v4))
         """
         if not rows:
             return ""
         if len(rows[0]) == 1:
-            return ",".join(row[0] for row in rows)
+            values = ",".join(row[0] for row in rows)
+            return f"({values})" if len(rows) > 1 else values
         return "\n".join("(" + ",".join(row) + ")" for row in rows)
 
     def serialize_related(self, manager, subfields):
@@ -152,11 +154,11 @@ class Command(BaseCommand):
                 # We use current.all() instead of current.iterator() to utilize
                 # the prefetch_related queryset cache. The iterator() method
                 # would bypass the cache and cause additional queries.
-                values = []
+                rows = []
                 for item in current.all():
                     v = self._get_nested_attr(item, remaining_path)
-                    values.append(self._normalize_value(v))
-                return ",".join(values)
+                    rows.append([self._normalize_value(v)])
+                return self._format_rows(rows)
         return current
 
     def _get_field_value(self, user, field):
