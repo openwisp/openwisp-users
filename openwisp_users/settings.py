@@ -1,3 +1,4 @@
+import swapper
 from django.conf import settings
 
 from openwisp_utils.utils import default_or_test
@@ -13,13 +14,16 @@ USERS_AUTH_THROTTLE_RATE = getattr(
 AUTH_BACKEND_AUTO_PREFIXES = getattr(
     settings, "OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES", tuple()
 )
+_OPENWISP_USERS_APP_LABEL = swapper.split(
+    swapper.get_model_name("openwisp_users", "OrganizationUser")
+)[0]
 
 
 def export_organizations(user):
     """
     Export organizations using prefetch_related data when available.
     """
-    orgs = user.openwisp_users_organizationuser.all()
+    orgs = getattr(user, f"{_OPENWISP_USERS_APP_LABEL}_organizationuser").all()
     if not orgs:
         return ""
     return "\n".join(f"({org.organization_id},{org.is_admin})" for org in orgs)
@@ -51,7 +55,7 @@ EXPORT_USERS_COMMAND_CONFIG = getattr(
             },
         ],
         "select_related": [],
-        "prefetch_related": ["openwisp_users_organizationuser"],
+        "prefetch_related": [f"{_OPENWISP_USERS_APP_LABEL}_organizationuser"],
     },
 )
 USER_PASSWORD_EXPIRATION = getattr(
