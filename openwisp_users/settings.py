@@ -49,3 +49,13 @@ setattr(
         "openwisp_users.views.AutocompleteJsonView",
     ),
 )
+
+# if any OAuth/SAML provider is enabled, allow managing keys/secrets
+SOCIALACCOUNT_ADMIN_NEEDED = getattr(
+    settings,
+    "OPENWISP_USERS_SOCIALACCOUNT_ADMIN_NEEDED",
+    any(
+        app.startswith("allauth.socialaccount.providers.")
+        for app in settings.INSTALLED_APPS
+    ),
+)

@@ -27,6 +27,31 @@ items is enabled or not.
 
 Refer to :ref:`organization_owners` for more information.
 
+``OPENWISP_USERS_SOCIALACCOUNT_ADMIN_NEEDED``
+---------------------------------------------
+
+============ =========================================
+**type**:    ``boolean``
+**default**: auto-detected based on ``INSTALLED_APPS``
+============ =========================================
+
+Controls whether the social account admin (used to manage OAuth/SAML
+application credentials such as client IDs and secrets) is shown in the
+Django admin.
+
+By default, this is set to ``True`` automatically when any app whose name
+starts with ``allauth.socialaccount.providers.`` is found in
+``INSTALLED_APPS``.
+
+Set this to ``True`` explicitly when using custom or third-party allauth
+provider apps that do not follow the ``allauth.socialaccount.providers.*``
+namespace convention, so that their ``SocialApp`` credentials can be
+managed in the Django admin.
+
+.. code-block:: python
+
+    OPENWISP_USERS_SOCIALACCOUNT_ADMIN_NEEDED = True
+
 .. _openwisp_users_auth_api:
 
 ``OPENWISP_USERS_AUTH_API``

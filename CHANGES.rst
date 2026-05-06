@@ -6,6 +6,35 @@ Version 1.3.0 [unreleased]
 
 Work in progress.
 
+Version 1.2.2 [2026-04-25]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Added SocialAccount inline to UserAdmin when needed `#501
+  <https://github.com/openwisp/openwisp-users/issues/501>`_
+
+Version 1.2.1 [2026-04-22]
+--------------------------
+
+Changes
+~~~~~~~
+
+Dependencies
+++++++++++++
+
+- Allowed upgrade of django-allauth up to 65.13.0.
+
+Bugfixes
+~~~~~~~~
+
+- Allowed managing social auth secrets when needed.
+- Ensured ``site_name`` is displayed in password reset email `#482
+  <https://github.com/openwisp/openwisp-users/issues/482>`_.
+- Prevented authentication without a username in
+  ``UsersAuthenticationBackend``.
+
 Version 1.2.0 [2025-10-23]
 --------------------------
 

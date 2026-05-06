@@ -44,6 +44,15 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+def user_not_allowed_to_change_owner(user, obj):
+    return (
+        obj
+        and not user.is_superuser
+        and user.pk != obj.pk
+        and obj.is_owner_of_any_organization
+    )
+
+
 class EmailAddressInline(admin.StackedInline):
     model = EmailAddress
     extra = 0
@@ -652,11 +661,32 @@ if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
 if allauth_settings.SOCIALACCOUNT_ENABLED:
-    for model in [
-        ("socialaccount", "SocialApp"),
+    _unregister_socialaccount_models = [
         ("socialaccount", "SocialToken"),
         ("socialaccount", "SocialAccount"),
-    ]:
+    ]
+    # allauth OAuth/SAML not enabled
+    if not app_settings.SOCIALACCOUNT_ADMIN_NEEDED:  # pragma: no cover
+        _unregister_socialaccount_models.append(("socialaccount", "SocialApp"))
+    # allauth OAuth/SAML enabled
+    else:
+        from allauth.socialaccount.models import SocialAccount
+
+        class SocialAccountInline(admin.StackedInline):
+            model = SocialAccount
+            extra = 0
+            readonly_fields = ("provider", "uid", "extra_data")
+
+            def has_add_permission(self, request, obj=None):
+                return False
+
+            def has_delete_permission(self, request, obj=None):
+                return False
+
+        UserAdmin.inlines.append(SocialAccountInline)
+
+    # Un-register cluttering socialaccount models
+    for model in _unregister_socialaccount_models:
         model_class = apps.get_model(*model)
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
@@ -666,12 +696,3 @@ if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
 
     if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)
-
-
-def user_not_allowed_to_change_owner(user, obj):
-    return (
-        obj
-        and not user.is_superuser
-        and user.pk != obj.pk
-        and obj.is_owner_of_any_organization
-    )
