@@ -1,5 +1,7 @@
 import logging
+import random
 import uuid
+from time import sleep
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -8,11 +10,15 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
+from django.template.loader import render_to_string
+from django.utils import timezone, translation
 from django.utils.functional import cached_property
+from django.utils.timezone import localdate, timedelta
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from swapper import load_model
+
+from openwisp_utils.admin_theme.email import send_email
 
 from .. import settings as app_settings
 
@@ -68,6 +74,12 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
+    expiration_date = models.DateField(
+        _("expiration date"),
+        blank=True,
+        null=True,
+        help_text=_("Date on which the user account will expire."),
+    )
 
     objects = UserManager()
 
@@ -182,6 +194,10 @@ class AbstractUser(BaseUser):
             raise ValidationError(
                 {"email": _("User with this Email address already exists.")}
             )
+        if self.expiration_date and self.expiration_date < localdate():
+            raise ValidationError(
+                {"expiration_date": _("Expiration date cannot be in the past.")}
+            )
 
     def _invalidate_user_organizations_dict(self):
         """
@@ -196,6 +212,135 @@ class AbstractUser(BaseUser):
             del self.organizations_owned
         except AttributeError:
             pass
+
+    @classmethod
+    def deactivate_expired_users(cls):
+        """
+        Deactivate users whose expiration_date is today or earlier.
+
+        This performs a bulk update to set is_active=False for all active users
+        with expiration_date <= today. It returns the number of users
+        deactivated.
+
+        Emails are sent only to affected users who have a verified email
+        address, while all expired active users are deactivated.
+        """
+        expiry_date = localdate()
+        qs = cls.objects.filter(is_active=True, expiration_date__lte=expiry_date)
+        # We intentionally store the user IDs before the bulk update
+        # because once `is_active` is updated to False, the original
+        # queryset would no longer match these users.
+        deactivated_users = list(qs.values_list("id", flat=True))
+        count = qs.update(is_active=False)
+        if count == 0:
+            return 0
+
+        users = (
+            cls.objects.filter(id__in=deactivated_users, emailaddress__verified=True)
+            .distinct()
+            .only(
+                "id",
+                "email",
+                "username",
+                "language",
+                "expiration_date",
+            )
+            .iterator()
+        )
+        email_counts = 0
+        for user in users:
+            with translation.override(user.language):
+                send_email(
+                    subject=_("Your account has been deactivated"),
+                    body_text=render_to_string(
+                        "account/email/account_expired_message.txt",
+                        context={
+                            "username": user.username,
+                            "expiration_date": user.expiration_date,
+                        },
+                    ).strip(),
+                    body_html=render_to_string(
+                        "account/email/account_expired_message.html",
+                        context={
+                            "username": user.username,
+                            "expiration_date": user.expiration_date,
+                        },
+                    ).strip(),
+                    recipients=[user.email],
+                )
+            # Avoid overloading the SMTP server by sending multiple
+            # emails continuously.
+            if email_counts >= 10:
+                email_counts = 0
+                sleep(random.randint(1, 2))
+            else:
+                email_counts += 1
+
+        return count
+
+    @classmethod
+    def expiration_reminder_email(cls):
+        """
+        Send reminder emails to users whose accounts will expire soon.
+
+        This method checks for active users with a verified email whose
+        expiration_date equals today + USER_EXPIRATION_WARNING_DAYS and
+        sends a localized reminder email.
+
+        Only users with a verified email address receive reminders.
+        Unlike ``deactivate_expired_users``, which notifies all
+        affected users irrespective of verification status.
+        """
+        reminder_days = app_settings.USER_EXPIRATION_WARNING_DAYS
+        if reminder_days <= 0:
+            return
+
+        reminder_date = localdate() + timedelta(days=reminder_days)
+        qs = (
+            cls.objects.filter(
+                is_active=True,
+                expiration_date=reminder_date,
+                emailaddress__verified=True,
+            )
+            .distinct()
+            .only(
+                "id",
+                "email",
+                "username",
+                "language",
+                "expiration_date",
+            )
+        )
+        email_count = 0
+        for user in qs.iterator():
+            with translation.override(user.language):
+                send_email(
+                    subject=_("Action Required: Account Expiration Notice"),
+                    body_text=render_to_string(
+                        "account/email/account_expiration_reminder_message.txt",
+                        context={
+                            "username": user.username,
+                            "expiration_date": user.expiration_date,
+                            "days_remaining": reminder_days,
+                        },
+                    ).strip(),
+                    body_html=render_to_string(
+                        "account/email/account_expiration_reminder_message.html",
+                        context={
+                            "username": user.username,
+                            "expiration_date": user.expiration_date,
+                            "days_remaining": reminder_days,
+                        },
+                    ).strip(),
+                    recipients=[user.email],
+                )
+            # Avoid overloading the SMTP server by sending multiple
+            # emails continuously.
+            if email_count >= 10:
+                email_count = 0
+                sleep(random.randint(1, 2))
+            else:
+                email_count += 1
 
 
 class BaseGroup(object):

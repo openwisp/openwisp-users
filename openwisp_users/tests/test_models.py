@@ -8,10 +8,15 @@ from django.templatetags.l10n import localize
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
+from freezegun import freeze_time
 from swapper import load_model
 
 from .. import settings as app_settings
-from ..tasks import password_expiration_email
+from ..tasks import (
+    deactivate_expired_users,
+    expiration_reminder_email,
+    password_expiration_email,
+)
 from .utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -371,16 +376,18 @@ class TestUsers(TestOrganizationMixin, TestCase):
         end_user.refresh_from_db()
 
         with self.subTest("Test password expiration feature disabled"):
-            with patch.object(
-                app_settings, "USER_PASSWORD_EXPIRATION", 0
-            ), patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 0):
+            with (
+                patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 0),
+                patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 0),
+            ):
                 self.assertEqual(staff_user.has_password_expired(), False)
                 self.assertEqual(end_user.has_password_expired(), False)
 
         with self.subTest("Test password is not expired"):
-            with patch.object(
-                app_settings, "USER_PASSWORD_EXPIRATION", 10
-            ), patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10):
+            with (
+                patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10),
+                patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10),
+            ):
                 self.assertEqual(staff_user.has_password_expired(), False)
                 self.assertEqual(end_user.has_password_expired(), False)
 
@@ -388,18 +395,20 @@ class TestUsers(TestOrganizationMixin, TestCase):
             User.objects.update(password_updated=now().date() - timedelta(days=180))
             staff_user.refresh_from_db()
             end_user.refresh_from_db()
-            with patch.object(
-                app_settings, "USER_PASSWORD_EXPIRATION", 10
-            ), patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10):
+            with (
+                patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10),
+                patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10),
+            ):
                 self.assertEqual(staff_user.has_password_expired(), True)
                 self.assertEqual(end_user.has_password_expired(), True)
 
         with self.subTest("Test password_updated is None"):
             User.objects.update(password_updated=None)
             end_user.refresh_from_db()
-            with patch.object(
-                app_settings, "USER_PASSWORD_EXPIRATION", 10
-            ), patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10):
+            with (
+                patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10),
+                patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10),
+            ):
                 self.assertEqual(end_user.has_password_expired(), False)
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
@@ -494,6 +503,252 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(app_settings.STAFF_USER_PASSWORD_EXPIRATION, 0)
         self._create_user()
         User.objects.update(password_updated=now().date() - timedelta(days=180))
-        with patch("openwisp_utils.admin_theme.email.send_email") as mocked_send_email:
+        with patch("openwisp_users.tasks.send_email") as mocked_send_email:
             password_expiration_email.delay()
         mocked_send_email.assert_not_called()
+
+    def test_expiration_date_validation(self):
+        user = self._create_user(username="testuser", email="testuser@example.com")
+
+        with self.subTest("Expiration date in past"):
+            user.expiration_date = now().date() - timedelta(days=1)
+            with self.assertRaises(ValidationError) as context:
+                user.full_clean()
+            self.assertIn("expiration_date", context.exception.message_dict)
+
+        with self.subTest("Expiration date is today"):
+            user.expiration_date = now().date()
+            user.full_clean()
+            self.assertEqual(user.expiration_date, now().date())
+
+        with self.subTest("Expiration date in future"):
+            future_date = now().date() + timedelta(days=30)
+            user.expiration_date = future_date
+            user.full_clean()
+            self.assertEqual(user.expiration_date, future_date)
+
+        with self.subTest("Expiration date is none"):
+            user.expiration_date = None
+            user.full_clean()
+            self.assertIsNone(user.expiration_date)
+
+    def test_deactivate_expired_users(self):
+        with freeze_time(now() - timedelta(days=5)):
+            expired_user = self._create_user(
+                username="expired",
+                email="expired@example.com",
+                is_active=True,
+                expiration_date=now().date(),
+            )
+        future_user = self._create_user(
+            username="future",
+            email="future@example.com",
+            is_active=True,
+            expiration_date=now().date() + timedelta(days=30),
+        )
+        none_user = self._create_user(
+            username="none",
+            email="none@example.com",
+            is_active=True,
+            expiration_date=None,
+        )
+        deactivate_expired_users()
+        expired_user.refresh_from_db()
+        future_user.refresh_from_db()
+        none_user.refresh_from_db()
+        self.assertFalse(expired_user.is_active)
+        self.assertTrue(future_user.is_active)
+        self.assertTrue(none_user.is_active)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_deactivate_expired_users_skips_inactive(self):
+        with freeze_time(now() - timedelta(days=5)):
+            inactive_user = self._create_user(
+                username="inactive",
+                email="inactive@example.com",
+                is_active=False,
+                expiration_date=now().date(),
+            )
+        with patch("openwisp_users.base.models.send_email") as mock_send:
+            deactivate_expired_users()
+
+        inactive_user.refresh_from_db()
+        self.assertFalse(inactive_user.is_active)
+        mock_send.assert_not_called()
+
+    def test_deactivate_expired_users_idempotent(self):
+        with freeze_time(now() - timedelta(days=5)):
+            expired_user = self._create_user(
+                username="expired",
+                email="expired@example.com",
+                is_active=True,
+                expiration_date=now().date(),
+            )
+            EmailAddress.objects.filter(user=expired_user).update(verified=True)
+
+        with patch("openwisp_users.base.models.send_email") as mock_send:
+            deactivate_expired_users()
+
+            expired_user.refresh_from_db()
+            self.assertEqual(expired_user.is_active, False)
+            mock_send.assert_called_once()
+
+            mock_send.reset_mock()
+            deactivate_expired_users()
+            expired_user.refresh_from_db()
+            self.assertEqual(expired_user.is_active, False)
+            mock_send.assert_not_called()
+
+    def test_deactivate_expired_users_without_expiration_date(self):
+        none_user = self._create_user(
+            username="none",
+            email="none@example.com",
+            is_active=True,
+            expiration_date=None,
+        )
+        with patch("openwisp_users.base.models.send_email"):
+            deactivate_expired_users()
+
+        none_user.refresh_from_db()
+        self.assertTrue(none_user.is_active)
+
+    def test_deactivate_expired_users_sends_email(self):
+        expired_user = self._create_user(
+            username="expired",
+            email="expired@example.com",
+            is_active=True,
+            expiration_date=now().date(),
+        )
+        EmailAddress.objects.filter(user=expired_user).update(verified=True)
+
+        deactivate_expired_users()
+        expected_date = localize(expired_user.expiration_date)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [expired_user.email])
+        # Verify exact subject and full plain/html bodies
+        self.assertEqual(email.subject, "Your account has been deactivated")
+        self.assertEqual(
+            email.body,
+            "We inform you that your account expired has been deactivated because"
+            f" it expired on {expected_date}."
+            "\n\n\nPlease contact your administrator if you need to reactivate"
+            " your account.",
+        )
+        self.assertInHTML(
+            '<div class="msg"><p>'
+            "We inform you that your account expired has been deactivated"
+            f" because it expired on {expected_date}."
+            "</p>"
+            "<p>"
+            "Please contact your administrator if you need to reactivate your account."
+            "</p>",
+            email.alternatives[0][0],
+        )
+
+    def test_deactivate_expired_users_email_unverified(self):
+        expired_user = self._create_user(
+            username="expired",
+            email="expired@example.com",
+            is_active=True,
+            expiration_date=now().date(),
+        )
+        EmailAddress.objects.filter(user=expired_user).update(verified=False)
+
+        deactivate_expired_users()
+        expired_user.refresh_from_db()
+        self.assertEqual(expired_user.is_active, False)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
+    def test_expiration_reminder_email(self):
+        reminder_date = now().date() + timedelta(days=7)
+        user = self._create_user(
+            username="reminder",
+            email="reminder@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        EmailAddress.objects.filter(user=user).update(verified=True)
+
+        expiration_reminder_email()
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertEqual(email.to, [user.email])
+        # Verify exact subject and full plain/html bodies
+        expected_date = localize(user.expiration_date)
+        self.assertEqual(email.subject, "Action Required: Account Expiration Notice")
+        self.assertEqual(
+            email.body,
+            (
+                "We inform you that your account "
+                f"{user.username} will expire in "
+                f"{app_settings.USER_EXPIRATION_WARNING_DAYS} days on "
+                f"{expected_date}."
+                "\n\n\n"
+                "Please contact your administrator if you need to extend your access."
+            ),
+        )
+        self.assertInHTML(
+            (
+                '<div class="msg"><p>'
+                "We inform you that your account "
+                f"<strong>{user.username}</strong> will expire in"
+                f" {app_settings.USER_EXPIRATION_WARNING_DAYS} days on {expected_date}."
+                "</p><p>"
+                "Please contact your administrator if you need to extend your access."
+                "</p></div>"
+            ),
+            email.alternatives[0][0],
+        )
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
+    def test_expiration_reminder_email_verified_only(self):
+        reminder_date = now().date() + timedelta(days=7)
+        verified_email_user = self._create_user(
+            username="verified",
+            email="verified@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        verified_email_user.save()
+        EmailAddress.objects.filter(user=verified_email_user).update(verified=True)
+        unverified_email_user = self._create_user(
+            username="unverified",
+            email="unverified@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        unverified_email_user.save()
+        EmailAddress.objects.filter(user=unverified_email_user).update(verified=False)
+
+        expiration_reminder_email()
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [verified_email_user.email])
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
+    def test_expiration_reminder_email_inactive_user(self):
+        reminder_date = now().date() + timedelta(days=7)
+        inactive_user = self._create_user(
+            username="inactive",
+            email="inactive@example.com",
+            expiration_date=reminder_date,
+            is_active=False,
+        )
+        EmailAddress.objects.filter(user=inactive_user).update(verified=True)
+        expiration_reminder_email()
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 0)
+    def test_expiration_reminder_email_disabled(self):
+        reminder_date = now().date() + timedelta(days=7)
+        user = self._create_user(
+            username="reminder",
+            email="reminder@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        EmailAddress.objects.filter(user=user).update(verified=True)
+        with patch("openwisp_users.base.models.send_email") as mock_send:
+            expiration_reminder_email()
+            mock_send.assert_not_called()

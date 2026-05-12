@@ -1,12 +1,15 @@
 import logging
+from copy import deepcopy
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from swapper import load_model
 
 from openwisp_utils.api.serializers import ValidatedModelSerializer
@@ -235,6 +238,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             "is_active",
             "is_staff",
             "is_superuser",
+            "expiration_date",
             "groups",
             "organization_users",
         )
@@ -314,6 +318,7 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "is_staff",
             "is_superuser",
             "last_login",
+            "expiration_date",
             "date_joined",
             "groups",
             "user_permissions",
@@ -354,8 +359,16 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
                 org_user_instance.full_clean()
                 org_user_instance.save()
 
-        instance = self.instance or self.Meta.model(**validated_data)
-        instance.full_clean()
+        data = deepcopy(validated_data)
+        for field in ["groups", "user_permissions"]:
+            data.pop(field, None)
+        instance = self.instance or self.Meta.model()
+        for field, value in data.items():
+            setattr(instance, field, value)
+        try:
+            instance.full_clean()
+        except DjangoValidationError as e:
+            raise DRFValidationError(e.message_dict)
         return super().update(instance, validated_data)
 
 

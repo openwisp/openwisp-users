@@ -152,6 +152,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         # inline emails
         params.update(self.add_user_inline_params)
@@ -606,6 +607,7 @@ class TestUsersAdmin(
         params["username"] = "user2"
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params.pop("phone_number")
         params.pop("password", None)
         params.pop("_password", None)
@@ -645,6 +647,7 @@ class TestUsersAdmin(
         params.pop("phone_number")
         params.pop("password", None)
         params.pop("_password", None)
+        params.pop("expiration_date", None)
         params.pop("last_login")
         params.pop("password_updated")
         params = self._additional_params_pop(params)
@@ -678,6 +681,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params.pop("phone_number")
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -704,6 +708,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -770,6 +775,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
         params.update(self._get_user_edit_form_inline_params(user2, org))
@@ -1710,6 +1716,17 @@ class TestUsersAdmin(
                 html=True,
             )
 
+    def test_expiration_date_field_in_admin_form(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        user = self._get_user()
+        response = self.client.get(
+            reverse("admin:openwisp_users_user_change", args=(user.pk,))
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "expiration_date")
+        self.assertContains(response, "Account expiration")
+
 
 class TestBasicUsersIntegration(
     TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase
@@ -1776,6 +1793,7 @@ class TestBasicUsersIntegration(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params["birth_date"] = user.date_joined.date()
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -1806,6 +1824,7 @@ class TestBasicUsersIntegration(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
         params.update({f"{self.app_label}_organizationuser-0-DELETE": "on"})

@@ -100,3 +100,13 @@ def invalidate_org_membership_cache(organization_pk):
     ).select_related("user")
     for org_user in qs.iterator():
         org_user.user._invalidate_user_organizations_dict()
+
+
+@shared_task
+def deactivate_expired_users():
+    return User.deactivate_expired_users()
+
+
+@shared_task
+def expiration_reminder_email():
+    return User.expiration_reminder_email()

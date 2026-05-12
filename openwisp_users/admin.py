@@ -484,7 +484,10 @@ class OrganizationUserFilter(MultitenantOrgFilter):
 base_fields = list(UserAdmin.fieldsets[1][1]["fields"])
 additional_fields = ["bio", "url", "company", "location", "phone_number", "birth_date"]
 UserAdmin.fieldsets[1][1]["fields"] = base_fields + additional_fields
-UserAdmin.fieldsets.insert(3, ("Internal", {"fields": ("notes",)}))
+UserAdmin.fieldsets.insert(
+    3, (_("Account expiration"), {"fields": ("expiration_date",)})
+)
+UserAdmin.fieldsets.insert(4, (_("Internal"), {"fields": ("notes",)}))
 primary_fields = list(UserAdmin.fieldsets[0][1]["fields"])
 UserAdmin.fieldsets[0][1]["fields"] = primary_fields + ["password_updated"]
 UserAdmin.add_fieldsets[0][1]["fields"] = (

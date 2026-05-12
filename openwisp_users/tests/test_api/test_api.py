@@ -6,6 +6,7 @@ from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.timezone import localdate, timedelta
 from swapper import load_model
 
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
@@ -734,3 +735,54 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 400)
         self.assertEqual(Organization.objects.count(), 2)
         self.assertListEqual(list(r.data.keys()), ["slug", "organization"])
+
+    def test_create_user_with_expiration_date_api(self):
+        path = reverse("users:user_list")
+        future_date = localdate() + timedelta(days=30)
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "password123",
+            "expiration_date": str(future_date),
+        }
+        r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["expiration_date"], str(future_date))
+        user = User.objects.get(username="tester")
+        self.assertEqual(user.expiration_date, future_date)
+
+    def test_update_expiration_date_api(self):
+        user = self._get_user()
+        path = reverse("users:user_detail", args=(user.pk,))
+        future_date = localdate() + timedelta(days=60)
+        data = {"expiration_date": str(future_date)}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["expiration_date"], str(future_date))
+        user.refresh_from_db()
+        self.assertEqual(user.expiration_date, future_date)
+
+    def test_expiration_date_validation_past_date_api(self):
+        user = self._get_user()
+        path = reverse("users:user_detail", args=(user.pk,))
+        past_date = localdate() - timedelta(days=1)
+        data = {"expiration_date": str(past_date)}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("expiration_date", r.data)
+        self.assertEqual(
+            r.data["expiration_date"], ["Expiration date cannot be in the past."]
+        )
+
+    def test_expiration_date_none_api(self):
+        user = self._get_user()
+        future_date = localdate() + timedelta(days=30)
+        user.expiration_date = future_date
+        user.save()
+        path = reverse("users:user_detail", args=(user.pk,))
+        data = {"expiration_date": None}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.data["expiration_date"])
+        user.refresh_from_db()
+        self.assertIsNone(user.expiration_date)
