@@ -271,9 +271,8 @@ class AbstractUser(BaseUser):
                     )
                 except Exception as e:
                     logger.exception(
-                        "Error sending deactivation email to user %s (%s): %s",
+                        "Error sending deactivation email to user %s: %s",
                         getattr(user, "pk", None),
-                        getattr(user, "email", None),
                         e,
                     )
             # Avoid overloading the SMTP server by sending multiple
@@ -343,9 +342,8 @@ class AbstractUser(BaseUser):
                     )
                 except Exception as e:
                     logger.exception(
-                        "Error sending expiration reminder email to user %s (%s): %s",
+                        "Error sending expiration reminder email to user %s: %s",
                         getattr(user, "pk", None),
-                        getattr(user, "email", None),
                         e,
                     )
             # Avoid overloading the SMTP server by sending multiple
