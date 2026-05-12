@@ -646,6 +646,38 @@ class TestUsers(TestOrganizationMixin, TestCase):
             email.alternatives[0][0],
         )
 
+    def test_deactivate_expired_users_continues_on_send_failure(self):
+        u1 = self._create_user(
+            username="u1",
+            email="u1@example.com",
+            is_active=True,
+            expiration_date=now().date(),
+        )
+        u2 = self._create_user(
+            username="u2",
+            email="u2@example.com",
+            is_active=True,
+            expiration_date=now().date(),
+        )
+        EmailAddress.objects.update(verified=True)
+        # First call raises, second succeeds
+        side_effects = [Exception("SMTP failure"), None]
+        with (
+            patch(
+                "openwisp_users.base.models.send_email", side_effect=side_effects
+            ) as mock_send,
+            patch("logging.Logger.exception") as mocked_logger,
+        ):
+            count = deactivate_expired_users()
+
+        self.assertEqual(count, 2)
+        u1.refresh_from_db()
+        u2.refresh_from_db()
+        self.assertEqual(u1.is_active, False)
+        self.assertEqual(u2.is_active, False)
+        self.assertEqual(mock_send.call_count, 2)
+        mocked_logger.assert_called_once()
+
     def test_deactivate_expired_users_email_unverified(self):
         expired_user = self._create_user(
             username="expired",
@@ -701,6 +733,35 @@ class TestUsers(TestOrganizationMixin, TestCase):
             ),
             email.alternatives[0][0],
         )
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
+    def test_expiration_reminder_email_continues_on_send_failure(self):
+        reminder_date = now().date() + timedelta(days=7)
+        self._create_user(
+            username="r1",
+            email="r1@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        self._create_user(
+            username="r2",
+            email="r2@example.com",
+            expiration_date=reminder_date,
+            is_active=True,
+        )
+        EmailAddress.objects.update(verified=True)
+        side_effects = [Exception("SMTP down"), None]
+        with (
+            patch(
+                "openwisp_users.base.models.send_email", side_effect=side_effects
+            ) as mock_send,
+            patch("logging.Logger.exception") as mocked_logger,
+        ):
+            # Should not raise despite the first call failing
+            expiration_reminder_email()
+
+        self.assertEqual(mock_send.call_count, 2)
+        mocked_logger.assert_called_once()
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email_verified_only(self):

@@ -1721,7 +1721,7 @@ class TestUsersAdmin(
         self.client.force_login(admin)
         user = self._get_user()
         response = self.client.get(
-            reverse("admin:openwisp_users_user_change", args=(user.pk,))
+            reverse(f"admin:{self.app_label}_user_change", args=(user.pk,))
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "expiration_date")

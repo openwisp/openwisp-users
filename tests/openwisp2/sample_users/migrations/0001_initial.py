@@ -194,6 +194,15 @@ class Migration(migrations.Migration):
                         blank=True, null=True, verbose_name="password updated"
                     ),
                 ),
+                (
+                    "expiration_date",
+                    models.DateField(
+                        blank=True,
+                        help_text="Date on which the user account will expire.",
+                        null=True,
+                        verbose_name="expiration date",
+                    ),
+                ),
             ],
             options={
                 "verbose_name": "user",

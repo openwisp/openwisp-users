@@ -250,24 +250,32 @@ class AbstractUser(BaseUser):
         email_counts = 0
         for user in users:
             with translation.override(user.language):
-                send_email(
-                    subject=_("Your account has been deactivated"),
-                    body_text=render_to_string(
-                        "account/email/account_expired_message.txt",
-                        context={
-                            "username": user.username,
-                            "expiration_date": user.expiration_date,
-                        },
-                    ).strip(),
-                    body_html=render_to_string(
-                        "account/email/account_expired_message.html",
-                        context={
-                            "username": user.username,
-                            "expiration_date": user.expiration_date,
-                        },
-                    ).strip(),
-                    recipients=[user.email],
-                )
+                try:
+                    send_email(
+                        subject=_("Your account has been deactivated"),
+                        body_text=render_to_string(
+                            "account/email/account_expired_message.txt",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                            },
+                        ).strip(),
+                        body_html=render_to_string(
+                            "account/email/account_expired_message.html",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                            },
+                        ).strip(),
+                        recipients=[user.email],
+                    )
+                except Exception as e:
+                    logger.exception(
+                        "Error sending deactivation email to user %s (%s): %s",
+                        getattr(user, "pk", None),
+                        getattr(user, "email", None),
+                        e,
+                    )
             # Avoid overloading the SMTP server by sending multiple
             # emails continuously.
             if email_counts >= 10:
@@ -288,8 +296,6 @@ class AbstractUser(BaseUser):
         sends a localized reminder email.
 
         Only users with a verified email address receive reminders.
-        Unlike ``deactivate_expired_users``, which notifies all
-        affected users irrespective of verification status.
         """
         reminder_days = app_settings.USER_EXPIRATION_WARNING_DAYS
         if reminder_days <= 0:
@@ -311,36 +317,44 @@ class AbstractUser(BaseUser):
                 "expiration_date",
             )
         )
-        email_count = 0
+        email_counts = 0
         for user in qs.iterator():
             with translation.override(user.language):
-                send_email(
-                    subject=_("Action Required: Account Expiration Notice"),
-                    body_text=render_to_string(
-                        "account/email/account_expiration_reminder_message.txt",
-                        context={
-                            "username": user.username,
-                            "expiration_date": user.expiration_date,
-                            "days_remaining": reminder_days,
-                        },
-                    ).strip(),
-                    body_html=render_to_string(
-                        "account/email/account_expiration_reminder_message.html",
-                        context={
-                            "username": user.username,
-                            "expiration_date": user.expiration_date,
-                            "days_remaining": reminder_days,
-                        },
-                    ).strip(),
-                    recipients=[user.email],
-                )
+                try:
+                    send_email(
+                        subject=_("Action Required: Account Expiration Notice"),
+                        body_text=render_to_string(
+                            "account/email/account_expiration_reminder_message.txt",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                                "days_remaining": reminder_days,
+                            },
+                        ).strip(),
+                        body_html=render_to_string(
+                            "account/email/account_expiration_reminder_message.html",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                                "days_remaining": reminder_days,
+                            },
+                        ).strip(),
+                        recipients=[user.email],
+                    )
+                except Exception as e:
+                    logger.exception(
+                        "Error sending expiration reminder email to user %s (%s): %s",
+                        getattr(user, "pk", None),
+                        getattr(user, "email", None),
+                        e,
+                    )
             # Avoid overloading the SMTP server by sending multiple
             # emails continuously.
-            if email_count >= 10:
-                email_count = 0
+            if email_counts >= 10:
+                email_counts = 0
                 sleep(random.randint(1, 2))
             else:
-                email_count += 1
+                email_counts += 1
 
 
 class BaseGroup(object):
