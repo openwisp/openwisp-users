@@ -29,6 +29,47 @@ User = get_user_model()
 class TestUsers(TestOrganizationMixin, TestCase):
     user_model = User
 
+    def _assert_email_recipient(self, action, expected):
+        with patch("openwisp_users.base.models.send_email") as mock_send:
+            action()
+
+        if expected is None:
+            mock_send.assert_not_called()
+            return
+
+        mock_send.assert_called_once()
+        self.assertEqual(
+            mock_send.call_args[1]["recipients"],
+            [expected],
+        )
+
+    def _set_email_states(self, user, states):
+        EmailAddress.objects.filter(user=user).delete()
+        for state in states:
+            state.user = user
+            state.save()
+
+    def _setup_deactivation_user(self, label):
+        email = f"user{label}@example.com"
+        with freeze_time(now() - timedelta(days=5)):
+            return self._create_user(
+                username=f"testuser{label}",
+                email=email,
+                is_active=True,
+                expiration_date=now().date(),
+            )
+
+    def _setup_reminder_user(self, label):
+        email = f"user{label}@example.com"
+        reminder_days = app_settings.USER_EXPIRATION_WARNING_DAYS
+
+        return self._create_user(
+            username=f"testuser{label}",
+            email=email,
+            expiration_date=now().date() + timedelta(days=reminder_days),
+            is_active=True,
+        )
+
     def test_create_superuser_email(self):
         user = User.objects.create_superuser(
             username="tester", password="tester", email="test@superuser.com"
@@ -613,13 +654,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertTrue(none_user.is_active)
 
     def test_deactivate_expired_users_sends_email(self):
-        expired_user = self._create_user(
-            username="expired",
-            email="expired@example.com",
-            is_active=True,
-            expiration_date=now().date(),
-        )
-        EmailAddress.objects.filter(user=expired_user).update(verified=True)
+        with freeze_time(now() - timedelta(days=5)):
+            expired_user = self._create_user(
+                username="expired",
+                email="expired@example.com",
+                is_active=True,
+                expiration_date=now().date(),
+            )
+            EmailAddress.objects.filter(user=expired_user).update(verified=True)
 
         deactivate_expired_users()
         expected_date = localize(expired_user.expiration_date)
@@ -679,18 +721,144 @@ class TestUsers(TestOrganizationMixin, TestCase):
         mocked_logger.assert_called_once()
 
     def test_deactivate_expired_users_email_unverified(self):
-        expired_user = self._create_user(
-            username="expired",
-            email="expired@example.com",
-            is_active=True,
-            expiration_date=now().date(),
-        )
-        EmailAddress.objects.filter(user=expired_user).update(verified=False)
+        with freeze_time(now() - timedelta(days=5)):
+            expired_user = self._create_user(
+                username="expired",
+                email="expired@example.com",
+                is_active=True,
+                expiration_date=now().date(),
+            )
+            EmailAddress.objects.filter(user=expired_user).update(verified=False)
 
         deactivate_expired_users()
         expired_user.refresh_from_db()
         self.assertEqual(expired_user.is_active, False)
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_deactivate_expired_users_recipient_selection(self):
+        with self.subTest("verified primary email is used"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("dra")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="primary@dra.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                "primary@dra.com",
+            )
+
+        with self.subTest("primary unverified, verified non-primary used as fallback"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("drb")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="primary@drb.com",
+                        verified=False,
+                        primary=True,
+                    ),
+                    EmailAddress(
+                        email="verified@drb.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                "verified@drb.com",
+            )
+
+        with self.subTest("no primary, first verified email selected"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("drc")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="first@drc.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                    EmailAddress(
+                        email="second@drc.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                "first@drc.com",
+            )
+
+        with self.subTest("verified primary preferred over other verified"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("drd")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="nonprimary@drd.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                    EmailAddress(
+                        email="primary@drd.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                "primary@drd.com",
+            )
+
+        with self.subTest("user.email differs from verified email"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("dre")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="verified@dre.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                "verified@dre.com",
+            )
+            self.assertNotEqual(user.email, "verified@dre.com")
+
+        with self.subTest("no verified email skips sending"):
+            User.objects.all().delete()
+            user = self._setup_deactivation_user("drf")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="unverified@drf.com",
+                        verified=False,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                deactivate_expired_users,
+                None,
+            )
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email(self):
@@ -813,3 +981,129 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with patch("openwisp_users.base.models.send_email") as mock_send:
             expiration_reminder_email()
             mock_send.assert_not_called()
+
+    @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
+    def test_expiration_reminder_email_recipient_selection(self):
+        with self.subTest("verified primary email is used"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("era")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="primary@era.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                "primary@era.com",
+            )
+
+        with self.subTest("primary unverified, verified non-primary used as fallback"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("erb")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="primary@erb.com",
+                        verified=False,
+                        primary=True,
+                    ),
+                    EmailAddress(
+                        email="verified@erb.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                "verified@erb.com",
+            )
+
+        with self.subTest("no primary, first verified email selected"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("erc")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="first@erc.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                    EmailAddress(
+                        email="second@erc.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                "first@erc.com",
+            )
+
+        with self.subTest("verified primary preferred over other verified"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("erd")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="nonprimary@erd.com",
+                        verified=True,
+                        primary=False,
+                    ),
+                    EmailAddress(
+                        email="primary@erd.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                "primary@erd.com",
+            )
+
+        with self.subTest("user.email differs from verified email"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("ere")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="verified@ere.com",
+                        verified=True,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                "verified@ere.com",
+            )
+            self.assertNotEqual(user.email, "verified@ere.com")
+
+        with self.subTest("no verified email skips sending"):
+            User.objects.all().delete()
+            user = self._setup_reminder_user("erf")
+            self._set_email_states(
+                user,
+                [
+                    EmailAddress(
+                        email="unverified@erf.com",
+                        verified=False,
+                        primary=True,
+                    ),
+                ],
+            )
+            self._assert_email_recipient(
+                expiration_reminder_email,
+                None,
+            )

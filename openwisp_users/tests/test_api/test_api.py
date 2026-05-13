@@ -751,6 +751,21 @@ class TestUsersApi(
         user = User.objects.get(username="tester")
         self.assertEqual(user.expiration_date, future_date)
 
+    def test_create_user_with_past_expiration_date_api(self):
+        path = reverse("users:user_list")
+        past_date = localdate() - timedelta(days=1)
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "password123",
+            "expiration_date": str(past_date),
+        }
+        r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(
+            r.data["expiration_date"], ["Expiration date cannot be in the past."]
+        )
+
     def test_update_expiration_date_api(self):
         user = self._get_user()
         path = reverse("users:user_detail", args=(user.pk,))

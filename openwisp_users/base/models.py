@@ -10,6 +10,7 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import OuterRef, Subquery
 from django.template.loader import render_to_string
 from django.utils import timezone, translation
 from django.utils.functional import cached_property
@@ -235,8 +236,22 @@ class AbstractUser(BaseUser):
         if count == 0:
             return 0
 
+        verified_email_subquery = (
+            EmailAddress.objects.filter(
+                user=OuterRef("pk"),
+                verified=True,
+            )
+            .order_by("-primary", "id")
+            .values("email")[:1]
+        )
         users = (
-            cls.objects.filter(id__in=deactivated_users, emailaddress__verified=True)
+            cls.objects.filter(
+                id__in=deactivated_users,
+                emailaddress__verified=True,
+            )
+            .annotate(
+                verified_email=Subquery(verified_email_subquery),
+            )
             .distinct()
             .only(
                 "id",
@@ -267,7 +282,7 @@ class AbstractUser(BaseUser):
                                 "expiration_date": user.expiration_date,
                             },
                         ).strip(),
-                        recipients=[user.email],
+                        recipients=[user.verified_email],
                     )
                 except Exception as e:
                     logger.exception(
@@ -301,11 +316,22 @@ class AbstractUser(BaseUser):
             return
 
         reminder_date = localdate() + timedelta(days=reminder_days)
+        verified_email_subquery = (
+            EmailAddress.objects.filter(
+                user=OuterRef("pk"),
+                verified=True,
+            )
+            .order_by("-primary", "id")
+            .values("email")[:1]
+        )
         qs = (
             cls.objects.filter(
                 is_active=True,
                 expiration_date=reminder_date,
                 emailaddress__verified=True,
+            )
+            .annotate(
+                verified_email=Subquery(verified_email_subquery),
             )
             .distinct()
             .only(
@@ -338,7 +364,7 @@ class AbstractUser(BaseUser):
                                 "days_remaining": reminder_days,
                             },
                         ).strip(),
-                        recipients=[user.email],
+                        recipients=[user.verified_email],
                     )
                 except Exception as e:
                     logger.exception(
