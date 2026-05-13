@@ -46,7 +46,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Cache APT packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: /var/cache/apt/archives
           key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
@@ -90,7 +90,8 @@ jobs:
 
       - name: Show gecko web driver log on failures
         if: ${{ failure() }}
-        run: cat geckodriver.log
+        run: |
+          [ -f geckodriver.log ] && cat geckodriver.log || echo "there is no gecko web driver log to show"
 
       - name: Upload Coverage
         if: ${{ success() }}

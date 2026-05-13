@@ -44,7 +44,7 @@ A Django app is nothing more than a `Python package
 of Python scripts). In the following examples, we'll call this Django app
 ``myusers``, but you can name it however you like:
 
-.. code-block::
+.. code-block:: bash
 
     django-admin startapp myusers
 
@@ -73,7 +73,7 @@ apps, please refer to the `Django documentation
 
 Install (and add to the requirements of your project) openwisp-users:
 
-.. code-block::
+.. code-block:: bash
 
     pip install openwisp-users
 
@@ -185,7 +185,7 @@ Substitute ``myusers`` with the name you chose in step 1.
 
 Create database migrations:
 
-.. code-block::
+.. code-block:: bash
 
     ./manage.py makemigrations
 
@@ -196,7 +196,7 @@ contents of the `sample_users/migrations/0004_default_groups.py
 
 Then, run the migrations:
 
-.. code-block::
+.. code-block:: bash
 
     ./manage.py migrate
 
@@ -361,7 +361,7 @@ to find out how to do this.
 
 You can then run tests with:
 
-.. code-block::
+.. code-block:: bash
 
     # the --parallel flag is optional
     ./manage.py test --parallel myusers

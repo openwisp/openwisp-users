@@ -8,7 +8,7 @@ Developer Docs
 
     ./installation.rst
     ./admin-utils.rst
-    ./django-rest-framework-utils
+    ./django-rest-framework-utils.rst
     ./misc-utils.rst
     ./extending.rst
 

@@ -65,7 +65,7 @@ creating filters for related multitenant models.
 
 Consider the following example from `IpAddressAdmin in openwisp-ipam
 <https://github.com/openwisp/openwisp-ipam/blob/956d9d25fc1ac339cb148ec7faf80046cc14be37/openwisp_ipam/admin.py#L216-L227>`_.
-``IpAddressAdmin`` allows filtering `IpAddress objects by ``Subnet``
+``IpAddressAdmin`` allows filtering ``IpAddress`` objects by ``Subnet``
 belonging to organizations managed by the user.
 
 .. code-block:: python
