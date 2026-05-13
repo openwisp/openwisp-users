@@ -2,7 +2,7 @@
 {% load l10n %}
 
 <p>
-  {% blocktrans count days=days_remaining with username=username expiry_date=expiration_date|localize %}
+  {% blocktrans trimmed count days=days_remaining with username=username expiry_date=expiration_date|localize %}
     We inform you that your account <strong>{{ username }}</strong> will expire in {{ days }} day on {{ expiry_date }}.
   {% plural %}
     We inform you that your account <strong>{{ username }}</strong> will expire in {{ days }} days on {{ expiry_date }}.

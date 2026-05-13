@@ -26,6 +26,70 @@ msgstr ""
 "Спасибо за использование %(site_name)s!\n"
 "%(site_domain)s"
 
+#: accounts/templates/account/email/account_expiration_reminder_message.html:5
+#, python-format
+msgid ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s day on %(expiry_date)s."
+msgid_plural ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s days on %(expiry_date)s."
+msgstr[0] ""
+"Сообщаем вам, что срок действия вашей учетной записи "
+"<strong>%(username)s</strong> истечет через %(days)s день, а именно "
+"%(expiry_date)s."
+msgstr[1] ""
+"Сообщаем вам, что срок действия вашей учетной записи "
+"<strong>%(username)s</strong> истечет через %(days)s дня, а именно "
+"%(expiry_date)s."
+msgstr[2] ""
+"Сообщаем вам, что срок действия вашей учетной записи "
+"<strong>%(username)s</strong> истечет через %(days)s дней, а именно "
+"%(expiry_date)s."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.html:13
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:10
+msgid "Please contact your administrator if you need to extend your access."
+msgstr ""
+"Пожалуйста, свяжитесь с вашим администратором, если вам нужно продлить "
+"доступ."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s will expire in %(days)s day on "
+"%(expiry_date)s."
+msgid_plural ""
+"We inform you that your account %(username)s will expire in %(days)s days on "
+"%(expiry_date)s."
+msgstr[0] ""
+"Сообщаем вам, что срок действия вашей учетной записи %(username)s истечет "
+"через %(days)s день, а именно %(expiry_date)s."
+msgstr[1] ""
+"Сообщаем вам, что срок действия вашей учетной записи %(username)s истечет "
+"через %(days)s дня, а именно %(expiry_date)s."
+msgstr[2] ""
+"Сообщаем вам, что срок действия вашей учетной записи %(username)s истечет "
+"через %(days)s дней, а именно %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:5
+#: accounts/templates/account/email/account_expired_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s has been deactivated because it "
+"expired on %(expiry_date)s."
+msgstr ""
+"Сообщаем вам, что ваша учетная запись %(username)s была деактивирована, "
+"поскольку срок ее действия истек %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:11
+#: accounts/templates/account/email/account_expired_message.txt:8
+msgid ""
+"Please contact your administrator if you need to reactivate your account."
+msgstr ""
+"Пожалуйста, свяжитесь с вашим администратором, если вам нужно "
+"повторно активировать вашу учетную запись."
+
 #: accounts/templates/account/email/email_confirmation_message.html:5
 #, python-format
 msgid ""
