@@ -674,7 +674,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             email.body,
             "We inform you that your account expired has been deactivated because"
             f" it expired on {expected_date}."
-            "\n\n\nPlease contact your administrator if you need to reactivate"
+            "\n\nPlease contact your administrator if you need to reactivate"
             " your account.",
         )
         self.assertInHTML(
@@ -885,7 +885,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 f"{user.username} will expire in "
                 f"{app_settings.USER_EXPIRATION_WARNING_DAYS} days on "
                 f"{expected_date}."
-                "\n\n\n"
+                "\n\n"
                 "Please contact your administrator if you need to extend your access."
             ),
         )
