@@ -30,6 +30,7 @@ The repository is a single Python package, not a monorepo.
 - Use `.github/workflows/ci.yml` as the authoritative compatibility matrix for supported Python and Django versions.
 - Preserve swappable model support and multi-tenant permission behavior.
 - Add or update tests for behavior changes.
+- For bug fixes, use TDD: add or update a regression test first, run it before the fix to confirm it fails for the expected reason, and make sure the failure message clearly describes the bug before implementing the fix.
 
 ## Instruction Priority
 
