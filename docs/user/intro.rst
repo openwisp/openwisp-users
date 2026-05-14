@@ -19,6 +19,8 @@ User Management
 - Create, read, update, and delete user accounts.
 - Support for custom user fields through extensible models (see
   :doc:`../developer/extending` for more information).
+- Support for password expiration and account expiration policies to enforce
+  user lifecycle constraints.
 - :ref:`Export user data <export_users>` through a management command
   (from the Linux shell).
 
