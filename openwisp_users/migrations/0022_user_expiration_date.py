@@ -14,10 +14,16 @@ class Migration(migrations.Migration):
             name="expiration_date",
             field=models.DateField(
                 blank=True,
+                db_index=True,
                 help_text="Date on which the user account will expire.",
                 null=True,
-                index=True,
                 verbose_name="expiration date",
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="user",
+            index=models.Index(
+                fields=["is_active", "expiration_date"], name="user_active_expiry_idx"
             ),
         ),
     ]

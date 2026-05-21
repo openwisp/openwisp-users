@@ -165,7 +165,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     "expiration_reminder_email": {
         "task": "openwisp_users.tasks.expiration_reminder_email",
-        "schedule": crontab(hour=0, minute=1),
+        "schedule": crontab(hour=0, minute=5),
     },
 }
 

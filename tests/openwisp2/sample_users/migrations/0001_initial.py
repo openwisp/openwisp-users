@@ -200,7 +200,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Date on which the user account will expire.",
                         null=True,
-                        index=True,
+                        db_index=True,
                         verbose_name="expiration date",
                     ),
                 ),
@@ -213,7 +213,11 @@ class Migration(migrations.Migration):
                     models.Index(
                         fields=["id", "email"],
                         name="user_id_email_idx",
-                    )
+                    ),
+                    models.Index(
+                        fields=["is_active", "expiration_date"],
+                        name="user_active_expiry_idx",
+                    ),
                 ],
             },
             managers=[

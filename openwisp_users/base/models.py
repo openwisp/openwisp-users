@@ -78,7 +78,7 @@ class AbstractUser(BaseUser):
         _("expiration date"),
         blank=True,
         null=True,
-        index=True,
+        db_index=True,
         help_text=_("Date on which the user account will expire."),
     )
 
@@ -86,7 +86,13 @@ class AbstractUser(BaseUser):
 
     class Meta(BaseUser.Meta):
         abstract = True
-        indexes = [models.Index(fields=["id", "email"], name="user_id_email_idx")]
+        indexes = [
+            models.Index(fields=["id", "email"], name="user_id_email_idx"),
+            models.Index(
+                fields=["is_active", "expiration_date"],
+                name="user_active_expiry_idx",
+            ),
+        ]
 
     @staticmethod
     def _get_pk(obj):
