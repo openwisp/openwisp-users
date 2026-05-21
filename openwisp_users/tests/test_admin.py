@@ -20,7 +20,7 @@ from swapper import load_model
 from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 
 from .. import settings as app_settings
-from ..admin import OrganizationOwnerAdmin
+from ..admin import OrganizationAdmin, OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
 from ..multitenancy import MultitenantAdminMixin
 from .utils import (
@@ -1092,6 +1092,12 @@ class TestUsersAdmin(
         response = self.client.get(reverse(f"admin:{self.app_label}_organization_add"))
         html = '<input type="text" name="name" value="default"'
         self.assertNotContains(response, html)
+
+    def test_organization_admin_copyable_uuid(self):
+        org_admin = OrganizationAdmin(Organization, django_admin.site)
+        org = self._create_org()
+        self.assertEqual(OrganizationAdmin.copyable_fields, ("uuid",))
+        self.assertEqual(org_admin.uuid(org), org.pk)
 
     def test_action_active(self):
         user = User.objects.create(

@@ -1,15 +1,17 @@
 import csv
+import re
 from io import StringIO
 from unittest.mock import patch
 
 from django.core.files.temp import NamedTemporaryFile
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
 from django.test import TestCase
 from rest_framework.authtoken.models import Token
 
 from openwisp_utils.tests import capture_stdout
 
 from .. import settings as app_settings
+from ..management.commands.export_users import Command
 from .utils import TestOrganizationMixin
 
 
@@ -25,7 +27,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
     def test_export_users(self):
         org1 = self._create_org(name="org1")
         org2 = self._create_org(name="org2")
-        user = self._create_user()
+        # create a user with a non-ASCII first_name to validate UTF-8 export
+        user = self._create_user(first_name="Téstér")
         operator = self._create_operator()
         admin = self._create_admin()
         self._create_org_user(organization=org1, user=user, is_admin=True)
@@ -39,16 +42,34 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
             stdout.getvalue(),
         )
 
-        # Read the content of the temporary file
-        with open(self.temp_file.name, "r") as temp_file:
+        # Read the content of the temporary file (explicit encoding)
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
         # 3 user and 1 header
         self.assertEqual(len(csv_data), 4)
-        self.assertEqual(
-            csv_data[0], app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"]
-        )
+        # Expected headers are the keys produced by normalize_field for the
+        # default EXPORT_USERS_COMMAND_CONFIG. These are stable values and
+        # asserted explicitly to avoid mirroring production code in the test.
+        expected_headers = [
+            "id",
+            "username",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "is_staff",
+            "is_active",
+            "date_joined",
+            "phone_number",
+            "birth_date",
+            "location",
+            "notes",
+            "language",
+            "organizations (organization_id, is_admin)",
+        ]
+        self.assertEqual(csv_data[0], expected_headers)
         # Ensuring ordering
         self.assertEqual(csv_data[1][0], str(user.id))
         self.assertEqual(csv_data[2][0], str(operator.id))
@@ -57,6 +78,8 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         self.assertEqual(csv_data[1][-1], f"({org1.id},True)\n({org2.id},False)")
         self.assertEqual(csv_data[2][-1], f"({org2.id},False)")
         self.assertEqual(csv_data[3][-1], "")
+        # Validate non-ASCII value exported correctly (first_name index 4)
+        self.assertEqual(csv_data[1][4], "Téstér")
 
     @capture_stdout()
     def test_exclude_fields(self):
@@ -64,11 +87,27 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         call_command(
             "export_users",
             filename=self.temp_file.name,
+            # Exclude all fields except "id"
             exclude_fields=",".join(
-                app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"][1:]
+                [
+                    "username",
+                    "email",
+                    "password",
+                    "first_name",
+                    "last_name",
+                    "is_staff",
+                    "is_active",
+                    "date_joined",
+                    "phone_number",
+                    "birth_date",
+                    "location",
+                    "notes",
+                    "language",
+                    "organizations",
+                ]
             ),
         )
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
@@ -79,13 +118,17 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
     @patch.object(
         app_settings,
         "EXPORT_USERS_COMMAND_CONFIG",
-        {"fields": ["id", "auth_token.key"]},
+        {
+            "fields": ["id", "auth_token.key"],
+            "select_related": ["auth_token"],
+            "prefetch_related": [],
+        },
     )
     def test_related_fields(self):
         user = self._create_user()
         token = Token.objects.create(user=user)
         stdout = StringIO()
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             call_command("export_users", filename=self.temp_file.name, stdout=stdout)
         self.assertIn(
             f"User data exported successfully to {self.temp_file.name}",
@@ -93,14 +136,231 @@ class TestManagementCommands(TestOrganizationMixin, TestCase):
         )
 
         # Read the content of the temporary file
-        with open(self.temp_file.name, "r") as temp_file:
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
             csv_reader = csv.reader(temp_file)
             csv_data = list(csv_reader)
 
-        # 3 user and 1 header
+        # 1 user and 1 header
         self.assertEqual(len(csv_data), 2)
-        self.assertEqual(
-            csv_data[0], app_settings.EXPORT_USERS_COMMAND_CONFIG["fields"]
-        )
+        # When fields are ["id", "auth_token.key"] the expected headers
+        # are the literal keys used to identify columns in the CSV.
+        expected_headers = ["id", "auth_token.key"]
+        self.assertEqual(csv_data[0], expected_headers)
         self.assertEqual(csv_data[1][0], str(user.id))
         self.assertEqual(csv_data[1][1], str(token.key))
+
+    @patch.object(
+        app_settings,
+        "EXPORT_USERS_COMMAND_CONFIG",
+        {
+            "fields": ["id", "auth_token.key"],
+            "select_related": ["auth_token"],
+            "prefetch_related": [],
+        },
+    )
+    @capture_stdout()
+    def test_related_fields_no_n_plus_1(self):
+        """Query count must not grow with additional users."""
+        user1 = self._create_user()
+        self._create_operator()
+        token1 = Token.objects.create(user=user1)
+        # user2 intentionally has no token to cover the ObjectDoesNotExist path
+        with self.assertNumQueries(1):
+            call_command("export_users", filename=self.temp_file.name)
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
+            csv_reader = csv.reader(temp_file)
+            csv_data = list(csv_reader)
+        # 2 users and 1 header
+        self.assertEqual(len(csv_data), 3)
+        self.assertEqual(csv_data[1][1], str(token1.key))
+        self.assertEqual(csv_data[2][1], "")
+
+    def test_callable_error_handling(self):
+        with self.subTest("Callable that raises non-CommandError"):
+
+            def _broken_callable(user):
+                raise ValueError("test error")
+
+            config = {
+                "fields": ["id", {"name": "broken", "callable": _broken_callable}],
+                "select_related": [],
+                "prefetch_related": [],
+            }
+            self._create_user()
+            stderr = StringIO()
+            with (
+                patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config),
+                self.assertRaises(CommandError) as context,
+            ):
+                # the command wraps callable errors in CommandError with callable name
+                call_command(
+                    "export_users", filename=self.temp_file.name, stderr=stderr
+                )
+            self.assertIn("Error calling function '", str(context.exception))
+
+        with self.subTest("Callable raises CommandError"):
+
+            def _broken_command_error_callable(user):
+                raise CommandError("original msg")
+
+            config2 = {
+                "fields": [
+                    "id",
+                    {"name": "broken", "callable": _broken_command_error_callable},
+                ],
+                "select_related": [],
+                "prefetch_related": [],
+            }
+            stderr = StringIO()
+            with (
+                patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config2),
+                self.assertRaises(CommandError) as context2,
+            ):
+                call_command(
+                    "export_users", filename=self.temp_file.name, stderr=stderr
+                )
+            self.assertIn("original msg", str(context2.exception))
+
+    @patch.object(
+        app_settings,
+        "EXPORT_USERS_COMMAND_CONFIG",
+        {
+            "fields": [
+                "id",
+                # single related object with single subfield
+                {"name": "auth_token", "fields": ["key"]},
+                # single related object with multiple subfields
+                {"name": "auth_token", "fields": ["key", "created"]},
+                # nullable field
+                {"name": "birth_date", "fields": ["year"]},
+                # manager with single subfield
+                {
+                    "name": "openwisp_users_organizationuser",
+                    "fields": ["organization_id"],
+                },
+                # manager with multiple subfields
+                {
+                    "name": "openwisp_users_organizationuser",
+                    "fields": ["organization_id", "is_admin"],
+                },
+                # dot-notation on a manager
+                "openwisp_users_organizationuser.organization_id",
+            ],
+            "select_related": ["auth_token"],
+            "prefetch_related": ["openwisp_users_organizationuser"],
+        },
+    )
+    @capture_stdout()
+    def test_subfields_dict_field(self):
+        org = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        user1 = self._create_user(birth_date=None)
+        user2 = self._create_operator(birth_date=None)
+        token = Token.objects.create(user=user1)
+        self._create_org_user(organization=org, user=user1, is_admin=True)
+        self._create_org_user(organization=org2, user=user1, is_admin=False)
+        # user2 has no token (covers ObjectDoesNotExist)
+        # and no org membership (covers empty manager)
+        call_command("export_users", filename=self.temp_file.name)
+        with open(self.temp_file.name, "r", encoding="utf-8") as temp_file:
+            csv_reader = csv.reader(temp_file)
+            csv_data = list(csv_reader)
+        # 2 users + 1 header
+        self.assertEqual(len(csv_data), 3)
+        expected_headers = [
+            "id",
+            "auth_token (key)",
+            "auth_token (key, created)",
+            "birth_date (year)",
+            "openwisp_users_organizationuser (organization_id)",
+            "openwisp_users_organizationuser (organization_id, is_admin)",
+            "openwisp_users_organizationuser.organization_id",
+        ]
+        self.assertEqual(csv_data[0], expected_headers)
+        # user1: token present, birth_date None, one org membership
+        self.assertEqual(csv_data[1][0], str(user1.id))
+        # subfields, single obj, single subfield → no wrapping
+        self.assertEqual(csv_data[1][1], token.key)
+        # single-obj multi-subfield: wrapped shape ((key,created))
+        self.assertRegex(
+            csv_data[1][2],
+            rf"^\({re.escape(token.key)},",
+        )
+        # birth_date is None
+        self.assertEqual(csv_data[1][3], "")
+        # single-subfield manager, single object → no wrapping
+        self.assertEqual(csv_data[1][4], f"({org.id},{org2.id})")
+        # multi-subfield manager
+        self.assertEqual(csv_data[1][5], f"({org.id},True)\n({org2.id},False)")
+        # dot-notation manager
+        self.assertEqual(csv_data[1][6], f"({org.id},{org2.id})")
+        # user2: no token, no org membership
+        self.assertEqual(csv_data[2][0], str(user2.id))
+        # ObjectDoesNotExist auth_token
+        self.assertEqual(csv_data[2][1], "")
+        # ObjectDoesNotExist auth_token multi-subfield
+        self.assertEqual(csv_data[2][2], "")
+        # birth_date is None
+        self.assertEqual(csv_data[2][3], "")
+        # empty manager
+        self.assertEqual(csv_data[2][4], "")
+        self.assertEqual(csv_data[2][5], "")
+        # empty dot-notation manager
+        self.assertEqual(csv_data[2][6], "")
+
+    def test_dot_notation_objectdoesnotexist_on_sub_attr(self):
+        """Returns empty string when sub-attribute access raises ObjectDoesNotExist."""
+        from django.core.exceptions import ObjectDoesNotExist
+
+        class FakeIntermediate:
+            @property
+            def sub_field(self):
+                raise ObjectDoesNotExist
+
+        class FakeUser:
+            pk = 1
+            intermediate = FakeIntermediate()
+
+        result = Command()._get_field_value(FakeUser(), "intermediate.sub_field")
+        self.assertEqual(result, "")
+
+    def test_plain_relation_field_returns_empty_string(self):
+        org = self._create_org(name="org1")
+        user = self._create_user()
+        self._create_org_user(organization=org, user=user, is_admin=True)
+        result = Command()._get_field_value(user, "openwisp_users_organizationuser")
+        self.assertEqual(result, "")
+
+    @capture_stdout()
+    def test_custom_header(self):
+        def _get_is_active(user):
+            return "yes" if user.is_active else "no"
+
+        config = {
+            "fields": [
+                "id",
+                {
+                    "name": "active_status",
+                    "header": "Active?",
+                    "callable": _get_is_active,
+                },
+                {
+                    "name": "custom_orgs",
+                    "header_fields": ["org_id", "is_admin"],
+                    "callable": _get_is_active,
+                },
+            ],
+            "select_related": [],
+            "prefetch_related": [],
+        }
+        self._create_user(is_active=True)
+        with patch.object(app_settings, "EXPORT_USERS_COMMAND_CONFIG", config):
+            call_command("export_users", filename=self.temp_file.name)
+        with open(self.temp_file.name, "r", encoding="utf-8") as f:
+            csv_reader = csv.reader(f)
+            csv_data = list(csv_reader)
+        self.assertEqual(
+            csv_data[0], ["id", "Active?", "custom_orgs (org_id, is_admin)"]
+        )
+        self.assertEqual(csv_data[1][1], "yes")
+        self.assertEqual(csv_data[1][2], "yes")

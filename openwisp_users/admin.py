@@ -30,7 +30,7 @@ from organizations.exceptions import OwnershipRequired
 from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
-from openwisp_utils.admin import UUIDAdmin
+from openwisp_utils.admin import CopyableFieldsAdmin
 
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
@@ -505,7 +505,7 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
 
 
 class OrganizationAdmin(
-    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, UUIDAdmin
+    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, CopyableFieldsAdmin
 ):
     view_on_site = False
     # this inline has an autocomplete field pointing to OrganizationUserAdmin
@@ -514,6 +514,7 @@ class OrganizationAdmin(
     readonly_fields = ["uuid", "created", "modified"]
     ordering = ["name"]
     list_display = ["name", "is_active", "created", "modified"]
+    copyable_fields = ("uuid",)
 
     def get_inline_instances(self, request, obj=None):
         """
@@ -535,7 +536,7 @@ class OrganizationAdmin(
             return False
         return super().has_change_permission(request, obj)
 
-    class Media(UUIDAdmin.Media):
+    class Media(CopyableFieldsAdmin.Media):
         css = {"all": ("openwisp-users/css/admin.css",)}
 
 
