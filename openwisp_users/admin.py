@@ -19,6 +19,7 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.timezone import localdate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 from organizations.base_admin import (
@@ -269,7 +270,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     )
     @require_confirmation
     def make_active(self, request, queryset):
-        queryset.update(is_active=True)
+        # Clear expired expiration dates before reactivating users.
+        queryset.filter(expiration_date__lt=localdate()).update(
+            is_active=True, expiration_date=None
+        )
+        queryset.exclude(expiration_date__lt=localdate()).update(is_active=True)
         count = queryset.count()
         if count:
             self.message_user(

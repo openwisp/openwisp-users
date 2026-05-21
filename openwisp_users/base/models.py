@@ -1,7 +1,5 @@
 import logging
-import random
 import uuid
-from time import sleep
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -22,6 +20,7 @@ from swapper import load_model
 from openwisp_utils.admin_theme.email import send_email
 
 from .. import settings as app_settings
+from ..utils import _throttle_email_batch
 
 logger = logging.getLogger(__name__)
 
@@ -196,9 +195,19 @@ class AbstractUser(BaseUser):
                 {"email": _("User with this Email address already exists.")}
             )
         if self.expiration_date and self.expiration_date < localdate():
-            raise ValidationError(
-                {"expiration_date": _("Expiration date cannot be in the past.")}
-            )
+            # Prevent setting a past expiration date, but allow keeping an
+            # already expired date unchanged while updating other fields.
+            current_expiration_date = None
+            if not self._state.adding:
+                current_expiration_date = (
+                    self._meta.model.objects.filter(pk=self.pk)
+                    .values_list("expiration_date", flat=True)
+                    .first()
+                )
+            if self._state.adding or current_expiration_date != self.expiration_date:
+                raise ValidationError(
+                    {"expiration_date": _("Expiration date cannot be in the past.")}
+                )
 
     def _invalidate_user_organizations_dict(self):
         """
@@ -219,23 +228,34 @@ class AbstractUser(BaseUser):
         """
         Deactivate users whose expiration_date is today or earlier.
 
-        This performs a bulk update to set is_active=False for all active users
-        with expiration_date <= today. It returns the number of users
-        deactivated.
+        This stores the primary keys of all matching users first and then
+        deactivates those users one by one with save(update_fields=["is_active"])
+        so that post-save hooks still run for consumers that rely on them.
+        It returns the number of users deactivated.
 
         Emails are sent only to affected users who have a verified email
         address, while all expired active users are deactivated.
         """
         expiry_date = localdate()
-        qs = cls.objects.filter(is_active=True, expiration_date__lte=expiry_date)
         # We intentionally store the user IDs before the bulk update
         # because once `is_active` is updated to False, the original
         # queryset would no longer match these users.
-        deactivated_users = list(qs.values_list("id", flat=True))
-        count = qs.update(is_active=False)
-        if count == 0:
+        deactivated_user_ids = list(
+            cls.objects.filter(
+                is_active=True, expiration_date__lte=expiry_date
+            ).values_list("id", flat=True)
+        )
+        if not deactivated_user_ids:
             return 0
 
+        users_to_deactivate = cls.objects.filter(id__in=deactivated_user_ids).only(
+            "id", "is_active"
+        )
+        for user in users_to_deactivate.iterator():
+            user.is_active = False
+            user.save(update_fields=["is_active"])
+
+        count = len(deactivated_user_ids)
         verified_email_subquery = (
             EmailAddress.objects.filter(
                 user=OuterRef("pk"),
@@ -246,7 +266,7 @@ class AbstractUser(BaseUser):
         )
         users = (
             cls.objects.filter(
-                id__in=deactivated_users,
+                id__in=deactivated_user_ids,
                 emailaddress__verified=True,
             )
             .annotate(
@@ -290,13 +310,8 @@ class AbstractUser(BaseUser):
                         getattr(user, "pk", None),
                         e,
                     )
-            # Avoid overloading the SMTP server by sending multiple
-            # emails continuously.
-            if email_counts >= 10:
-                email_counts = 0
-                sleep(random.randint(1, 2))
-            else:
-                email_counts += 1
+            email_counts += 1
+            _throttle_email_batch(email_counts)
 
         return count
 
@@ -313,7 +328,7 @@ class AbstractUser(BaseUser):
         """
         reminder_days = app_settings.USER_EXPIRATION_WARNING_DAYS
         if reminder_days <= 0:
-            return
+            return 0
 
         reminder_date = localdate() + timedelta(days=reminder_days)
         verified_email_subquery = (
@@ -342,6 +357,7 @@ class AbstractUser(BaseUser):
                 "expiration_date",
             )
         )
+        count = qs.count()
         email_counts = 0
         for user in qs.iterator():
             with translation.override(user.language):
@@ -372,13 +388,10 @@ class AbstractUser(BaseUser):
                         getattr(user, "pk", None),
                         e,
                     )
-            # Avoid overloading the SMTP server by sending multiple
-            # emails continuously.
-            if email_counts >= 10:
-                email_counts = 0
-                sleep(random.randint(1, 2))
-            else:
-                email_counts += 1
+            email_counts += 1
+            _throttle_email_batch(email_counts)
+
+        return count
 
 
 class BaseGroup(object):

@@ -1,3 +1,6 @@
+import random
+from time import sleep
+
 from django.conf import settings
 
 if "reversion" in settings.INSTALLED_APPS:  # pragma: no cover
@@ -57,3 +60,8 @@ def usermodel_list_and_search(model, additional_fields):
         displays = model.list_display[:]
         model.list_display = displays[: field[0]] + [field[1]] + displays[field[0] :]
         model.search_fields += (field[1],)
+
+
+def _throttle_email_batch(email_count):
+    if email_count and email_count % 10 == 0:
+        sleep(random.randint(1, 2))

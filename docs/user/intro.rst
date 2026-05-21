@@ -19,8 +19,8 @@ User Management
 - Create, read, update, and delete user accounts.
 - Support for custom user fields through extensible models (see
   :doc:`../developer/extending` for more information).
-- Support for password expiration and account expiration policies to enforce
-  user lifecycle constraints.
+- Support for password expiration and :doc:`account expiration
+  <account-expiration>` policies to enforce user lifecycle constraints.
 - :ref:`Export user data <export_users>` through a management command
   (from the Linux shell).
 
@@ -58,7 +58,6 @@ Admin Interface
 - User-friendly Django admin interface.
 - Customizable admin views for user and organization management (see
   :doc:`../developer/extending` for more information).
-
 Extensible Authentication
 -------------------------
 

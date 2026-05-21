@@ -15,6 +15,7 @@ from django.template.defaultfilters import date
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
+from freezegun import freeze_time
 from swapper import load_model
 
 from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
@@ -1123,6 +1124,28 @@ class TestUsersAdmin(
         response = self.client.post(path, post_data, follow=True)
         self.assertEqual(response.status_code, 200)
 
+    def test_action_active_clears_past_expiration_date(self):
+        user = User.objects.create(
+            username="expired-active",
+            password="test",
+            email="expired-active@test.com",
+            is_active=False,
+            expiration_date=now().date() - timedelta(days=1),
+        )
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+        self.client.force_login(self._get_admin())
+        post_data = {
+            "_selected_action": [user.pk],
+            "action": "make_active",
+            "csrfmiddlewaretoken": "test",
+            "confirmation": "Confirm",
+        }
+        response = self.client.post(path, post_data, follow=True)
+        user.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(user.is_active, True)
+        self.assertIsNone(user.expiration_date)
+
     def test_action_active_perms(self):
         org = self._get_org()
         org_user = self._create_org_user(
@@ -1727,6 +1750,44 @@ class TestUsersAdmin(
         self.assertContains(response, "expiration_date")
         self.assertContains(response, "Account expiration")
 
+    def test_admin_with_change_permission_can_update_expiration_date(self):
+        org = self._get_org()
+        administrator = self._create_administrator([org])
+        user = self._create_user(
+            username="expirable",
+            email="expirable@example.com",
+        )
+        self._create_org_user(organization=org, user=user)
+        self.client.force_login(administrator)
+        path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        params = user.__dict__
+        params.pop("phone_number")
+        params.pop("password", None)
+        params.pop("_password", None)
+        params.pop("last_login")
+        params.pop("password_updated")
+        params["expiration_date"] = str(now().date() + timedelta(days=14))
+        params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
+        params.update(
+            {
+                "emailaddress_set-TOTAL_FORMS": 1,
+                "emailaddress_set-INITIAL_FORMS": 1,
+                "emailaddress_set-0-verified": True,
+                "emailaddress_set-0-primary": True,
+                "emailaddress_set-0-id": user.emailaddress_set.first().id,
+                "emailaddress_set-0-user": user.id,
+            }
+        )
+        params.update(self._get_user_edit_form_inline_params(user, org))
+
+        response = self.client.post(path, params, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Please correct the error below.")
+        user.refresh_from_db()
+        self.assertEqual(user.expiration_date, now().date() + timedelta(days=14))
+
 
 class TestBasicUsersIntegration(
     TestOrganizationMixin, TestUserAdditionalFieldsMixin, TestCase
@@ -1811,6 +1872,38 @@ class TestBasicUsersIntegration(
             response = self.client.get(url)
             self.assertContains(response, "id_birth_date")
             self.assertContains(response, "notes for internal usage")
+
+    def test_change_user_with_past_expiration_date(self):
+        admin = self._create_administrator([Organization.objects.first()])
+        with freeze_time(now() - timedelta(days=1)):
+            user = self._create_user(
+                username="expired-edit",
+                email="expired-edit@example.com",
+                is_active=False,
+                expiration_date=now().date(),
+            )
+        org = Organization.objects.first()
+        self._create_org_user(organization=org, user=user)
+        self.client.force_login(admin)
+        params = user.__dict__
+        params["bio"] = "Updated expired bio"
+        params.pop("phone_number")
+        params.pop("password", None)
+        params.pop("_password", None)
+        params.pop("last_login")
+        params.pop("password_updated")
+        params["expiration_date"] = str(user.expiration_date)
+        params["birth_date"] = user.date_joined.date()
+        params = self._additional_params_pop(params)
+        params.update(self._get_user_edit_form_inline_params(user, org))
+        url = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+
+        response = self.client.post(url, params, follow=True)
+
+        self.assertNotContains(response, "Please correct the error below.")
+        user.refresh_from_db()
+        self.assertEqual(user.bio, "Updated expired bio")
+        self.assertEqual(user.expiration_date, now().date() - timedelta(days=1))
 
     def _delete_inline_org_user(self, is_admin=False):
         admin = self._create_admin()

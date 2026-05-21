@@ -38,6 +38,7 @@ OpenWISP architecture.
 
     user/intro.rst
     user/basic-concepts.rst
+    user/account-expiration.rst
     user/management-commands.rst
     user/settings.rst
     user/rest-api.rst
