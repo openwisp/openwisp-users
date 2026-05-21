@@ -58,6 +58,7 @@ Admin Interface
 - User-friendly Django admin interface.
 - Customizable admin views for user and organization management (see
   :doc:`../developer/extending` for more information).
+
 Extensible Authentication
 -------------------------
 

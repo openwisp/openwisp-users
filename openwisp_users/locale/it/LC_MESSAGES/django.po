@@ -27,10 +27,8 @@ msgid "Password updated successfully"
 msgstr "Password aggiornata con successo"
 
 #: base/models.py:350
-#, fuzzy
-#| msgid "Action Required: Password Expiry Notice"
 msgid "Action Required: Account Expiration Notice"
-msgstr "Azione richiesta: Avviso di scadenza della password"
+msgstr "Azione richiesta: Avviso di scadenza dell'account"
 
 msgid "Action Required: Password Expiry Notice"
 msgstr "Azione richiesta: Avviso di scadenza della password"

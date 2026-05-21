@@ -200,6 +200,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="Date on which the user account will expire.",
                         null=True,
+                        index=True,
                         verbose_name="expiration date",
                     ),
                 ),

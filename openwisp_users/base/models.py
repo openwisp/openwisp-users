@@ -78,6 +78,7 @@ class AbstractUser(BaseUser):
         _("expiration date"),
         blank=True,
         null=True,
+        index=True,
         help_text=_("Date on which the user account will expire."),
     )
 
