@@ -43,6 +43,7 @@ EXPORT_USERS_COMMAND_CONFIG = getattr(
             "is_staff",
             "is_active",
             "date_joined",
+            "expiration_date",
             "phone_number",
             "birth_date",
             "location",
