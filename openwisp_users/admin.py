@@ -168,10 +168,15 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
     phone_number = PhoneNumberField(widget=forms.TextInput(), required=False)
 
     class Meta(BaseUserCreationForm.Meta):
-        fields = ["username", "email", "password1", "password2"]
+        model = User
+        fields = ["username", "email", "password1", "password2", "expiration_date"]
         personal_fields = ["first_name", "last_name", "phone_number", "birth_date"]
         fieldsets = (
-            (None, {"classes": ("wide",), "fields": fields}),
+            (None, {"classes": ("wide",), "fields": fields[:-1]}),
+            (
+                _("Account expiration"),
+                {"classes": ("wide",), "fields": ("expiration_date",)},
+            ),
             ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
                 "Permissions",
@@ -179,7 +184,11 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
             ),
         )
         fieldsets_superuser = (
-            (None, {"classes": ("wide",), "fields": fields}),
+            (None, {"classes": ("wide",), "fields": fields[:-1]}),
+            (
+                _("Account expiration"),
+                {"classes": ("wide",), "fields": ("expiration_date",)},
+            ),
             ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
                 "Permissions",
@@ -322,7 +331,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             user_permissions = ("is_active", "is_staff", "groups", "user_permissions")
             # copy to avoid modifying reference
             non_superuser_fieldsets = deepcopy(fieldsets)
-            non_superuser_fieldsets[2][1]["fields"] = user_permissions
+            for fieldset in non_superuser_fieldsets:
+                fields = fieldset[1].get("fields", ())
+                if "is_superuser" in fields:
+                    fieldset[1]["fields"] = user_permissions
+                    break
             return non_superuser_fieldsets
         return fieldsets
 
@@ -490,7 +503,7 @@ base_fields = list(UserAdmin.fieldsets[1][1]["fields"])
 additional_fields = ["bio", "url", "company", "location", "phone_number", "birth_date"]
 UserAdmin.fieldsets[1][1]["fields"] = base_fields + additional_fields
 UserAdmin.fieldsets.insert(
-    3, (_("Account expiration"), {"fields": ("expiration_date",)})
+    1, (_("Account expiration"), {"fields": ("expiration_date",)})
 )
 UserAdmin.fieldsets.insert(4, (_("Internal"), {"fields": ("notes",)}))
 primary_fields = list(UserAdmin.fieldsets[0][1]["fields"])

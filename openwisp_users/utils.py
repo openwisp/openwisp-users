@@ -43,10 +43,14 @@ def usermodel_change_form(model, additional_fields):
 
     # Change form fieldsets
     for field in additional_fields:
-        fieldsets = model.fieldsets[1][1]["fields"][:]
-        model.fieldsets[1][1]["fields"] = (
-            fieldsets[: field[0]] + [field[1]] + fieldsets[field[0] :]
-        )
+        for fieldset in model.fieldsets:
+            fieldsets = list(fieldset[1].get("fields", ()))
+            if "first_name" not in fieldsets:
+                continue
+            fieldset[1]["fields"] = (
+                fieldsets[: field[0]] + [field[1]] + fieldsets[field[0] :]
+            )
+            break
 
 
 def usermodel_list_and_search(model, additional_fields):

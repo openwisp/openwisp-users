@@ -79,7 +79,10 @@ class AbstractUser(BaseUser):
         blank=True,
         null=True,
         db_index=True,
-        help_text=_("Date on which the user account will expire."),
+        help_text=_(
+            "If set, the account will be deactivated on this date and the user "
+            "will no longer be able to log in."
+        ),
     )
 
     objects = UserManager()

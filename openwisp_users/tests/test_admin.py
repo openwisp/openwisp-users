@@ -1757,6 +1757,24 @@ class TestUsersAdmin(
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "expiration_date")
         self.assertContains(response, "Account expiration")
+        content = response.content.decode()
+        self.assertLess(
+            content.index("Account expiration"),
+            content.index("Personal info"),
+        )
+
+    def test_expiration_date_field_in_admin_add_form(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse(f"admin:{self.app_label}_user_add"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "expiration_date")
+        self.assertContains(response, "Account expiration")
+        content = response.content.decode()
+        self.assertLess(
+            content.index("Account expiration"),
+            content.index("Personal Info"),
+        )
 
     def test_admin_with_change_permission_can_update_expiration_date(self):
         org = self._get_org()
@@ -1883,13 +1901,14 @@ class TestBasicUsersIntegration(
 
     def test_change_user_with_past_expiration_date(self):
         admin = self._create_administrator([Organization.objects.first()])
-        with freeze_time(now() - timedelta(days=1)):
+        with freeze_time(localdate() - timedelta(days=1)):
             user = self._create_user(
                 username="expired-edit",
                 email="expired-edit@example.com",
                 is_active=False,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
+            expiration_date = user.expiration_date
         org = Organization.objects.first()
         self._create_org_user(organization=org, user=user)
         self.client.force_login(admin)
@@ -1911,7 +1930,7 @@ class TestBasicUsersIntegration(
         self.assertNotContains(response, "Please correct the error below.")
         user.refresh_from_db()
         self.assertEqual(user.bio, "Updated expired bio")
-        self.assertEqual(user.expiration_date, now().date() - timedelta(days=1))
+        self.assertEqual(user.expiration_date, expiration_date)
 
     def _delete_inline_org_user(self, is_admin=False):
         admin = self._create_admin()
