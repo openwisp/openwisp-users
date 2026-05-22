@@ -2,7 +2,7 @@
 {% load l10n %}
 
 {% blocktrans trimmed with username=username expiry_date=expiration_date|localize %}
-We inform you that your account "{{ username }}" has been deactivated because it expired on {{ expiry_date }}.
+We inform you that your account {{ username }} has been deactivated because it expired on {{ expiry_date }}.
 {% endblocktrans %}
 
 {% trans "Please contact your administrator if you need to reactivate your account." %}

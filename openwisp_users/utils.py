@@ -63,5 +63,11 @@ def usermodel_list_and_search(model, additional_fields):
 
 
 def _throttle_email_batch(email_count):
+    """
+    Throttle email batch processing by sleeping every 10th email.
+
+    Args:
+        email_count: Current count of emails sent in the batch
+    """
     if email_count and email_count % 10 == 0:
         sleep(random.randint(1, 2))

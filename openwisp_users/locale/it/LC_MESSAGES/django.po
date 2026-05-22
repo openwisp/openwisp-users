@@ -14,11 +14,11 @@ msgstr ""
 
 #: admin.py:488
 msgid "Account expiration"
-msgstr ""
+msgstr "Scadenza dell'account"
 
 #: admin.py:490
 msgid "Internal"
-msgstr ""
+msgstr "Interno"
 msgid "New password cannot be the same as your old password."
 msgstr "La nuova password non può essere uguale alla vecchia password."
 
