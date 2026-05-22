@@ -217,10 +217,9 @@ class AbstractUser(BaseUser):
                 .only("is_active", "expiration_date")
                 .first()
             )
-
+        # Prevent setting a past expiration date, but allow keeping an
+        # already expired date unchanged while updating other fields.
         if self.expiration_date and self.expiration_date < today:
-            # Prevent setting a past expiration date, but allow keeping an
-            # already expired date unchanged while updating other fields.
             db_expiration_date = None
             if previous_state:
                 db_expiration_date = previous_state.expiration_date
@@ -234,7 +233,6 @@ class AbstractUser(BaseUser):
             and self.is_active
             and self.expiration_date
             and self.expiration_date <= today
-            and previous_state.expiration_date == self.expiration_date
         ):
             raise ValidationError(
                 {

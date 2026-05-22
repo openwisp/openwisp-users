@@ -593,7 +593,8 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(user.is_active, False)
 
     def test_expired_user_reactivation_requires_expiration_update(self):
-        with freeze_time(localtime() - timedelta(days=5)):
+        validation_time = localtime()
+        with freeze_time(validation_time - timedelta(days=5)):
             user = self._create_user(
                 username="expired-reactivation",
                 email="expired-reactivation@example.com",
@@ -601,14 +602,22 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 is_active=False,
             )
 
-        with freeze_time(localtime() - timedelta(days=5)):
-            user.is_active = True
-            with self.assertRaises(ValidationError) as context:
+        with freeze_time(validation_time):
+            with self.subTest("reactivating with expired date fails"):
+                user.is_active = True
+                with self.assertRaises(ValidationError) as context:
+                    user.full_clean()
+                self.assertIn("is_active", context.exception.message_dict)
+
+            with self.subTest("reactivating with today expiration date fails"):
+                user.expiration_date = localdate()
+                with self.assertRaises(ValidationError) as context:
+                    user.full_clean()
+                self.assertIn("is_active", context.exception.message_dict)
+
+            with self.subTest("reactivating with future expiration date succeeds"):
+                user.expiration_date = localdate() + timedelta(days=1)
                 user.full_clean()
-            self.assertIn("is_active", context.exception.message_dict)
-            # Update both is_active and expiration_date to reactivate the user
-            user.expiration_date = localdate() + timedelta(days=1)
-            user.full_clean()
             user.save()
             user.refresh_from_db()
             self.assertEqual(user.is_active, True)

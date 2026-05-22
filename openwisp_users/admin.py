@@ -271,10 +271,10 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     @require_confirmation
     def make_active(self, request, queryset):
         # Clear expired expiration dates before reactivating users.
-        queryset.filter(expiration_date__lt=localdate()).update(
+        queryset.filter(expiration_date__lte=localdate()).update(
             is_active=True, expiration_date=None
         )
-        queryset.exclude(expiration_date__lt=localdate()).update(is_active=True)
+        queryset.exclude(expiration_date__lte=localdate()).update(is_active=True)
         count = queryset.count()
         if count:
             self.message_user(

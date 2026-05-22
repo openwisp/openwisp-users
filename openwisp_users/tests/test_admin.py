@@ -14,7 +14,7 @@ from django.db import DEFAULT_DB_ALIAS
 from django.template.defaultfilters import date
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import localdate, now, timedelta
 from freezegun import freeze_time
 from swapper import load_model
 
@@ -1124,27 +1124,35 @@ class TestUsersAdmin(
         response = self.client.post(path, post_data, follow=True)
         self.assertEqual(response.status_code, 200)
 
-    def test_action_active_clears_past_expiration_date(self):
-        user = User.objects.create(
-            username="expired-active",
-            password="test",
-            email="expired-active@test.com",
-            is_active=False,
-            expiration_date=now().date() - timedelta(days=1),
-        )
+    def test_action_active_clears_expired_expiration_date(self):
         path = reverse(f"admin:{self.app_label}_user_changelist")
         self.client.force_login(self._get_admin())
-        post_data = {
-            "_selected_action": [user.pk],
-            "action": "make_active",
-            "csrfmiddlewaretoken": "test",
-            "confirmation": "Confirm",
-        }
-        response = self.client.post(path, post_data, follow=True)
-        user.refresh_from_db()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(user.is_active, True)
-        self.assertIsNone(user.expiration_date)
+        test_cases = (
+            # Already expired before today: must be cleared before activation.
+            ("past expiration date", localdate() - timedelta(days=1)),
+            # Expiring today: should also be cleared before activation.
+            ("today expiration date", localdate()),
+        )
+        for label, expiration_date in test_cases:
+            with self.subTest(label):
+                user = User.objects.create(
+                    username=f"expired-active-{expiration_date.isoformat()}",
+                    password="test",
+                    email=f"expired-active-{expiration_date.isoformat()}@test.com",
+                    is_active=False,
+                    expiration_date=expiration_date,
+                )
+                post_data = {
+                    "_selected_action": [user.pk],
+                    "action": "make_active",
+                    "csrfmiddlewaretoken": "test",
+                    "confirmation": "Confirm",
+                }
+                response = self.client.post(path, post_data, follow=True)
+                user.refresh_from_db()
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(user.is_active, True)
+                self.assertIsNone(user.expiration_date)
 
     def test_action_active_perms(self):
         org = self._get_org()
