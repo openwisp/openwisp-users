@@ -924,7 +924,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             email.body,
             (
                 "We inform you that your account "
-                f"{user.username} will expire in "
+                f'"{user.username}" will expire in '
                 f"{app_settings.USER_EXPIRATION_WARNING_DAYS} days on "
                 f"{expected_date}."
                 "\n\n"
