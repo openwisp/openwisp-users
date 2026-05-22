@@ -7,7 +7,7 @@ from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import OuterRef, Subquery
 from django.template.loader import render_to_string
 from django.utils import timezone, translation
@@ -201,20 +201,49 @@ class AbstractUser(BaseUser):
             raise ValidationError(
                 {"email": _("User with this Email address already exists.")}
             )
-        if self.expiration_date and self.expiration_date < localdate():
+        today = localdate()
+        previous_state = None
+        needs_previous_state = (
+            not self._state.adding
+            and self.expiration_date
+            and (
+                self.expiration_date < today
+                or (self.is_active and self.expiration_date <= today)
+            )
+        )
+        if needs_previous_state:
+            previous_state = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .only("is_active", "expiration_date")
+                .first()
+            )
+
+        if self.expiration_date and self.expiration_date < today:
             # Prevent setting a past expiration date, but allow keeping an
             # already expired date unchanged while updating other fields.
-            current_expiration_date = None
-            if not self._state.adding:
-                current_expiration_date = (
-                    self._meta.model.objects.filter(pk=self.pk)
-                    .values_list("expiration_date", flat=True)
-                    .first()
-                )
-            if self._state.adding or current_expiration_date != self.expiration_date:
+            db_expiration_date = None
+            if previous_state:
+                db_expiration_date = previous_state.expiration_date
+            if self._state.adding or db_expiration_date != self.expiration_date:
                 raise ValidationError(
                     {"expiration_date": _("Expiration date cannot be in the past.")}
                 )
+        if (
+            previous_state
+            and not previous_state.is_active
+            and self.is_active
+            and self.expiration_date
+            and self.expiration_date <= today
+            and previous_state.expiration_date == self.expiration_date
+        ):
+            raise ValidationError(
+                {
+                    "is_active": _(
+                        "Cannot activate an expired account. Clear or extend"
+                        " expiration date first."
+                    )
+                }
+            )
 
     def _invalidate_user_organizations_dict(self):
         """
@@ -235,32 +264,34 @@ class AbstractUser(BaseUser):
         """
         Deactivate users whose expiration_date is today or earlier.
 
-        This stores the primary keys of all matching users first and then
-        deactivates those users one by one with save(update_fields=["is_active"])
-        so that post-save hooks still run for consumers that rely on them.
-        It returns the number of users deactivated.
+        Selected rows are locked with ``select_for_update`` inside an atomic
+        block so concurrent runs (or admin edits) cannot race with the
+        per-user save. Each user is saved individually with
+        ``update_fields=["is_active"]`` so post-save hooks still fire for
+        consumers that rely on them. Returns the number of users deactivated.
 
-        Emails are sent only to affected users who have a verified email
-        address, while all expired active users are deactivated.
+        Emails are sent (outside the transaction) only to affected users
+        with a verified email address; all expired active users are
+        deactivated regardless of verification status.
         """
         expiry_date = localdate()
-        # We intentionally store the user IDs before the bulk update
-        # because once `is_active` is updated to False, the original
-        # queryset would no longer match these users.
-        deactivated_user_ids = list(
-            cls.objects.filter(
-                is_active=True, expiration_date__lte=expiry_date
-            ).values_list("id", flat=True)
-        )
+        deactivated_user_ids = []
+        with transaction.atomic():
+            users_to_deactivate = (
+                cls.objects.filter(
+                    is_active=True,
+                    expiration_date__lte=expiry_date,
+                )
+                .only("id")
+                .select_for_update()
+            )
+            for user in users_to_deactivate.iterator():
+                user.is_active = False
+                user.save(update_fields=["is_active"])
+                deactivated_user_ids.append(user.pk)
+
         if not deactivated_user_ids:
             return 0
-
-        users_to_deactivate = cls.objects.filter(id__in=deactivated_user_ids).only(
-            "id", "is_active"
-        )
-        for user in users_to_deactivate.iterator():
-            user.is_active = False
-            user.save(update_fields=["is_active"])
 
         count = len(deactivated_user_ids)
         verified_email_subquery = (

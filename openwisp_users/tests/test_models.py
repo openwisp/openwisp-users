@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.templatetags.l10n import localize
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import localdate, localtime, now, timedelta
 from freezegun import freeze_time
 from swapper import load_model
 
@@ -54,12 +54,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     def _setup_deactivation_user(self, label):
         email = f"user{label}@example.com"
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time("2026-05-10 10:00:00+02:00"):
             return self._create_user(
                 username=f"testuser{label}",
                 email=email,
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
 
     def _setup_reminder_user(self, label):
@@ -69,7 +69,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         return self._create_user(
             username=f"testuser{label}",
             email=email,
-            expiration_date=now().date() + timedelta(days=reminder_days),
+            expiration_date=localdate() + timedelta(days=reminder_days),
             is_active=True,
         )
 
@@ -555,18 +555,18 @@ class TestUsers(TestOrganizationMixin, TestCase):
         user = self._create_user(username="testuser", email="testuser@example.com")
 
         with self.subTest("Expiration date in past"):
-            user.expiration_date = now().date() - timedelta(days=1)
+            user.expiration_date = localdate() - timedelta(days=1)
             with self.assertRaises(ValidationError) as context:
                 user.full_clean()
             self.assertIn("expiration_date", context.exception.message_dict)
 
         with self.subTest("Expiration date is today"):
-            user.expiration_date = now().date()
+            user.expiration_date = localdate()
             user.full_clean()
-            self.assertEqual(user.expiration_date, now().date())
+            self.assertEqual(user.expiration_date, localdate())
 
         with self.subTest("Expiration date in future"):
-            future_date = now().date() + timedelta(days=30)
+            future_date = localdate() + timedelta(days=30)
             user.expiration_date = future_date
             user.full_clean()
             self.assertEqual(user.expiration_date, future_date)
@@ -581,7 +581,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             user = self._create_user(
                 username="expired-user",
                 email="expired-user@example.com",
-                expiration_date=now().date(),
+                expiration_date=localdate(),
                 is_active=False,
             )
 
@@ -592,19 +592,40 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(user.bio, "Updated bio")
         self.assertEqual(user.is_active, False)
 
+    def test_expired_user_reactivation_requires_expiration_update(self):
+        with freeze_time(localtime() - timedelta(days=5)):
+            user = self._create_user(
+                username="expired-reactivation",
+                email="expired-reactivation@example.com",
+                expiration_date=localdate(),
+                is_active=False,
+            )
+
+        with freeze_time(localtime() - timedelta(days=5)):
+            user.is_active = True
+            with self.assertRaises(ValidationError) as context:
+                user.full_clean()
+            self.assertIn("is_active", context.exception.message_dict)
+            # Update both is_active and expiration_date to reactivate the user
+            user.expiration_date = localdate() + timedelta(days=1)
+            user.full_clean()
+            user.save()
+            user.refresh_from_db()
+            self.assertEqual(user.is_active, True)
+
     def test_deactivate_expired_users(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             expired_user = self._create_user(
                 username="expired",
                 email="expired@example.com",
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
         future_user = self._create_user(
             username="future",
             email="future@example.com",
             is_active=True,
-            expiration_date=now().date() + timedelta(days=30),
+            expiration_date=localdate() + timedelta(days=30),
         )
         none_user = self._create_user(
             username="none",
@@ -623,12 +644,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
     def test_deactivate_expired_users_skips_inactive(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             inactive_user = self._create_user(
                 username="inactive",
                 email="inactive@example.com",
                 is_active=False,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
         with patch("openwisp_users.base.models.send_email") as mock_send:
             deactivate_expired_users()
@@ -638,12 +659,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         mock_send.assert_not_called()
 
     def test_deactivate_expired_users_idempotent(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             expired_user = self._create_user(
                 username="expired",
                 email="expired@example.com",
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
             EmailAddress.objects.filter(user=expired_user).update(verified=True)
 
@@ -674,12 +695,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(none_user.is_active, True)
 
     def test_deactivate_expired_users_emits_post_save_signal(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             expired_user = self._create_user(
                 username="expired-signal",
                 email="expired-signal@example.com",
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
         with catch_signal(post_save) as handler:
             deactivate_expired_users()
@@ -691,12 +712,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         )
 
     def test_deactivate_expired_users_sends_email(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             expired_user = self._create_user(
                 username="expired",
                 email="expired@example.com",
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
             EmailAddress.objects.filter(user=expired_user).update(verified=True)
 
@@ -734,13 +755,13 @@ class TestUsers(TestOrganizationMixin, TestCase):
             username="u1",
             email="u1@example.com",
             is_active=True,
-            expiration_date=now().date(),
+            expiration_date=localdate(),
         )
         u2 = self._create_user(
             username="u2",
             email="u2@example.com",
             is_active=True,
-            expiration_date=now().date(),
+            expiration_date=localdate(),
         )
         EmailAddress.objects.update(verified=True)
         # First call raises, second succeeds
@@ -762,12 +783,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         mocked_logger.assert_called_once()
 
     def test_deactivate_expired_users_email_unverified(self):
-        with freeze_time(now() - timedelta(days=5)):
+        with freeze_time(localtime() - timedelta(days=5)):
             expired_user = self._create_user(
                 username="expired",
                 email="expired@example.com",
                 is_active=True,
-                expiration_date=now().date(),
+                expiration_date=localdate(),
             )
             EmailAddress.objects.filter(user=expired_user).update(verified=False)
 
@@ -903,7 +924,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email(self):
-        reminder_date = now().date() + timedelta(days=7)
+        reminder_date = localdate() + timedelta(days=7)
         user = self._create_user(
             username="reminder",
             email="reminder@example.com",
@@ -946,7 +967,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email_continues_on_send_failure(self):
-        reminder_date = now().date() + timedelta(days=7)
+        reminder_date = localdate() + timedelta(days=7)
         self._create_user(
             username="r1",
             email="r1@example.com",
@@ -975,7 +996,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email_verified_only(self):
-        reminder_date = now().date() + timedelta(days=7)
+        reminder_date = localdate() + timedelta(days=7)
         verified_email_user = self._create_user(
             username="verified",
             email="verified@example.com",
@@ -999,7 +1020,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 7)
     def test_expiration_reminder_email_inactive_user(self):
-        reminder_date = now().date() + timedelta(days=7)
+        reminder_date = localdate() + timedelta(days=7)
         inactive_user = self._create_user(
             username="inactive",
             email="inactive@example.com",
@@ -1012,7 +1033,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_EXPIRATION_WARNING_DAYS", 0)
     def test_expiration_reminder_email_disabled(self):
-        reminder_date = now().date() + timedelta(days=7)
+        reminder_date = localdate() + timedelta(days=7)
         user = self._create_user(
             username="reminder",
             email="reminder@example.com",
