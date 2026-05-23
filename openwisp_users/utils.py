@@ -66,7 +66,7 @@ def usermodel_list_and_search(model, additional_fields):
         model.search_fields += (field[1],)
 
 
-def _throttle_email_batch(email_count):
+def throttle_email_batch(email_count):
     """
     Throttle email batch processing by sleeping every 10th email.
 

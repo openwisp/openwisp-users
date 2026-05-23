@@ -20,7 +20,7 @@ from swapper import load_model
 from openwisp_utils.admin_theme.email import send_email
 
 from .. import settings as app_settings
-from ..utils import _throttle_email_batch
+from ..utils import throttle_email_batch
 
 logger = logging.getLogger(__name__)
 
@@ -350,7 +350,7 @@ class AbstractUser(BaseUser):
                         e,
                     )
             email_counts += 1
-            _throttle_email_batch(email_counts)
+            throttle_email_batch(email_counts)
 
         return count
 
@@ -428,7 +428,7 @@ class AbstractUser(BaseUser):
                         e,
                     )
             email_counts += 1
-            _throttle_email_batch(email_counts)
+            throttle_email_batch(email_counts)
 
         return count
 

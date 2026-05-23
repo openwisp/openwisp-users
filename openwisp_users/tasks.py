@@ -1,6 +1,3 @@
-import random
-from time import sleep
-
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import UNUSABLE_PASSWORD_PREFIX
@@ -16,6 +13,7 @@ from swapper import load_model
 from openwisp_utils.admin_theme.email import send_email
 
 from . import settings as app_settings
+from .utils import throttle_email_batch
 
 User = get_user_model()
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
@@ -57,7 +55,7 @@ def password_expiration_email():
         )
         .filter(query)
     )
-    email_counts = 1
+    email_counts = 0
     for user in qs.iterator():
         with translation.override(user.language):
             send_email(
@@ -79,13 +77,8 @@ def password_expiration_email():
                     "call_to_action_text": _("Change password"),
                 },
             )
-        # Avoid overloading the SMTP server by sending multiple
-        # emails continuously.
-        if email_counts >= 10:
-            email_counts = 0
-            sleep(random.randint(1, 2))
-        else:
-            email_counts += 1
+        email_counts += 1
+        throttle_email_batch(email_counts)
 
 
 @shared_task

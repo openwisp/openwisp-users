@@ -522,7 +522,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             self.assertNotEqual(email.to, [unverified_email_user.email])
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
-    @patch("openwisp_users.tasks.sleep")
+    @patch("openwisp_users.utils.sleep")
     def test_password_expiration_mail_sleep(self, mocked_sleep):
         user_expiry_date = now().date() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
