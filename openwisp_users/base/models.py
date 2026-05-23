@@ -78,7 +78,6 @@ class AbstractUser(BaseUser):
         _("expiration date"),
         blank=True,
         null=True,
-        db_index=True,
         help_text=_(
             "If set, the account will be deactivated on this date and the user "
             "will no longer be able to log in."

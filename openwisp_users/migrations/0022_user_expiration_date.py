@@ -14,7 +14,6 @@ class Migration(migrations.Migration):
             name="expiration_date",
             field=models.DateField(
                 blank=True,
-                db_index=True,
                 help_text=(
                     "If set, the account will be deactivated on this date and the "
                     "user will no longer be able to log in."
