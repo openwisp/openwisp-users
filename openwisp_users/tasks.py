@@ -55,7 +55,7 @@ def password_expiration_email():
         )
         .filter(query)
     )
-    email_counts = 0
+    email_count = 0
     for user in qs.iterator():
         with translation.override(user.language):
             send_email(
@@ -77,8 +77,8 @@ def password_expiration_email():
                     "call_to_action_text": _("Change password"),
                 },
             )
-        email_counts += 1
-        throttle_email_batch(email_counts)
+        email_count += 1
+        throttle_email_batch(email_count)
 
 
 @shared_task

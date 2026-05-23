@@ -1,5 +1,6 @@
 import logging
 import uuid
+from smtplib import SMTPException
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -203,15 +204,22 @@ class AbstractUser(BaseUser):
             raise ValidationError(
                 {"email": _("User with this Email address already exists.")}
             )
+        self._validate_expiration()
+
+    def _validate_expiration(self):
+        """
+        * Prevent setting the expiration date in the past
+        * Prevent reactivating users with an expired date
+          (requires setting a new date or clearing it)
+        """
+        if not self.expiration_date:
+            return
         today = localdate()
+        is_past_expiration = self.expiration_date < today
+        is_expired = self.expiration_date <= today
         previous_state = None
-        needs_previous_state = (
-            not self._state.adding
-            and self.expiration_date
-            and (
-                self.expiration_date < today
-                or (self.is_active and self.expiration_date <= today)
-            )
+        needs_previous_state = not self._state.adding and (
+            is_past_expiration or (self.is_active and is_expired)
         )
         if needs_previous_state:
             previous_state = (
@@ -221,7 +229,7 @@ class AbstractUser(BaseUser):
             )
         # Prevent setting a past expiration date, but allow keeping an
         # already expired date unchanged while updating other fields.
-        if self.expiration_date and self.expiration_date < today:
+        if is_past_expiration:
             db_expiration_date = None
             if previous_state:
                 db_expiration_date = previous_state.expiration_date
@@ -233,8 +241,7 @@ class AbstractUser(BaseUser):
             previous_state
             and not previous_state.is_active
             and self.is_active
-            and self.expiration_date
-            and self.expiration_date <= today
+            and is_expired
         ):
             raise ValidationError(
                 {
@@ -294,21 +301,13 @@ class AbstractUser(BaseUser):
             return 0
 
         count = len(deactivated_user_ids)
-        verified_email_subquery = (
-            EmailAddress.objects.filter(
-                user=OuterRef("pk"),
-                verified=True,
-            )
-            .order_by("-primary", "id")
-            .values("email")[:1]
-        )
         users = (
             cls.objects.filter(
                 id__in=deactivated_user_ids,
                 emailaddress__verified=True,
             )
             .annotate(
-                verified_email=Subquery(verified_email_subquery),
+                verified_email=Subquery(cls._verified_email_subquery()),
             )
             .distinct()
             .only(
@@ -320,7 +319,7 @@ class AbstractUser(BaseUser):
             )
             .iterator()
         )
-        email_counts = 0
+        email_count = 0
         for user in users:
             with translation.override(user.language):
                 try:
@@ -342,16 +341,26 @@ class AbstractUser(BaseUser):
                         ).strip(),
                         recipients=[user.verified_email],
                     )
-                except Exception as e:
+                except (SMTPException, ConnectionError, OSError):
                     logger.exception(
-                        "Error sending deactivation email to user %s: %s",
+                        "Error sending deactivation email to user %s",
                         getattr(user, "pk", None),
-                        e,
                     )
-            email_counts += 1
-            throttle_email_batch(email_counts)
+            email_count += 1
+            throttle_email_batch(email_count)
 
         return count
+
+    @staticmethod
+    def _verified_email_subquery():
+        return (
+            EmailAddress.objects.filter(
+                user=OuterRef("pk"),
+                verified=True,
+            )
+            .order_by("-primary", "id")
+            .values("email")[:1]
+        )
 
     @classmethod
     def expiration_reminder_email(cls):
@@ -369,14 +378,6 @@ class AbstractUser(BaseUser):
             return 0
 
         reminder_date = localdate() + timedelta(days=reminder_days)
-        verified_email_subquery = (
-            EmailAddress.objects.filter(
-                user=OuterRef("pk"),
-                verified=True,
-            )
-            .order_by("-primary", "id")
-            .values("email")[:1]
-        )
         qs = (
             cls.objects.filter(
                 is_active=True,
@@ -384,7 +385,7 @@ class AbstractUser(BaseUser):
                 emailaddress__verified=True,
             )
             .annotate(
-                verified_email=Subquery(verified_email_subquery),
+                verified_email=Subquery(cls._verified_email_subquery()),
             )
             .distinct()
             .only(
@@ -396,7 +397,7 @@ class AbstractUser(BaseUser):
             )
         )
         count = qs.count()
-        email_counts = 0
+        email_count = 0
         for user in qs.iterator():
             with translation.override(user.language):
                 try:
@@ -420,14 +421,13 @@ class AbstractUser(BaseUser):
                         ).strip(),
                         recipients=[user.verified_email],
                     )
-                except Exception as e:
+                except (SMTPException, ConnectionError, OSError):
                     logger.exception(
-                        "Error sending expiration reminder email to user %s: %s",
+                        "Error sending expiration reminder email to user %s",
                         getattr(user, "pk", None),
-                        e,
                     )
-            email_counts += 1
-            throttle_email_batch(email_counts)
+            email_count += 1
+            throttle_email_batch(email_count)
 
         return count
 

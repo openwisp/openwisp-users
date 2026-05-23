@@ -1,3 +1,4 @@
+from smtplib import SMTPException
 from unittest.mock import patch
 
 from allauth.account.models import EmailAddress, get_emailconfirmation_model
@@ -774,7 +775,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         )
         EmailAddress.objects.update(verified=True)
         # First call raises, second succeeds
-        side_effects = [Exception("SMTP failure"), None]
+        side_effects = [SMTPException("SMTP failure"), None]
         with (
             patch(
                 "openwisp_users.base.models.send_email", side_effect=side_effects
@@ -990,7 +991,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             is_active=True,
         )
         EmailAddress.objects.update(verified=True)
-        side_effects = [Exception("SMTP down"), None]
+        side_effects = [SMTPException("SMTP down"), None]
         with (
             patch(
                 "openwisp_users.base.models.send_email", side_effect=side_effects
