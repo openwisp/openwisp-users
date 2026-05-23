@@ -1112,17 +1112,32 @@ class TestUsersAdmin(
             password="test",
             email="openwisp@test.com",
             is_active=False,
+            expiration_date=localdate() + timedelta(days=1),
+        )
+        active_user = User.objects.create(
+            username="already-active",
+            password="test",
+            email="already-active@test.com",
+            is_active=True,
+            expiration_date=localdate() - timedelta(days=1),
         )
         path = reverse(f"admin:{self.app_label}_user_changelist")
         self.client.force_login(self._get_admin())
         post_data = {
-            "_selected_action": [user.pk],
+            "_selected_action": [user.pk, active_user.pk],
             "action": "make_active",
             "csrfmiddlewaretoken": "test",
             "confirmation": "Confirm",
         }
         response = self.client.post(path, post_data, follow=True)
+        user.refresh_from_db()
+        active_user.refresh_from_db()
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(user.is_active, True)
+        self.assertEqual(user.expiration_date, localdate() + timedelta(days=1))
+        self.assertEqual(active_user.is_active, True)
+        self.assertEqual(active_user.expiration_date, localdate() - timedelta(days=1))
+        self.assertContains(response, "Successfully activated 1 user.")
 
     def test_action_active_clears_expired_expiration_date(self):
         path = reverse(f"admin:{self.app_label}_user_changelist")
@@ -1153,6 +1168,10 @@ class TestUsersAdmin(
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(user.is_active, True)
                 self.assertIsNone(user.expiration_date)
+                self.assertContains(
+                    response,
+                    "Successfully activated 1 user " "and cleared 1 expiration date.",
+                )
 
     def test_action_active_perms(self):
         org = self._get_org()
@@ -1162,7 +1181,9 @@ class TestUsersAdmin(
         user_obj = self._create_org_user(
             organization=org,
             user=self._create_user(
-                username="active-user", email="active-user@example.com"
+                username="active-user",
+                email="active-user@example.com",
+                is_active=False,
             ),
         ).user
         self._test_action_permission(
@@ -1170,7 +1191,7 @@ class TestUsersAdmin(
             action="make_active",
             user=org_user,
             obj=user_obj,
-            message="Successfully made 1 user active.",
+            message="Successfully activated 1 user.",
             required_perms=["change"],
             extra_payload={"confirmation": True},
         )

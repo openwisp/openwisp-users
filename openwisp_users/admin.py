@@ -15,6 +15,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -169,10 +170,11 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
 
     class Meta(BaseUserCreationForm.Meta):
         model = User
-        fields = ["username", "email", "password1", "password2", "expiration_date"]
+        basic_fields = ["username", "email", "password1", "password2"]
+        fields = basic_fields + ["expiration_date"]
         personal_fields = ["first_name", "last_name", "phone_number", "birth_date"]
         fieldsets = (
-            (None, {"classes": ("wide",), "fields": fields[:-1]}),
+            (None, {"classes": ("wide",), "fields": basic_fields}),
             (
                 _("Account expiration"),
                 {"classes": ("wide",), "fields": ("expiration_date",)},
@@ -184,7 +186,7 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
             ),
         )
         fieldsets_superuser = (
-            (None, {"classes": ("wide",), "fields": fields[:-1]}),
+            (None, {"classes": ("wide",), "fields": basic_fields}),
             (
                 _("Account expiration"),
                 {"classes": ("wide",), "fields": ("expiration_date",)},
@@ -280,18 +282,37 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     @require_confirmation
     def make_active(self, request, queryset):
         # Clear expired expiration dates before reactivating users.
-        queryset.filter(expiration_date__lte=localdate()).update(
+        today = localdate()
+        queryset = queryset.filter(is_active=False)
+        expired_count = queryset.filter(expiration_date__lte=today).update(
             is_active=True, expiration_date=None
         )
-        queryset.exclude(expiration_date__lte=localdate()).update(is_active=True)
-        count = queryset.count()
+        count = queryset.filter(
+            Q(expiration_date__isnull=True) | Q(expiration_date__gt=today)
+        ).update(is_active=True)
+        count += expired_count
         if count:
+            message = _("Successfully activated %(count)d %(model_name)s") % {
+                "count": count,
+                "model_name": model_ngettext(self.opts, count),
+            }
+            if expired_count:
+                message = " ".join(
+                    [
+                        message,
+                        ngettext(
+                            "and cleared %(count)d expiration date.",
+                            "and cleared %(count)d expiration dates.",
+                            expired_count,
+                        )
+                        % {"count": expired_count},
+                    ]
+                )
+            else:
+                message = f"{message}."
             self.message_user(
                 request,
-                _(
-                    f"Successfully made {count} "
-                    f"{model_ngettext(self.opts, count)} active."
-                ),
+                message,
                 messages.SUCCESS,
             )
 

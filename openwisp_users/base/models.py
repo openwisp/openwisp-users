@@ -240,7 +240,7 @@ class AbstractUser(BaseUser):
             raise ValidationError(
                 {
                     "is_active": _(
-                        "Cannot activate an expired account. Clear or extend"
+                        "Cannot activate an expired account. Clear or extend the"
                         " expiration date first."
                     )
                 }
