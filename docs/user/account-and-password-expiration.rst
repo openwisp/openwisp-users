@@ -37,7 +37,7 @@ send reminder emails before the account expires. The reminder period can
 be configured using :ref:`OPENWISP_USERS_EXPIRATION_WARNING_DAYS
 <openwisp_users_expiration_warning_days>`.
 
-Once the expiration date is in the past, the account is automatically
+Once the expiration date has passed, the account is automatically
 deactivated unless the expiration date is extended or removed.
 
 .. _password_expiration:

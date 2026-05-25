@@ -199,8 +199,8 @@ class Migration(migrations.Migration):
                     models.DateField(
                         blank=True,
                         help_text=(
-                            "If set, the account will be deactivated on this date "
-                            "and the user will no longer be able to log in."
+                            "If set, the account will be deactivated after"
+                            " this date passes and the user will no longer be able to log in."
                         ),
                         null=True,
                         verbose_name="expiration date",
