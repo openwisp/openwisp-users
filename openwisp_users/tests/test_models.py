@@ -610,18 +610,23 @@ class TestUsers(TestOrganizationMixin, TestCase):
                     user.full_clean()
                 self.assertIn("is_active", context.exception.message_dict)
 
-            with self.subTest("reactivating with today expiration date fails"):
+            with self.subTest("reactivating with today expiration date succeeds"):
                 user.expiration_date = localdate()
-                with self.assertRaises(ValidationError) as context:
-                    user.full_clean()
-                self.assertIn("is_active", context.exception.message_dict)
+                user.full_clean()
+                user.save()
+                user.refresh_from_db()
+                self.assertEqual(user.is_active, True)
+                self.assertEqual(user.expiration_date, localdate())
 
             with self.subTest("reactivating with future expiration date succeeds"):
+                user.is_active = False
+                user.save(update_fields=["is_active"])
+                user.is_active = True
                 user.expiration_date = localdate() + timedelta(days=1)
                 user.full_clean()
-            user.save()
-            user.refresh_from_db()
-            self.assertEqual(user.is_active, True)
+                user.save()
+                user.refresh_from_db()
+                self.assertEqual(user.is_active, True)
 
     def test_deactivate_expired_users(self):
         with freeze_time(localtime() - timedelta(days=5)):
@@ -631,6 +636,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 is_active=True,
                 expiration_date=localdate(),
             )
+        today_user = self._create_user(
+            username="today",
+            email="today@example.com",
+            is_active=True,
+            expiration_date=localdate(),
+        )
         future_user = self._create_user(
             username="future",
             email="future@example.com",
@@ -645,10 +656,12 @@ class TestUsers(TestOrganizationMixin, TestCase):
         )
         count = deactivate_expired_users()
         expired_user.refresh_from_db()
+        today_user.refresh_from_db()
         future_user.refresh_from_db()
         none_user.refresh_from_db()
         self.assertEqual(count, 1)
         self.assertEqual(expired_user.is_active, False)
+        self.assertEqual(today_user.is_active, True)
         self.assertEqual(future_user.is_active, True)
         self.assertEqual(none_user.is_active, True)
         self.assertEqual(len(mail.outbox), 1)
@@ -761,18 +774,19 @@ class TestUsers(TestOrganizationMixin, TestCase):
         )
 
     def test_deactivate_expired_users_continues_on_send_failure(self):
-        u1 = self._create_user(
-            username="u1",
-            email="u1@example.com",
-            is_active=True,
-            expiration_date=localdate(),
-        )
-        u2 = self._create_user(
-            username="u2",
-            email="u2@example.com",
-            is_active=True,
-            expiration_date=localdate(),
-        )
+        with freeze_time(localtime() - timedelta(days=5)):
+            u1 = self._create_user(
+                username="u1",
+                email="u1@example.com",
+                is_active=True,
+                expiration_date=localdate(),
+            )
+            u2 = self._create_user(
+                username="u2",
+                email="u2@example.com",
+                is_active=True,
+                expiration_date=localdate(),
+            )
         EmailAddress.objects.update(verified=True)
         # First call raises, second succeeds
         side_effects = [SMTPException("SMTP failure"), None]

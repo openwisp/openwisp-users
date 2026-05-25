@@ -284,11 +284,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         # Clear expired expiration dates before reactivating users.
         today = localdate()
         queryset = queryset.filter(is_active=False)
-        expired_count = queryset.filter(expiration_date__lte=today).update(
+        expired_count = queryset.filter(expiration_date__lt=today).update(
             is_active=True, expiration_date=None
         )
         count = queryset.filter(
-            Q(expiration_date__isnull=True) | Q(expiration_date__gt=today)
+            Q(expiration_date__isnull=True) | Q(expiration_date__gte=today)
         ).update(is_active=True)
         count += expired_count
         if count:

@@ -209,18 +209,15 @@ class AbstractUser(BaseUser):
     def _validate_expiration(self):
         """
         * Prevent setting the expiration date in the past
-        * Prevent reactivating users with an expired date
+        * Prevent reactivating users with a past expiration date
           (requires setting a new date or clearing it)
         """
         if not self.expiration_date:
             return
         today = localdate()
         is_past_expiration = self.expiration_date < today
-        is_expired = self.expiration_date <= today
         previous_state = None
-        needs_previous_state = not self._state.adding and (
-            is_past_expiration or (self.is_active and is_expired)
-        )
+        needs_previous_state = not self._state.adding and is_past_expiration
         if needs_previous_state:
             previous_state = (
                 self._meta.model.objects.filter(pk=self.pk)
@@ -241,7 +238,7 @@ class AbstractUser(BaseUser):
             previous_state
             and not previous_state.is_active
             and self.is_active
-            and is_expired
+            and is_past_expiration
         ):
             raise ValidationError(
                 {
@@ -269,7 +266,7 @@ class AbstractUser(BaseUser):
     @classmethod
     def deactivate_expired_users(cls):
         """
-        Deactivate users whose expiration_date is today or earlier.
+        Deactivate users whose expiration_date is in the past.
 
         Selected rows are locked with ``select_for_update`` inside an atomic
         block so concurrent runs (or admin edits) cannot race with the
@@ -287,7 +284,7 @@ class AbstractUser(BaseUser):
             users_to_deactivate = (
                 cls.objects.filter(
                     is_active=True,
-                    expiration_date__lte=expiry_date,
+                    expiration_date__lt=expiry_date,
                 )
                 .only("id")
                 .select_for_update()

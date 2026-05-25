@@ -1144,11 +1144,11 @@ class TestUsersAdmin(
         self.client.force_login(self._get_admin())
         test_cases = (
             # Already expired before today: must be cleared before activation.
-            ("past expiration date", localdate() - timedelta(days=1)),
-            # Expiring today: should also be cleared before activation.
-            ("today expiration date", localdate()),
+            ("past expiration date", localdate() - timedelta(days=1), None),
+            # Expiring today: should remain valid during activation.
+            ("today expiration date", localdate(), localdate()),
         )
-        for label, expiration_date in test_cases:
+        for label, expiration_date, expected_expiration_date in test_cases:
             with self.subTest(label):
                 user = User.objects.create(
                     username=f"expired-active-{expiration_date.isoformat()}",
@@ -1167,11 +1167,15 @@ class TestUsersAdmin(
                 user.refresh_from_db()
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(user.is_active, True)
-                self.assertIsNone(user.expiration_date)
-                self.assertContains(
-                    response,
-                    "Successfully activated 1 user " "and cleared 1 expiration date.",
-                )
+                if expected_expiration_date is None:
+                    expected_message = (
+                        "Successfully activated 1 user and cleared 1 expiration"
+                        " date."
+                    )
+                else:
+                    expected_message = "Successfully activated 1 user."
+                self.assertEqual(user.expiration_date, expected_expiration_date)
+                self.assertContains(response, expected_message)
 
     def test_action_active_perms(self):
         org = self._get_org()
