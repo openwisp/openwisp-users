@@ -275,8 +275,9 @@ class AbstractUser(BaseUser):
         consumers that rely on them. Returns the number of users deactivated.
 
         Emails are sent (outside the transaction) only to affected users
-        with a verified email address; all expired active users are
-        deactivated regardless of verification status.
+        with a verified email address; all active users whose expiration
+        date is in the past are deactivated regardless of verification
+        status.
         """
         expiry_date = localdate()
         deactivated_user_ids = []
