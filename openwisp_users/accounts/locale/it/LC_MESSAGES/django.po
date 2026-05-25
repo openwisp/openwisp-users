@@ -22,6 +22,59 @@ msgstr "Conferma l'indirizzo E-mail"
 msgid "Confirm"
 msgstr "Confermo"
 
+#: accounts/templates/account/email/account_expiration_reminder_message.html:5
+#, python-format
+msgid ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s day on %(expiry_date)s."
+msgid_plural ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s days on %(expiry_date)s."
+msgstr[0] ""
+"Ti informiamo che il tuo account <strong>%(username)s</strong> scadrà tra "
+"%(days)s giorno, precisamente il %(expiry_date)s."
+msgstr[1] ""
+"Ti informiamo che il tuo account <strong>%(username)s</strong> scadrà tra "
+"%(days)s giorni, precisamente il %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.html:13
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:10
+msgid "Please contact your administrator if you need to extend your access."
+msgstr ""
+"Contatta il tuo amministratore se hai bisogno di estendere il tuo accesso."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s will expire in %(days)s day on "
+"%(expiry_date)s."
+msgid_plural ""
+"We inform you that your account %(username)s will expire in %(days)s days on "
+"%(expiry_date)s."
+msgstr[0] ""
+"Ti informiamo che il tuo account %(username)s scadrà tra %(days)s giorno, "
+"precisamente il %(expiry_date)s."
+msgstr[1] ""
+"Ti informiamo che il tuo account %(username)s scadrà tra %(days)s giorni, "
+"precisamente il %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:5
+#: accounts/templates/account/email/account_expired_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s has been deactivated because it "
+"expired on %(expiry_date)s."
+msgstr ""
+"Ti informiamo che il tuo account %(username)s è stato disattivato perché è "
+"scaduto il %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:11
+#: accounts/templates/account/email/account_expired_message.txt:8
+msgid ""
+"Please contact your administrator if you need to reactivate your account."
+msgstr ""
+"Contatta il tuo amministratore se hai bisogno di riattivare il tuo account."
+
 #: accounts/templates/account/email/base_message.txt:1
 #, python-format
 msgid "Welcome to %(site_name)s!"

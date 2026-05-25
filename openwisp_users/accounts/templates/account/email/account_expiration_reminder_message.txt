@@ -1,0 +1,10 @@
+{% load i18n %}
+{% load l10n %}
+
+{% blocktrans trimmed count days=days_remaining with username=username expiry_date=expiration_date|localize %}
+We inform you that your account "{{ username }}" will expire in {{ days }} day on {{ expiry_date }}.
+{% plural %}
+We inform you that your account "{{ username }}" will expire in {{ days }} days on {{ expiry_date }}.
+{% endblocktrans %}
+
+{% trans "Please contact your administrator if you need to extend your access." %}

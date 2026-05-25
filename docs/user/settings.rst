@@ -261,3 +261,18 @@ change their passwords.
 
 Similar to :ref:`OPENWISP_USERS_USER_PASSWORD_EXPIRATION`, but for **staff
 users**.
+
+.. _openwisp_users_expiration_warning_days:
+
+``OPENWISP_USERS_EXPIRATION_WARNING_DAYS``
+------------------------------------------
+
+============ ===========
+**type**:    ``integer``
+**default**: ``7``
+============ ===========
+
+Number of days before a user's ``expiration_date`` when OpenWISP sends an
+account expiration reminder email.
+
+If set to ``0``, reminder emails are disabled.

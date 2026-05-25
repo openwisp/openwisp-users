@@ -1,3 +1,6 @@
+import random
+from time import sleep
+
 from django.conf import settings
 
 if "reversion" in settings.INSTALLED_APPS:  # pragma: no cover
@@ -40,10 +43,14 @@ def usermodel_change_form(model, additional_fields):
 
     # Change form fieldsets
     for field in additional_fields:
-        fieldsets = model.fieldsets[1][1]["fields"][:]
-        model.fieldsets[1][1]["fields"] = (
-            fieldsets[: field[0]] + [field[1]] + fieldsets[field[0] :]
-        )
+        for fieldset in model.fieldsets:
+            fieldsets = list(fieldset[1].get("fields", ()))
+            if "first_name" not in fieldsets:
+                continue
+            fieldset[1]["fields"] = (
+                fieldsets[: field[0]] + [field[1]] + fieldsets[field[0] :]
+            )
+            break
 
 
 def usermodel_list_and_search(model, additional_fields):
@@ -57,3 +64,14 @@ def usermodel_list_and_search(model, additional_fields):
         displays = model.list_display[:]
         model.list_display = displays[: field[0]] + [field[1]] + displays[field[0] :]
         model.search_fields += (field[1],)
+
+
+def throttle_email_batch(email_count):
+    """
+    Throttle email batch processing by sleeping every 10th email.
+
+    Args:
+        email_count: Current count of emails sent in the batch
+    """
+    if email_count and email_count % 10 == 0:
+        sleep(random.randint(1, 2))
