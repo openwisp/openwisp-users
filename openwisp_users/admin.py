@@ -15,10 +15,12 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.timezone import localdate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
 from organizations.base_admin import (
@@ -30,7 +32,7 @@ from organizations.exceptions import OwnershipRequired
 from phonenumber_field.formfields import PhoneNumberField
 from swapper import load_model
 
-from openwisp_utils.admin import UUIDAdmin
+from openwisp_utils.admin import CopyableFieldsAdmin
 
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
@@ -42,6 +44,15 @@ OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+def user_not_allowed_to_change_owner(user, obj):
+    return (
+        obj
+        and not user.is_superuser
+        and user.pk != obj.pk
+        and obj.is_owner_of_any_organization
+    )
 
 
 class EmailAddressInline(admin.StackedInline):
@@ -158,10 +169,16 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
     phone_number = PhoneNumberField(widget=forms.TextInput(), required=False)
 
     class Meta(BaseUserCreationForm.Meta):
-        fields = ["username", "email", "password1", "password2"]
+        model = User
+        basic_fields = ["username", "email", "password1", "password2"]
+        fields = basic_fields + ["expiration_date"]
         personal_fields = ["first_name", "last_name", "phone_number", "birth_date"]
         fieldsets = (
-            (None, {"classes": ("wide",), "fields": fields}),
+            (None, {"classes": ("wide",), "fields": basic_fields}),
+            (
+                _("Account expiration"),
+                {"classes": ("wide",), "fields": ("expiration_date",)},
+            ),
             ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
                 "Permissions",
@@ -169,7 +186,11 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
             ),
         )
         fieldsets_superuser = (
-            (None, {"classes": ("wide",), "fields": fields}),
+            (None, {"classes": ("wide",), "fields": basic_fields}),
+            (
+                _("Account expiration"),
+                {"classes": ("wide",), "fields": ("expiration_date",)},
+            ),
             ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
             (
                 "Permissions",
@@ -260,15 +281,38 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     )
     @require_confirmation
     def make_active(self, request, queryset):
-        queryset.update(is_active=True)
-        count = queryset.count()
+        # Clear past expiration dates before reactivating users.
+        today = localdate()
+        queryset = queryset.filter(is_active=False)
+        expired_count = queryset.filter(expiration_date__lt=today).update(
+            is_active=True, expiration_date=None
+        )
+        count = queryset.filter(
+            Q(expiration_date__isnull=True) | Q(expiration_date__gte=today)
+        ).update(is_active=True)
+        count += expired_count
         if count:
+            message = _("Successfully activated %(count)d %(model_name)s") % {
+                "count": count,
+                "model_name": model_ngettext(self.opts, count),
+            }
+            if expired_count:
+                message = " ".join(
+                    [
+                        message,
+                        ngettext(
+                            "and cleared %(count)d expiration date.",
+                            "and cleared %(count)d expiration dates.",
+                            expired_count,
+                        )
+                        % {"count": expired_count},
+                    ]
+                )
+            else:
+                message = f"{message}."
             self.message_user(
                 request,
-                _(
-                    f"Successfully made {count} "
-                    f"{model_ngettext(self.opts, count)} active."
-                ),
+                message,
                 messages.SUCCESS,
             )
 
@@ -308,7 +352,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             user_permissions = ("is_active", "is_staff", "groups", "user_permissions")
             # copy to avoid modifying reference
             non_superuser_fieldsets = deepcopy(fieldsets)
-            non_superuser_fieldsets[2][1]["fields"] = user_permissions
+            for fieldset in non_superuser_fieldsets:
+                fields = fieldset[1].get("fields", ())
+                if "is_superuser" in fields:
+                    fieldset[1]["fields"] = user_permissions
+                    break
             return non_superuser_fieldsets
         return fieldsets
 
@@ -475,7 +523,10 @@ class OrganizationUserFilter(MultitenantOrgFilter):
 base_fields = list(UserAdmin.fieldsets[1][1]["fields"])
 additional_fields = ["bio", "url", "company", "location", "phone_number", "birth_date"]
 UserAdmin.fieldsets[1][1]["fields"] = base_fields + additional_fields
-UserAdmin.fieldsets.insert(3, ("Internal", {"fields": ("notes",)}))
+UserAdmin.fieldsets.insert(
+    1, (_("Account expiration"), {"fields": ("expiration_date",)})
+)
+UserAdmin.fieldsets.insert(4, (_("Internal"), {"fields": ("notes",)}))
 primary_fields = list(UserAdmin.fieldsets[0][1]["fields"])
 UserAdmin.fieldsets[0][1]["fields"] = primary_fields + ["password_updated"]
 UserAdmin.add_fieldsets[0][1]["fields"] = (
@@ -496,7 +547,7 @@ class GroupAdmin(BaseGroupAdmin, BaseAdmin):
 
 
 class OrganizationAdmin(
-    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, UUIDAdmin
+    MultitenantAdminMixin, BaseOrganizationAdmin, BaseAdmin, CopyableFieldsAdmin
 ):
     view_on_site = False
     # this inline has an autocomplete field pointing to OrganizationUserAdmin
@@ -505,6 +556,7 @@ class OrganizationAdmin(
     readonly_fields = ["uuid", "created", "modified"]
     ordering = ["name"]
     list_display = ["name", "is_active", "created", "modified"]
+    copyable_fields = ("uuid",)
 
     def get_inline_instances(self, request, obj=None):
         """
@@ -526,7 +578,7 @@ class OrganizationAdmin(
             return False
         return super().has_change_permission(request, obj)
 
-    class Media(UUIDAdmin.Media):
+    class Media(CopyableFieldsAdmin.Media):
         css = {"all": ("openwisp-users/css/admin.css",)}
 
 
@@ -652,11 +704,32 @@ if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
 if allauth_settings.SOCIALACCOUNT_ENABLED:
-    for model in [
-        ("socialaccount", "SocialApp"),
+    _unregister_socialaccount_models = [
         ("socialaccount", "SocialToken"),
         ("socialaccount", "SocialAccount"),
-    ]:
+    ]
+    # allauth OAuth/SAML not enabled
+    if not app_settings.SOCIALACCOUNT_ADMIN_NEEDED:  # pragma: no cover
+        _unregister_socialaccount_models.append(("socialaccount", "SocialApp"))
+    # allauth OAuth/SAML enabled
+    else:
+        from allauth.socialaccount.models import SocialAccount
+
+        class SocialAccountInline(admin.StackedInline):
+            model = SocialAccount
+            extra = 0
+            readonly_fields = ("provider", "uid", "extra_data")
+
+            def has_add_permission(self, request, obj=None):
+                return False
+
+            def has_delete_permission(self, request, obj=None):
+                return False
+
+        UserAdmin.inlines.append(SocialAccountInline)
+
+    # Un-register cluttering socialaccount models
+    for model in _unregister_socialaccount_models:
         model_class = apps.get_model(*model)
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
@@ -666,12 +739,3 @@ if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
 
     if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)
-
-
-def user_not_allowed_to_change_owner(user, obj):
-    return (
-        obj
-        and not user.is_superuser
-        and user.pk != obj.pk
-        and obj.is_owner_of_any_organization
-    )

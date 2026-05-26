@@ -1,9 +1,10 @@
 import logging
+from copy import copy, deepcopy
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -201,7 +202,13 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
 
-class BaseSuperUserSerializer(serializers.ModelSerializer):
+class BaseSuperUserSerializer(ValidatedModelSerializer):
+    _skip_validation_fields = [
+        "groups",
+        "user_permissions",
+        "organization_users",
+        "email_verified",
+    ]
     organization_users = OrganizationUserSerializer(required=False)
 
     def to_representation(self, instance):
@@ -214,6 +221,13 @@ class BaseSuperUserSerializer(serializers.ModelSerializer):
             user["organization"] = org_user.organization.id
             list_of_org_users.append(user)
         data["organization_users"] = list_of_org_users
+        return data
+
+    def validate(self, data):
+        values = deepcopy(data)
+        for field in self._skip_validation_fields:
+            values.pop(field, None)
+        super().validate(values)
         return data
 
 
@@ -235,6 +249,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             "is_active",
             "is_staff",
             "is_superuser",
+            "expiration_date",
             "groups",
             "organization_users",
         )
@@ -314,6 +329,7 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "is_staff",
             "is_superuser",
             "last_login",
+            "expiration_date",
             "date_joined",
             "groups",
             "user_permissions",
@@ -323,6 +339,20 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "last_login": {"read_only": True},
             "date_joined": {"read_only": True},
         }
+
+    # Workaround for https://github.com/openwisp/openwisp-utils/issues/633
+    # TODO: Remove when the Bug is fixed in openwisp-utils
+    def validate(self, data):
+        Model = self.Meta.model
+        instance = copy(self.instance) if self.instance else Model()
+        for key, value in data.items():
+            if key in self._skip_validation_fields:
+                continue
+            # avoid direct assignment for m2m (not allowed)
+            if not isinstance(Model._meta.get_field(key), models.ManyToManyField):
+                setattr(instance, key, value)
+        instance.full_clean(exclude=self.exclude_validation)
+        return data
 
     def update(self, instance, validated_data):
         org_user_data = dict()
@@ -354,8 +384,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
                 org_user_instance.full_clean()
                 org_user_instance.save()
 
-        instance = self.instance or self.Meta.model(**validated_data)
-        instance.full_clean()
         return super().update(instance, validated_data)
 
 

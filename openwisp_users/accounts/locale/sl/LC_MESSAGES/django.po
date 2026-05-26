@@ -7,11 +7,12 @@ msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2021-11-11 21:36-0500\n"
-"Language: \n"
+"Language: sl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : "
+"n%100==3 || n%100==4 ? 2 : 3);\n"
 
 #: accounts/templates/account/email/email_confirmation_message.html:5
 #, python-format
@@ -23,6 +24,72 @@ msgstr ""
 "\n"
 "To e-pošto ste prejeli, ker je registriran uporabnik <b>%(user_display)s</b>"
 "ta e-poštni naslov za ustvarjanje računa na <b>%(site_name)s</b>.\n"
+
+#: accounts/templates/account/email/account_expiration_reminder_message.html:5
+#, python-format
+msgid ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s day on %(expiry_date)s."
+msgid_plural ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s days on %(expiry_date)s."
+msgstr[0] ""
+"Obveščamo vas, da bo vaš račun <strong>%(username)s</strong> potekel čez "
+"%(days)s dan, in sicer %(expiry_date)s."
+msgstr[1] ""
+"Obveščamo vas, da bo vaš račun <strong>%(username)s</strong> potekel čez "
+"%(days)s dni, in sicer %(expiry_date)s."
+msgstr[2] ""
+"Obveščamo vas, da bo vaš račun <strong>%(username)s</strong> potekel čez "
+"%(days)s dni, in sicer %(expiry_date)s."
+msgstr[3] ""
+"Obveščamo vas, da bo vaš račun <strong>%(username)s</strong> potekel čez "
+"%(days)s dni, in sicer %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.html:13
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:10
+msgid "Please contact your administrator if you need to extend your access."
+msgstr ""
+"Če želite podaljšati svoj dostop, se obrnite na svojega administratorja."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s will expire in %(days)s day on "
+"%(expiry_date)s."
+msgid_plural ""
+"We inform you that your account %(username)s will expire in %(days)s days on "
+"%(expiry_date)s."
+msgstr[0] ""
+"Obveščamo vas, da bo vaš račun %(username)s potekel čez %(days)s dan, in "
+"sicer %(expiry_date)s."
+msgstr[1] ""
+"Obveščamo vas, da bo vaš račun %(username)s potekel čez %(days)s dni, in "
+"sicer %(expiry_date)s."
+msgstr[2] ""
+"Obveščamo vas, da bo vaš račun %(username)s potekel čez %(days)s dni, in "
+"sicer %(expiry_date)s."
+msgstr[3] ""
+"Obveščamo vas, da bo vaš račun %(username)s potekel čez %(days)s dni, in "
+"sicer %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:5
+#: accounts/templates/account/email/account_expired_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s has been deactivated because it "
+"expired on %(expiry_date)s."
+msgstr ""
+"Obveščamo vas, da je bil vaš račun %(username)s deaktiviran, ker je potekel "
+"dne %(expiry_date)s."
+
+#: accounts/templates/account/email/account_expired_message.html:11
+#: accounts/templates/account/email/account_expired_message.txt:8
+msgid ""
+"Please contact your administrator if you need to reactivate your account."
+msgstr ""
+"Če želite ponovno aktivirati svoj račun, se obrnite na svojega "
+"administratorja."
 
 #: accounts/templates/account/email/email_confirmation_message.html:9
 msgid "To confirm this is correct, please click on the button below."
