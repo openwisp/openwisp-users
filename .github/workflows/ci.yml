@@ -75,6 +75,7 @@ jobs:
           pip install -U -r requirements-test.txt
           sudo npm install -g prettier
           pip install -e .[rest]
+          pip install --force-reinstall --no-deps "openwisp-utils @ https://github.com/BHARATH0153/openwisp-utils/archive/7eb5232ae2ed92c36a527e69f42143405a10e763.tar.gz"
           pip install -U ${{ matrix.django-version }}
 
       - name: QA checks

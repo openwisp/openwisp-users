@@ -1,10 +1,10 @@
 import logging
-from copy import copy, deepcopy
+from copy import deepcopy
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.db import models, transaction
+from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -339,20 +339,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "last_login": {"read_only": True},
             "date_joined": {"read_only": True},
         }
-
-    # Workaround for https://github.com/openwisp/openwisp-utils/issues/633
-    # TODO: Remove when the Bug is fixed in openwisp-utils
-    def validate(self, data):
-        Model = self.Meta.model
-        instance = copy(self.instance) if self.instance else Model()
-        for key, value in data.items():
-            if key in self._skip_validation_fields:
-                continue
-            # avoid direct assignment for m2m (not allowed)
-            if not isinstance(Model._meta.get_field(key), models.ManyToManyField):
-                setattr(instance, key, value)
-        instance.full_clean(exclude=self.exclude_validation)
-        return data
 
     def update(self, instance, validated_data):
         org_user_data = dict()
