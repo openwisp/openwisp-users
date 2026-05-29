@@ -1996,6 +1996,8 @@ class TestBasicUsersIntegration(
 
     def test_login_page(self):
         r = self.client.get(reverse("admin:login"))
+        self.assertTemplateUsed(r, "admin/login.html")
+        self.assertTemplateUsed(r, "admin/openwisp_users/login.html")
 
         with self.subTest("Test forgot password link"):
             self.assertContains(
@@ -2005,6 +2007,23 @@ class TestBasicUsersIntegration(
         with self.subTest("Test username label"):
             self.assertContains(r, '<label class="required" for="id_username">')
             self.assertContains(r, "Email, phone number or username:")
+
+    def test_action_confirmation_template(self):
+        user = self._create_admin()
+        self.client.force_login(user)
+        self._create_org_user()
+        users = get_user_model().objects.filter(is_superuser=False)
+        url = reverse(f"admin:{self.app_label}_user_changelist")
+        data = {
+            "action": "make_active",
+            "_selected_action": [str(u.pk) for u in users],
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin/action_confirmation.html")
+        self.assertTemplateUsed(
+            response, "admin/openwisp_users/action_confirmation.html"
+        )
 
 
 class TestMultitenantAdmin(TestMultitenantAdminMixin, TestCase):
