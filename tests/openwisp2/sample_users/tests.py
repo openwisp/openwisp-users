@@ -1,3 +1,6 @@
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
 from openwisp_users.tests.test_accounts import TestAccountView as BaseTestAccountView
 from openwisp_users.tests.test_admin import (
     TestBasicUsersIntegration as BaseTestBasicUsersIntegration,
@@ -86,6 +89,24 @@ class TestUserPasswordExpiration(BaseTestUserPasswordExpiration):
 class TestBasicUsersIntegration(GetEditFormInlineMixin, BaseTestBasicUsersIntegration):
     app_label = "sample_users"
     _additional_user_fields = additional_fields
+
+    def test_login_page(self):
+        super().test_login_page()
+        # Verify that the sample app's override template is used
+        r = self.client.get(reverse("admin:login"))
+        self.assertContains(r, "<p>Sample Login Template</p>")
+
+    def test_action_confirmation_template(self):
+        super().test_action_confirmation_template()
+        # Verify that the sample app's override template is used
+        users = get_user_model().objects.filter(is_superuser=False)
+        url = reverse(f"admin:{self.app_label}_user_changelist")
+        data = {
+            "action": "make_active",
+            "_selected_action": [str(u.pk) for u in users],
+        }
+        response = self.client.post(url, data)
+        self.assertContains(response, "<p>Sample Action Confirmation Template</p>")
 
 
 class TestMultitenantAdmin(BaseTestMultitenantAdmin):

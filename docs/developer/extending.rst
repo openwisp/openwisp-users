@@ -103,9 +103,8 @@ Add ``openwisp_utils.staticfiles.DependencyFinder`` to
 5. Add ``openwisp_utils.loaders.DependencyLoader``
 --------------------------------------------------
 
-Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` before
-``django.template.loaders.app_directories.Loader`` in your
-``settings.py``:
+Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` after all
+``django.template.loaders`` in your ``settings.py``:
 
 .. code-block:: python
 
@@ -115,8 +114,8 @@ Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` before
             "OPTIONS": {
                 "loaders": [
                     "django.template.loaders.filesystem.Loader",
-                    "openwisp_utils.loaders.DependencyLoader",
                     "django.template.loaders.app_directories.Loader",
+                    "openwisp_utils.loaders.DependencyLoader",
                 ],
                 "context_processors": [
                     "django.template.context_processors.debug",
@@ -133,9 +132,9 @@ Add ``openwisp_utils.loaders.DependencyLoader`` to ``TEMPLATES`` before
 
 Please refer to the following files in the sample app of the test project:
 
-- `openwisp_users/__init__.py
+- `sample_users/__init__.py
   <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/__init__.py>`_
-- `openwisp_users/apps.py
+- `sample_users/apps.py
   <https://github.com/openwisp/openwisp-users/blob/master/tests/openwisp2/sample_users/apps.py>`_
 
 You have to replicate and adapt that code in your project.
