@@ -2,7 +2,6 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import pagination
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import (
     GenericAPIView,
@@ -17,6 +16,7 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_utils.api.pagination import OpenWispPagination
 
 from .mixins import FilterByParent
 from .mixins import ProtectedAPIMixin as BaseProtectedAPIMixin
@@ -45,12 +45,6 @@ class ProtectedAPIMixin(BaseProtectedAPIMixin):
         IsAuthenticated,
         DjangoModelPermissions,
     )
-
-
-class ListViewPagination(pagination.PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 100
 
 
 class ObtainAuthTokenView(ObtainAuthToken):
@@ -82,7 +76,7 @@ class BaseOrganizationView(ProtectedAPIMixin):
 
 
 class OrganizationListCreateView(BaseOrganizationView, ListCreateAPIView):
-    pagination_class = ListViewPagination
+    pagination_class = OpenWispPagination
 
 
 class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView):
@@ -108,7 +102,7 @@ class BaseUserView(ProtectedAPIMixin):
 
 
 class UsersListCreateView(BaseUserView, ListCreateAPIView):
-    pagination_class = ListViewPagination
+    pagination_class = OpenWispPagination
 
     def get_serializer_class(self):
         user = self.request.user
@@ -130,7 +124,7 @@ class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
         "permissions", "permissions__content_type"
     ).order_by("name")
     serializer_class = GroupSerializer
-    pagination_class = ListViewPagination
+    pagination_class = OpenWispPagination
 
 
 class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
@@ -236,7 +230,7 @@ class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
 
 
 class EmailListCreateView(BaseEmailView, ListCreateAPIView):
-    pagination_class = ListViewPagination
+    pagination_class = OpenWispPagination
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
