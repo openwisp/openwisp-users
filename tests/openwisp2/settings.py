@@ -142,7 +142,7 @@ if not TESTING and SHELL:
 
 
 if not TESTING:
-    CELERY_BROKER_URL = "redis://localhost/6"
+    CELERY_BROKER_URL = "redis://localhost/2"
 else:
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
@@ -184,7 +184,12 @@ if not PARALLEL:
             "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": "redis://localhost/0",
             "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        }
+        },
+        "sessions": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": "redis://localhost/1",
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        },
     }
 # parallel testing with redis cache does not work
 # so we use the local memory cache in this case
@@ -195,11 +200,15 @@ else:
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "openwisp-users",
-        }
+        },
+        "sessions": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "openwisp-users-sessions",
+        },
     }
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+SESSION_CACHE_ALIAS = "sessions"
 
 if SAMPLE_APP:
     users_index = INSTALLED_APPS.index("openwisp_users")
