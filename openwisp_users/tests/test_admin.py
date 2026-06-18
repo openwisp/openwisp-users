@@ -5,6 +5,7 @@ import uuid
 from unittest.mock import patch
 
 import django
+from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
 from django.contrib.auth.models import Permission
@@ -356,7 +357,7 @@ class TestUsersAdmin(
         self.assertNotContains(response, token.key)
         self.assertNotContains(response, 'name="auth_token-0-key"')
         self.assertContains(response, "<b>API key:</b>", html=True)
-        self.assertContains(response, 'value="********************"')
+        self.assertContains(response, f'value="{"*" * 40}"')
         self.assertContains(response, "Created")
 
     def test_tokenproxy_admin_unregistered(self):
@@ -417,21 +418,22 @@ class TestUsersAdmin(
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Token.objects.filter(key=token.key).exists())
 
-    def test_administrator_auth_token_permissions(self):
+    def test_administrator_api_key_permissions(self):
+        api_key_model = django_apps.get_model(self.app_label, "ApiKey")
         permissions = [
-            f"{action}_{TokenProxy._meta.model_name}"
+            f"{action}_{api_key_model._meta.model_name}"
             for action in ["add", "change", "delete", "view"]
         ]
         admin_group = Group.objects.get(name="Administrator")
-        with self.subTest("administrator group has token permissions"):
+        with self.subTest("administrator group has API key permissions"):
             for permission in permissions:
                 self.assertTrue(
                     admin_group.permissions.filter(
-                        content_type__app_label=TokenProxy._meta.app_label,
+                        content_type__app_label=api_key_model._meta.app_label,
                         codename=permission,
                     ).exists()
                 )
-        with self.subTest("administrator can create token from user change page"):
+        with self.subTest("administrator can create API key from user change page"):
             org = self._get_org()
             administrator = self._create_administrator([org])
             user = self._create_user(username="tokenuser", email="token@example.com")
@@ -458,7 +460,7 @@ class TestUsersAdmin(
             response = self.client.get(path)
             self.assertContains(response, "Created")
             self.assertNotContains(response, token.key)
-            self.assertContains(response, 'value="********************"')
+            self.assertContains(response, f'value="{"*" * 40}"')
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()

@@ -2,7 +2,7 @@
 
 from django.db import migrations
 
-from openwisp_users.migrations import add_token_permissions_to_admins
+from openwisp_users.migrations import add_api_key_permissions_to_admins
 
 
 class Migration(migrations.Migration):
@@ -12,6 +12,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            add_token_permissions_to_admins, reverse_code=migrations.RunPython.noop
+            add_api_key_permissions_to_admins, reverse_code=migrations.RunPython.noop
         )
     ]

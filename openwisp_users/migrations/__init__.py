@@ -164,27 +164,28 @@ def allow_operator_view_organization(apps, schema_editor):
         pass
 
 
-def add_token_permissions_to_admins(apps, schema_editor):
+def add_api_key_permissions_to_admins(apps, schema_editor):
     try:
-        TokenProxy = apps.get_model("authtoken", "TokenProxy")
+        apps.get_model("authtoken", "Token")
     except LookupError:
         return
-    for app_config in apps.get_app_configs():
-        if app_config.label == "authtoken":
-            app_config.models_module = True
-            create_permissions(app_config, apps=apps, verbosity=0)
-            app_config.models_module = None
-            break
     Group = get_model(apps, "Group")
     try:
         admins = Group.objects.get(name="Administrator")
     except Group.DoesNotExist:
         return
+    ContentType = apps.get_model("contenttypes", "ContentType")
+    PermissionModel = apps.get_model("auth", "Permission")
+    content_type, _ = ContentType.objects.get_or_create(
+        app_label=settings.AUTH_USER_MODEL.split(".", 1)[0],
+        model="apikey",
+    )
     permissions = [
-        Permission.objects.get(
-            content_type__app_label=TokenProxy._meta.app_label,
-            codename=f"{action}_{TokenProxy._meta.model_name}",
-        ).pk
-        for action in ["add", "change", "delete", "view"]
+        PermissionModel.objects.get_or_create(
+            content_type=content_type,
+            codename=f"{action}_apikey",
+            defaults={"name": f"Can {action} API key"},
+        )[0].pk
+        for action in ("add", "change", "delete", "view")
     ]
     admins.permissions.add(*permissions)

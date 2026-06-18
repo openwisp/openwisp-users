@@ -4,5 +4,6 @@ input.readonly {
 }
 
 .field-api_key .readonly input.vTextField {
-  width: 23.5em;
+  font-family: var(--font-family-monospace);
+  width: 25.75em;
 }

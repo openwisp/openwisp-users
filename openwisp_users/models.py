@@ -1,4 +1,5 @@
 import swapper
+from django.apps import apps
 from django.contrib.auth.models import Group as AbstractGroup
 from organizations.abstract import (
     AbstractOrganization,
@@ -49,3 +50,7 @@ class OrganizationInvitation(AbstractOrganizationInvitation):
 class Group(BaseGroup, AbstractGroup):
     class Meta(BaseGroup.Meta):
         swapper.swappable_setting("openwisp_users", "Group")
+
+
+if apps.is_installed("rest_framework.authtoken"):
+    from .base.models import ApiKey  # noqa

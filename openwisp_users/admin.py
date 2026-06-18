@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.actions import delete_selected
 from django.contrib.admin.utils import model_ngettext
-from django.contrib.auth import get_permission_codename, get_user_model
+from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
@@ -489,19 +489,10 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         instances = formset.save(commit=False)
         not_deleted = 0
         for obj in formset.deleted_objects:
-            token_key = None
-            opts = obj._meta.concrete_model._meta
-            if opts.app_label == "authtoken" and opts.model_name == "token":
-                # Token.delete() clears the key primary key, but the admin log
-                # needs it later when building the deletion change message.
-                token_key = obj.key
             try:
                 obj.delete()
             except OwnershipRequired:
                 not_deleted += 1
-            else:
-                if token_key:
-                    obj.key = token_key
         if not_deleted:
             single_msg = (
                 f"Can't delete {not_deleted} organization user because it "
@@ -751,28 +742,15 @@ if apps.is_installed("rest_framework.authtoken"):
     # Import for the side effect of registering TokenProxy before unregistering it.
     from rest_framework.authtoken import admin as authtoken_admin  # noqa
 
-    Token = apps.get_model("authtoken", "Token")
+    user_app_label = get_user_model()._meta.app_label
+    ApiKey = apps.get_model(user_app_label, "ApiKey")
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
+    API_KEY_MASK = "*" * 40
 
-    class ApiKey(Token):
-        def __str__(self):
-            """
-            Avoid exposing the API key in Django admin inline headers.
+    if admin.site.is_registered(TokenProxy):
+        admin.site.unregister(TokenProxy)
 
-            Django's stacked inline template renders ``str(original)`` in each
-            row header. DRF's Token.__str__ returns the raw bearer credential,
-            so the user admin inline uses this proxy model instead of copying
-            the whole Django admin template, which would carry more maintenance
-            burden as admin templates change over time.
-            """
-            return str(_("API key"))
-
-        class Meta:
-            app_label = "authtoken"
-            proxy = True
-            verbose_name = _("API key")
-            verbose_name_plural = _("API keys")
-
+    # Keep the token primary key out of the DOM because it is the raw API key.
     class NonRenderingHiddenInput(forms.HiddenInput):
         def render(self, name, value, attrs=None, renderer=None):
             return ""
@@ -808,6 +786,7 @@ if apps.is_installed("rest_framework.authtoken"):
             **kwargs,
         ):
             prefix = prefix or self.get_default_prefix()
+            # max_num=1 keeps the existing token form at index 0.
             if data is not None and instance and hasattr(instance, "auth_token"):
                 data = data.copy()
                 data[f"{prefix}-0-key"] = instance.auth_token.key
@@ -831,8 +810,6 @@ if apps.is_installed("rest_framework.authtoken"):
         formset = AuthTokenInlineFormSet
         extra = 0
         max_num = 1
-        verbose_name = _("API key")
-        verbose_name_plural = _("API keys")
         readonly_fields = ("api_key", "created")
 
         def get_fields(self, request, obj=None):
@@ -846,7 +823,7 @@ if apps.is_installed("rest_framework.authtoken"):
             value = (
                 obj.key
                 if parent_obj and parent_obj.pk == self.request.user.pk
-                else "********************"
+                else API_KEY_MASK
             )
             return format_html(
                 '<input type="text" disabled class="vTextField" value="{}">', value
@@ -870,36 +847,17 @@ if apps.is_installed("rest_framework.authtoken"):
         def get_extra(self, request, obj=None, **kwargs):
             return 0
 
-        def has_add_permission(self, request, obj=None):
-            opts = TokenProxy._meta
-            codename = get_permission_codename("add", opts)
-            return request.user.has_perm(f"{opts.app_label}.{codename}")
+        def _is_self(self, request, obj):
+            """Whether the authenticated user is viewing/editing his own account."""
+            return bool(obj and obj.pk == request.user.pk)
 
         def has_view_permission(self, request, obj=None):
-            if obj and obj.pk == request.user.pk:
-                return True
-            opts = TokenProxy._meta
-            view_codename = get_permission_codename("view", opts)
-            change_codename = get_permission_codename("change", opts)
-            return request.user.has_perm(
-                f"{opts.app_label}.{view_codename}"
-            ) or request.user.has_perm(f"{opts.app_label}.{change_codename}")
+            return self._is_self(request, obj) or super().has_view_permission(request)
 
         def has_change_permission(self, request, obj=None):
-            if obj and obj.pk == request.user.pk:
-                return True
-            opts = TokenProxy._meta
-            codename = get_permission_codename("change", opts)
-            return request.user.has_perm(f"{opts.app_label}.{codename}")
+            return self._is_self(request, obj) or super().has_change_permission(request)
 
         def has_delete_permission(self, request, obj=None):
-            if obj and obj.pk == request.user.pk:
-                return True
-            opts = TokenProxy._meta
-            codename = get_permission_codename("delete", opts)
-            return request.user.has_perm(f"{opts.app_label}.{codename}")
+            return self._is_self(request, obj) or super().has_delete_permission(request)
 
     UserAdmin.inlines.insert(1, AuthTokenInline)
-
-    if admin.site.is_registered(TokenProxy):
-        admin.site.unregister(TokenProxy)

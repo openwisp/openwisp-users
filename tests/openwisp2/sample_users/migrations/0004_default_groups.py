@@ -4,7 +4,7 @@ import swapper
 from django.db import migrations
 
 from openwisp_users.migrations import (
-    add_token_permissions_to_admins,
+    add_api_key_permissions_to_admins,
     allow_admins_change_organization,
     allow_operator_view_organization,
     create_default_groups,
@@ -35,6 +35,6 @@ class Migration(migrations.Migration):
             allow_operator_view_organization, reverse_code=migrations.RunPython.noop
         ),
         migrations.RunPython(
-            add_token_permissions_to_admins, reverse_code=migrations.RunPython.noop
+            add_api_key_permissions_to_admins, reverse_code=migrations.RunPython.noop
         ),
     ]
