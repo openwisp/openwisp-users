@@ -753,6 +753,24 @@ if apps.is_installed("rest_framework.authtoken"):
     Token = apps.get_model("authtoken", "Token")
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
 
+    def _api_key_str(self):
+        """
+        Avoid exposing the API key in Django admin inline headers.
+
+        Django's stacked inline template renders ``str(original)`` in each row
+        header. DRF's Token.__str__ returns the raw bearer credential, so using
+        the stock admin template would leak the key. Monkey patching this small
+        method avoids copying the whole Django admin template, which would carry
+        more maintenance burden as admin templates change over time.
+        """
+        return str(_("API key"))
+
+    Token.__str__ = _api_key_str
+
+    class NonRenderingHiddenInput(forms.HiddenInput):
+        def render(self, name, value, attrs=None, renderer=None):
+            return ""
+
     class AuthTokenInlineForm(forms.ModelForm):
         generate_token = forms.BooleanField(
             label=_("Create new API key"), required=False
@@ -797,6 +815,10 @@ if apps.is_installed("rest_framework.authtoken"):
                 **kwargs,
             )
 
+        def add_fields(self, form, index):
+            super().add_fields(form, index)
+            form.fields[self._pk_field.name].widget = NonRenderingHiddenInput()
+
     class AuthTokenInline(admin.StackedInline):
         model = Token
         form = AuthTokenInlineForm
@@ -805,7 +827,6 @@ if apps.is_installed("rest_framework.authtoken"):
         max_num = 1
         verbose_name = _("API key")
         verbose_name_plural = _("API keys")
-        template = "admin/openwisp_users/auth_token_stacked.html"
         readonly_fields = ("api_key", "created")
 
         def get_fields(self, request, obj=None):

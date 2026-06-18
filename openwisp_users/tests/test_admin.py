@@ -355,6 +355,7 @@ class TestUsersAdmin(
         )
         self.assertNotContains(response, token.key)
         self.assertNotContains(response, 'name="auth_token-0-key"')
+        self.assertContains(response, "<b>API key:</b>", html=True)
         self.assertContains(response, 'value="********************"')
         self.assertContains(response, "Created")
 
