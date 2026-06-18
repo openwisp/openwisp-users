@@ -490,7 +490,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         not_deleted = 0
         for obj in formset.deleted_objects:
             token_key = None
-            if obj._meta.app_label == "authtoken" and obj._meta.model_name == "token":
+            opts = obj._meta.concrete_model._meta
+            if opts.app_label == "authtoken" and opts.model_name == "token":
                 # Token.delete() clears the key primary key, but the admin log
                 # needs it later when building the deletion change message.
                 token_key = obj.key
@@ -753,19 +754,24 @@ if apps.is_installed("rest_framework.authtoken"):
     Token = apps.get_model("authtoken", "Token")
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
 
-    def _api_key_str(self):
-        """
-        Avoid exposing the API key in Django admin inline headers.
+    class ApiKey(Token):
+        def __str__(self):
+            """
+            Avoid exposing the API key in Django admin inline headers.
 
-        Django's stacked inline template renders ``str(original)`` in each row
-        header. DRF's Token.__str__ returns the raw bearer credential, so using
-        the stock admin template would leak the key. Monkey patching this small
-        method avoids copying the whole Django admin template, which would carry
-        more maintenance burden as admin templates change over time.
-        """
-        return str(_("API key"))
+            Django's stacked inline template renders ``str(original)`` in each
+            row header. DRF's Token.__str__ returns the raw bearer credential,
+            so the user admin inline uses this proxy model instead of copying
+            the whole Django admin template, which would carry more maintenance
+            burden as admin templates change over time.
+            """
+            return str(_("API key"))
 
-    Token.__str__ = _api_key_str
+        class Meta:
+            app_label = "authtoken"
+            proxy = True
+            verbose_name = _("API key")
+            verbose_name_plural = _("API keys")
 
     class NonRenderingHiddenInput(forms.HiddenInput):
         def render(self, name, value, attrs=None, renderer=None):
@@ -777,7 +783,7 @@ if apps.is_installed("rest_framework.authtoken"):
         )
 
         class Meta:
-            model = Token
+            model = ApiKey
             fields = ()
 
         def __init__(self, *args, **kwargs):
@@ -820,7 +826,7 @@ if apps.is_installed("rest_framework.authtoken"):
             form.fields[self._pk_field.name].widget = NonRenderingHiddenInput()
 
     class AuthTokenInline(admin.StackedInline):
-        model = Token
+        model = ApiKey
         form = AuthTokenInlineForm
         formset = AuthTokenInlineFormSet
         extra = 0
