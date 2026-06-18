@@ -1,4 +1,5 @@
 {% load i18n admin_urls %}
+{# Based on Django's stacked inline template, but avoids rendering str(Token) in the row header because it contains the API key. #}
 <div class="js-inline-admin-formset inline-group"
      id="{{ inline_admin_formset.formset.prefix }}-group"
      data-inline-type="stacked"
@@ -29,7 +30,6 @@
     {% endfor %}
   {% endwith %}
 
-  {% if inline_admin_form.needs_explicit_pk_field %}{{ inline_admin_form.pk_field.field }}{% endif %}
   {% if inline_admin_form.fk_field %}{{ inline_admin_form.fk_field.field }}{% endif %}
 </div>{% endfor %}
   {% if inline_admin_formset.is_collapsible %}</details>{% endif %}

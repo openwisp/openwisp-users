@@ -178,13 +178,13 @@ def add_token_permissions_to_admins(apps, schema_editor):
     Group = get_model(apps, "Group")
     try:
         admins = Group.objects.get(name="Administrator")
-        permissions = [
-            Permission.objects.get(
-                content_type__app_label=TokenProxy._meta.app_label,
-                codename=f"{action}_{TokenProxy._meta.model_name}",
-            ).pk
-            for action in ["add", "change", "delete", "view"]
-        ]
-        admins.permissions.add(*permissions)
-    except ObjectDoesNotExist:
-        pass
+    except Group.DoesNotExist:
+        return
+    permissions = [
+        Permission.objects.get(
+            content_type__app_label=TokenProxy._meta.app_label,
+            codename=f"{action}_{TokenProxy._meta.model_name}",
+        ).pk
+        for action in ["add", "change", "delete", "view"]
+    ]
+    admins.permissions.add(*permissions)

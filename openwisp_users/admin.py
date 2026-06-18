@@ -491,6 +491,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         for obj in formset.deleted_objects:
             token_key = None
             if obj._meta.app_label == "authtoken" and obj._meta.model_name == "token":
+                # Token.delete() clears the key primary key, but the admin log
+                # needs it later when building the deletion change message.
                 token_key = obj.key
             try:
                 obj.delete()
@@ -744,7 +746,8 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
 
-if apps.is_installed("rest_framework.authtoken"):  # pragma: no cover
+if apps.is_installed("rest_framework.authtoken"):
+    # Import for the side effect of registering TokenProxy before unregistering it.
     from rest_framework.authtoken import admin as authtoken_admin  # noqa
 
     Token = apps.get_model("authtoken", "Token")
@@ -769,9 +772,35 @@ if apps.is_installed("rest_framework.authtoken"):  # pragma: no cover
                 return False
             return self.cleaned_data.get("generate_token", False)
 
+    class AuthTokenInlineFormSet(BaseInlineFormSet):
+        def __init__(
+            self,
+            data=None,
+            files=None,
+            instance=None,
+            save_as_new=False,
+            prefix=None,
+            queryset=None,
+            **kwargs,
+        ):
+            prefix = prefix or self.get_default_prefix()
+            if data is not None and instance and hasattr(instance, "auth_token"):
+                data = data.copy()
+                data.setdefault(f"{prefix}-0-key", instance.auth_token.key)
+            super().__init__(
+                data=data,
+                files=files,
+                instance=instance,
+                save_as_new=save_as_new,
+                prefix=prefix,
+                queryset=queryset,
+                **kwargs,
+            )
+
     class AuthTokenInline(admin.StackedInline):
         model = Token
         form = AuthTokenInlineForm
+        formset = AuthTokenInlineFormSet
         extra = 0
         max_num = 1
         verbose_name = _("API key")
