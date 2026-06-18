@@ -75,20 +75,23 @@ class TestUsersAdmin(
 
     def _get_auth_token_inline_params(self, user, generate_token=False):
         params = {
-            "auth_token-TOTAL_FORMS": 1,
             "auth_token-MIN_NUM_FORMS": 0,
             "auth_token-MAX_NUM_FORMS": 1,
         }
         if hasattr(user, "auth_token"):
             params.update(
                 {
+                    "auth_token-TOTAL_FORMS": 1,
                     "auth_token-INITIAL_FORMS": 1,
                     "auth_token-0-key": user.auth_token.key,
                     "auth_token-0-user": str(user.pk),
                 }
             )
         else:
-            params.update({"auth_token-INITIAL_FORMS": 0})
+            total_forms = 1 if generate_token else 0
+            params.update(
+                {"auth_token-TOTAL_FORMS": total_forms, "auth_token-INITIAL_FORMS": 0}
+            )
             if generate_token:
                 params.update({"auth_token-0-generate_token": "on"})
         return params
@@ -328,6 +331,32 @@ class TestUsersAdmin(
         self.assertLess(content.index(email_inline), content.index(token_inline))
         self.assertLess(content.index(token_inline), content.index(org_user_inline))
 
+    def test_superuser_can_see_auth_token_inline(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        user = self._create_user(username="notoken", email="notoken@example.com")
+        response = self.client.get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        self.assertContains(response, 'id="auth_token-group"')
+        self.assertContains(response, "API key")
+        self.assertContains(response, "Add another API key")
+        self.assertContains(response, "Create new API key")
+        self.assertContains(response, 'name="auth_token-TOTAL_FORMS" value="0"')
+        self.assertNotContains(response, "field-created")
+
+    def test_superuser_cannot_see_other_user_auth_token_key(self):
+        admin = self._create_admin()
+        user = self._create_user(username="tokenuser", email="token@example.com")
+        token = Token.objects.create(user=user)
+        self.client.force_login(admin)
+        response = self.client.get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        self.assertNotContains(response, token.key)
+        self.assertContains(response, 'value="********************"')
+        self.assertContains(response, "Created")
+
     def test_tokenproxy_admin_unregistered(self):
         self.assertFalse(django_admin.site.is_registered(TokenProxy))
 
@@ -336,6 +365,10 @@ class TestUsersAdmin(
         user = self._create_operator_with_user_permissions([org])
         token = Token.objects.create(user=user)
         self.client.force_login(user)
+        path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        response = self.client.get(path)
+        self.assertContains(response, f'value="{token.key}"')
+        self.assertContains(response, "disabled")
         params = user.__dict__
         params["groups"] = [str(group.pk) for group in user.groups.all()]
         params.pop("phone_number")
@@ -349,7 +382,7 @@ class TestUsersAdmin(
         params.update(self._get_user_edit_form_inline_params(user, org))
         params.update({"auth_token-0-DELETE": "on"})
         response = self.client.post(
-            reverse(f"admin:{self.app_label}_user_change", args=[user.pk]),
+            path,
             params,
             follow=True,
         )
@@ -404,7 +437,7 @@ class TestUsersAdmin(
             self.client.force_login(administrator)
             path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
             response = self.client.get(path)
-            self.assertContains(response, "Generate token")
+            self.assertContains(response, "Create new API key")
             params = user.__dict__
             params.pop("phone_number")
             params.pop("password", None)
@@ -421,7 +454,9 @@ class TestUsersAdmin(
             self.assertTrue(Token.objects.filter(user=user).exists())
             token = Token.objects.get(user=user)
             response = self.client.get(path)
-            self.assertContains(response, token.key)
+            self.assertContains(response, "Created")
+            self.assertNotContains(response, token.key)
+            self.assertContains(response, 'value="********************"')
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()

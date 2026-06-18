@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.actions import delete_selected
 from django.contrib.admin.utils import model_ngettext
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_permission_codename, get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
@@ -20,6 +20,7 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.timezone import localdate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
@@ -230,6 +231,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     # To ensure extended apps use this template.
     change_form_template = "admin/openwisp_users/user/change_form.html"
+
+    class Media:
+        css = {"all": ("openwisp-users/css/admin.css",)}
 
     def require_confirmation(func):
         """
@@ -740,14 +744,16 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
 
-if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
+if apps.is_installed("rest_framework.authtoken"):  # pragma: no cover
     from rest_framework.authtoken import admin as authtoken_admin  # noqa
 
     Token = apps.get_model("authtoken", "Token")
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
 
     class AuthTokenInlineForm(forms.ModelForm):
-        generate_token = forms.BooleanField(label=_("Generate token"), required=False)
+        generate_token = forms.BooleanField(
+            label=_("Create new API key"), required=False
+        )
 
         class Meta:
             model = Token
@@ -755,23 +761,43 @@ if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            if self.instance.pk:
+            if self.instance.pk and "generate_token" in self.fields:
                 self.fields["generate_token"].widget = forms.HiddenInput()
 
         def clean_generate_token(self):
             if self.instance.pk:
                 return False
-            return self.cleaned_data["generate_token"]
+            return self.cleaned_data.get("generate_token", False)
 
     class AuthTokenInline(admin.StackedInline):
         model = Token
         form = AuthTokenInlineForm
         extra = 0
         max_num = 1
-        readonly_fields = ("key", "created")
-        fields = ("key", "created", "generate_token")
+        verbose_name = _("API key")
+        verbose_name_plural = _("API keys")
+        template = "admin/openwisp_users/auth_token_stacked.html"
+        readonly_fields = ("api_key", "created")
+
+        def get_fields(self, request, obj=None):
+            if obj and hasattr(obj, "auth_token"):
+                return ("api_key", "created")
+            return ("generate_token",)
+
+        @admin.display(description=_("API key"))
+        def api_key(self, obj):
+            parent_obj = getattr(self, "parent_obj", None)
+            value = (
+                obj.key
+                if parent_obj and parent_obj.pk == self.request.user.pk
+                else "********************"
+            )
+            return format_html(
+                '<input type="text" disabled class="vTextField" value="{}">', value
+            )
 
         def get_formset(self, request, obj=None, **kwargs):
+            self.request = request
             self.parent_obj = obj
             return super().get_formset(request, obj=obj, **kwargs)
 
@@ -786,36 +812,36 @@ if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
             return super().get_queryset(request)
 
         def get_extra(self, request, obj=None, **kwargs):
-            if (
-                obj
-                and not hasattr(obj, "auth_token")
-                and self.has_add_permission(request, obj)
-            ):
-                return 1
             return 0
 
-        def _has_token_proxy_permission(self, request, action):
-            return request.user.has_perm(
-                f"{TokenProxy._meta.app_label}.{action}_{TokenProxy._meta.model_name}"
-            )
-
         def has_add_permission(self, request, obj=None):
-            return self._has_token_proxy_permission(request, "add")
+            opts = TokenProxy._meta
+            codename = get_permission_codename("add", opts)
+            return request.user.has_perm(f"{opts.app_label}.{codename}")
 
         def has_view_permission(self, request, obj=None):
             if obj and obj.pk == request.user.pk:
                 return True
-            return self._has_token_proxy_permission(request, "view")
+            opts = TokenProxy._meta
+            view_codename = get_permission_codename("view", opts)
+            change_codename = get_permission_codename("change", opts)
+            return request.user.has_perm(
+                f"{opts.app_label}.{view_codename}"
+            ) or request.user.has_perm(f"{opts.app_label}.{change_codename}")
 
         def has_change_permission(self, request, obj=None):
             if obj and obj.pk == request.user.pk:
                 return True
-            return self._has_token_proxy_permission(request, "change")
+            opts = TokenProxy._meta
+            codename = get_permission_codename("change", opts)
+            return request.user.has_perm(f"{opts.app_label}.{codename}")
 
         def has_delete_permission(self, request, obj=None):
             if obj and obj.pk == request.user.pk:
                 return True
-            return self._has_token_proxy_permission(request, "delete")
+            opts = TokenProxy._meta
+            codename = get_permission_codename("delete", opts)
+            return request.user.has_perm(f"{opts.app_label}.{codename}")
 
     UserAdmin.inlines.insert(1, AuthTokenInline)
 
