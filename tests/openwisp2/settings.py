@@ -230,8 +230,3 @@ try:
     from .local_settings import *
 except ImportError:
     pass
-
-# Added for silencing warnings raised by django-all-auth
-# on Django 3.2 and above. Remove when new version of
-# django-all-auth is released
-SILENCED_SYSTEM_CHECKS = ["models.W042"]
