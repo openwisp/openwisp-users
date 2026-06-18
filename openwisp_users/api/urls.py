@@ -16,7 +16,7 @@ def get_api_urls(api_views=None):
             name="organization_list",
         ),
         path(
-            "users/organization/<str:pk>/",
+            "users/organization/<uuid:pk>/",
             views.organization_detail,
             name="organization_detail",
         ),
@@ -25,19 +25,19 @@ def get_api_urls(api_views=None):
             views.user_list,
             name="user_list",
         ),
-        path("users/user/<str:pk>/", views.user_detail, name="user_detail"),
+        path("users/user/<uuid:pk>/", views.user_detail, name="user_detail"),
         path(
-            "users/user/<str:pk>/password/",
+            "users/user/<uuid:pk>/password/",
             views.change_password,
             name="change_password",
         ),
         path(
-            "users/user/<str:pk>/email/",
+            "users/user/<uuid:pk>/email/",
             views.email_list,
             name="email_list",
         ),
         path(
-            "users/user/<str:pk>/email/<int:email_id>/",
+            "users/user/<uuid:pk>/email/<int:email_id>/",
             views.email_update,
             name="email_update",
         ),

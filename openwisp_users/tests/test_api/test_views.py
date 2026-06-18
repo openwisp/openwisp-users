@@ -24,3 +24,17 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         self.assertEqual(response.headers["WWW-Authenticate"], "Bearer")
         self.assertEqual(response.data["detail"], auth_error)
         self.assertEqual(response.status_code, 401)
+
+    def test_invalid_uuid_routes_return_404(self):
+        invalid_uuid_paths = (
+            "/api/v1/users/user/not-a-uuid/",
+            "/api/v1/users/organization/not-a-uuid/",
+            "/api/v1/users/user/not-a-uuid/password/",
+            "/api/v1/users/user/not-a-uuid/email/",
+            "/api/v1/users/user/not-a-uuid/email/1/",
+        )
+
+        for path in invalid_uuid_paths:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 404)
