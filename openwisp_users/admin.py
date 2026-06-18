@@ -826,7 +826,8 @@ if apps.is_installed("rest_framework.authtoken"):
                 else API_KEY_MASK
             )
             return format_html(
-                '<input type="text" readonly aria-label="{}" class="vTextField" value="{}">',
+                '<input type="text" readonly aria-label="{}" '
+                'class="vTextField" value="{}">',
                 _("API key"),
                 value,
             )
