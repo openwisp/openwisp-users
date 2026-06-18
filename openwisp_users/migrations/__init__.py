@@ -162,3 +162,29 @@ def allow_operator_view_organization(apps, schema_editor):
         operator.permissions.add(*permissions)
     except ObjectDoesNotExist:
         pass
+
+
+def add_token_permissions_to_admins(apps, schema_editor):
+    try:
+        TokenProxy = apps.get_model("authtoken", "TokenProxy")
+    except LookupError:
+        return
+    for app_config in apps.get_app_configs():
+        if app_config.label == "authtoken":
+            app_config.models_module = True
+            create_permissions(app_config, apps=apps, verbosity=0)
+            app_config.models_module = None
+            break
+    Group = get_model(apps, "Group")
+    try:
+        admins = Group.objects.get(name="Administrator")
+        permissions = [
+            Permission.objects.get(
+                content_type__app_label=TokenProxy._meta.app_label,
+                codename=f"{action}_{TokenProxy._meta.model_name}",
+            ).pk
+            for action in ["add", "change", "delete", "view"]
+        ]
+        admins.permissions.add(*permissions)
+    except ObjectDoesNotExist:
+        pass

@@ -16,6 +16,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, now, timedelta
 from freezegun import freeze_time
+from rest_framework.authtoken.models import Token, TokenProxy
 from swapper import load_model
 
 from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
@@ -70,7 +71,27 @@ class TestUsersAdmin(
         when the user extends openwisp-users
         and adds inline forms in the User model
         """
-        return dict()
+        return self._get_auth_token_inline_params(user)
+
+    def _get_auth_token_inline_params(self, user, generate_token=False):
+        params = {
+            "auth_token-TOTAL_FORMS": 1,
+            "auth_token-MIN_NUM_FORMS": 0,
+            "auth_token-MAX_NUM_FORMS": 1,
+        }
+        if hasattr(user, "auth_token"):
+            params.update(
+                {
+                    "auth_token-INITIAL_FORMS": 1,
+                    "auth_token-0-key": user.auth_token.key,
+                    "auth_token-0-user": str(user.pk),
+                }
+            )
+        else:
+            params.update({"auth_token-INITIAL_FORMS": 0})
+            if generate_token:
+                params.update({"auth_token-0-generate_token": "on"})
+        return params
 
     @property
     def add_user_inline_params(self):
@@ -292,6 +313,115 @@ class TestUsersAdmin(
             self.assertContains(
                 response, '<li class="success">Password changed successfully.</li>'
             )
+
+    def test_auth_token_inline_position(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        user = self._get_user()
+        response = self.client.get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        content = response.content.decode()
+        email_inline = 'id="emailaddress_set-group"'
+        token_inline = 'id="auth_token-group"'
+        org_user_inline = f'id="{self.app_label}_organizationuser-group"'
+        self.assertLess(content.index(email_inline), content.index(token_inline))
+        self.assertLess(content.index(token_inline), content.index(org_user_inline))
+
+    def test_tokenproxy_admin_unregistered(self):
+        self.assertFalse(django_admin.site.is_registered(TokenProxy))
+
+    def test_user_can_delete_own_auth_token_without_permission(self):
+        org = self._get_org()
+        user = self._create_operator_with_user_permissions([org])
+        token = Token.objects.create(user=user)
+        self.client.force_login(user)
+        params = user.__dict__
+        params["groups"] = [str(group.pk) for group in user.groups.all()]
+        params.pop("phone_number")
+        params.pop("password", None)
+        params.pop("_password", None)
+        params.pop("last_login")
+        params.pop("password_updated")
+        params.pop("expiration_date", None)
+        params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
+        params.update(self._get_user_edit_form_inline_params(user, org))
+        params.update({"auth_token-0-DELETE": "on"})
+        response = self.client.post(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk]),
+            params,
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Token.objects.filter(key=token.key).exists())
+
+    def test_user_cannot_delete_other_user_auth_token_without_permission(self):
+        org = self._get_org()
+        operator = self._create_operator_with_user_permissions([org])
+        user = self._create_user(username="other", email="other@example.com")
+        self._create_org_user(organization=org, user=user)
+        token = Token.objects.create(user=user)
+        self.client.force_login(operator)
+        params = user.__dict__
+        params.pop("phone_number")
+        params.pop("password", None)
+        params.pop("_password", None)
+        params.pop("last_login")
+        params.pop("password_updated")
+        params.pop("expiration_date", None)
+        params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
+        params.update(self._get_user_edit_form_inline_params(user, org))
+        params.update({"auth_token-0-DELETE": "on"})
+        response = self.client.post(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk]),
+            params,
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Token.objects.filter(key=token.key).exists())
+
+    def test_administrator_auth_token_permissions(self):
+        permissions = [
+            f"{action}_{TokenProxy._meta.model_name}"
+            for action in ["add", "change", "delete", "view"]
+        ]
+        admin_group = Group.objects.get(name="Administrator")
+        with self.subTest("administrator group has token permissions"):
+            for permission in permissions:
+                self.assertTrue(
+                    admin_group.permissions.filter(
+                        content_type__app_label=TokenProxy._meta.app_label,
+                        codename=permission,
+                    ).exists()
+                )
+        with self.subTest("administrator can create token from user change page"):
+            org = self._get_org()
+            administrator = self._create_administrator([org])
+            user = self._create_user(username="tokenuser", email="token@example.com")
+            self._create_org_user(organization=org, user=user)
+            self.client.force_login(administrator)
+            path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+            response = self.client.get(path)
+            self.assertContains(response, "Generate token")
+            params = user.__dict__
+            params.pop("phone_number")
+            params.pop("password", None)
+            params.pop("_password", None)
+            params.pop("last_login")
+            params.pop("password_updated")
+            params.pop("expiration_date", None)
+            params = self._additional_params_pop(params)
+            params.update(self.add_user_inline_params)
+            params.update(self._get_user_edit_form_inline_params(user, org))
+            params.update(self._get_auth_token_inline_params(user, generate_token=True))
+            response = self.client.post(path, params, follow=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(Token.objects.filter(user=user).exists())
+            token = Token.objects.get(user=user)
+            response = self.client.get(path)
+            self.assertContains(response, token.key)
 
     def test_organization_view_on_site(self):
         admin = self._create_admin()
@@ -1851,6 +1981,7 @@ class TestBasicUsersIntegration(
     app_label = "openwisp_users"
     is_integration_test = True
     _add_socialaccount_inline_params = TestUsersAdmin._add_socialaccount_inline_params
+    _get_auth_token_inline_params = TestUsersAdmin._get_auth_token_inline_params
 
     def _get_user_edit_form_inline_params(self, user, organization):
         params = {
@@ -1864,6 +1995,7 @@ class TestBasicUsersIntegration(
             "emailaddress_set-0-id": user.emailaddress_set.first().id,
             "emailaddress_set-0-user": str(user.pk),
         }
+        params.update(self._get_auth_token_inline_params(user))
 
         try:
             organization_user = OrganizationUser.objects.get(

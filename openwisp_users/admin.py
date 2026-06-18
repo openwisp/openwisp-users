@@ -485,10 +485,16 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         instances = formset.save(commit=False)
         not_deleted = 0
         for obj in formset.deleted_objects:
+            token_key = None
+            if obj._meta.app_label == "authtoken" and obj._meta.model_name == "token":
+                token_key = obj.key
             try:
                 obj.delete()
             except OwnershipRequired:
                 not_deleted += 1
+            else:
+                if token_key:
+                    obj.key = token_key
         if not_deleted:
             single_msg = (
                 f"Can't delete {not_deleted} organization user because it "
@@ -735,7 +741,83 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
             admin.site.unregister(model_class)
 
 if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
+    from rest_framework.authtoken import admin as authtoken_admin  # noqa
+
+    Token = apps.get_model("authtoken", "Token")
     TokenProxy = apps.get_model("authtoken", "TokenProxy")
+
+    class AuthTokenInlineForm(forms.ModelForm):
+        generate_token = forms.BooleanField(label=_("Generate token"), required=False)
+
+        class Meta:
+            model = Token
+            fields = ()
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if self.instance.pk:
+                self.fields["generate_token"].widget = forms.HiddenInput()
+
+        def clean_generate_token(self):
+            if self.instance.pk:
+                return False
+            return self.cleaned_data["generate_token"]
+
+    class AuthTokenInline(admin.StackedInline):
+        model = Token
+        form = AuthTokenInlineForm
+        extra = 0
+        max_num = 1
+        readonly_fields = ("key", "created")
+        fields = ("key", "created", "generate_token")
+
+        def get_formset(self, request, obj=None, **kwargs):
+            self.parent_obj = obj
+            return super().get_formset(request, obj=obj, **kwargs)
+
+        def get_queryset(self, request):
+            parent_obj = getattr(self, "parent_obj", None)
+            if parent_obj and parent_obj.pk == request.user.pk:
+                queryset = self.model._default_manager.get_queryset()
+                ordering = self.get_ordering(request)
+                if ordering:
+                    queryset = queryset.order_by(*ordering)
+                return queryset
+            return super().get_queryset(request)
+
+        def get_extra(self, request, obj=None, **kwargs):
+            if (
+                obj
+                and not hasattr(obj, "auth_token")
+                and self.has_add_permission(request, obj)
+            ):
+                return 1
+            return 0
+
+        def _has_token_proxy_permission(self, request, action):
+            return request.user.has_perm(
+                f"{TokenProxy._meta.app_label}.{action}_{TokenProxy._meta.model_name}"
+            )
+
+        def has_add_permission(self, request, obj=None):
+            return self._has_token_proxy_permission(request, "add")
+
+        def has_view_permission(self, request, obj=None):
+            if obj and obj.pk == request.user.pk:
+                return True
+            return self._has_token_proxy_permission(request, "view")
+
+        def has_change_permission(self, request, obj=None):
+            if obj and obj.pk == request.user.pk:
+                return True
+            return self._has_token_proxy_permission(request, "change")
+
+        def has_delete_permission(self, request, obj=None):
+            if obj and obj.pk == request.user.pk:
+                return True
+            return self._has_token_proxy_permission(request, "delete")
+
+    UserAdmin.inlines.insert(1, AuthTokenInline)
 
     if admin.site.is_registered(TokenProxy):
         admin.site.unregister(TokenProxy)
