@@ -8,6 +8,7 @@ from openwisp_users.migrations import add_api_key_permissions_to_admins
 class Migration(migrations.Migration):
     dependencies = [
         ("openwisp_users", "0022_user_expiration_date"),
+        ("authtoken", "0004_alter_tokenproxy_options"),
     ]
 
     operations = [

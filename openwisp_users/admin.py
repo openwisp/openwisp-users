@@ -755,7 +755,7 @@ if apps.is_installed("rest_framework.authtoken"):
         def render(self, name, value, attrs=None, renderer=None):
             return ""
 
-    class AuthTokenInlineForm(forms.ModelForm):
+    class ApiKeyInlineForm(forms.ModelForm):
         generate_token = forms.BooleanField(
             label=_("Create new API key"), required=False
         )
@@ -766,7 +766,7 @@ if apps.is_installed("rest_framework.authtoken"):
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            if self.instance.pk and "generate_token" in self.fields:
+            if self.instance.pk:
                 self.fields["generate_token"].widget = forms.HiddenInput()
 
         def clean_generate_token(self):
@@ -774,7 +774,7 @@ if apps.is_installed("rest_framework.authtoken"):
                 return False
             return self.cleaned_data.get("generate_token", False)
 
-    class AuthTokenInlineFormSet(BaseInlineFormSet):
+    class ApiKeyInlineFormSet(BaseInlineFormSet):
         def __init__(
             self,
             data=None,
@@ -804,10 +804,10 @@ if apps.is_installed("rest_framework.authtoken"):
             super().add_fields(form, index)
             form.fields[self._pk_field.name].widget = NonRenderingHiddenInput()
 
-    class AuthTokenInline(admin.StackedInline):
+    class ApiKeyInline(admin.StackedInline):
         model = ApiKey
-        form = AuthTokenInlineForm
-        formset = AuthTokenInlineFormSet
+        form = ApiKeyInlineForm
+        formset = ApiKeyInlineFormSet
         extra = 0
         max_num = 1
         readonly_fields = ("api_key", "created")
@@ -826,7 +826,9 @@ if apps.is_installed("rest_framework.authtoken"):
                 else API_KEY_MASK
             )
             return format_html(
-                '<input type="text" disabled class="vTextField" value="{}">', value
+                '<input type="text" readonly aria-label="{}" class="vTextField" value="{}">',
+                _("API key"),
+                value,
             )
 
         def get_formset(self, request, obj=None, **kwargs):
@@ -844,9 +846,6 @@ if apps.is_installed("rest_framework.authtoken"):
                 return queryset
             return super().get_queryset(request)
 
-        def get_extra(self, request, obj=None, **kwargs):
-            return 0
-
         def _is_self(self, request, obj):
             """Whether the authenticated user is viewing/editing his own account."""
             return bool(obj and obj.pk == request.user.pk)
@@ -860,4 +859,4 @@ if apps.is_installed("rest_framework.authtoken"):
         def has_delete_permission(self, request, obj=None):
             return self._is_self(request, obj) or super().has_delete_permission(request)
 
-    UserAdmin.inlines.insert(1, AuthTokenInline)
+    UserAdmin.inlines.insert(1, ApiKeyInline)

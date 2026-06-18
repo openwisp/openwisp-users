@@ -72,9 +72,9 @@ class TestUsersAdmin(
         when the user extends openwisp-users
         and adds inline forms in the User model
         """
-        return self._get_auth_token_inline_params(user)
+        return self._get_api_key_inline_params(user)
 
-    def _get_auth_token_inline_params(self, user, generate_token=False):
+    def _get_api_key_inline_params(self, user, generate_token=False):
         params = {
             "auth_token-MIN_NUM_FORMS": 0,
             "auth_token-MAX_NUM_FORMS": 1,
@@ -318,7 +318,7 @@ class TestUsersAdmin(
                 response, '<li class="success">Password changed successfully.</li>'
             )
 
-    def test_auth_token_inline_position(self):
+    def test_api_key_inline_position(self):
         admin = self._create_admin()
         self.client.force_login(admin)
         user = self._get_user()
@@ -327,12 +327,12 @@ class TestUsersAdmin(
         )
         content = response.content.decode()
         email_inline = 'id="emailaddress_set-group"'
-        token_inline = 'id="auth_token-group"'
+        api_key_inline = 'id="auth_token-group"'
         org_user_inline = f'id="{self.app_label}_organizationuser-group"'
-        self.assertLess(content.index(email_inline), content.index(token_inline))
-        self.assertLess(content.index(token_inline), content.index(org_user_inline))
+        self.assertLess(content.index(email_inline), content.index(api_key_inline))
+        self.assertLess(content.index(api_key_inline), content.index(org_user_inline))
 
-    def test_superuser_can_see_auth_token_inline(self):
+    def test_superuser_can_see_api_key_inline(self):
         admin = self._create_admin()
         self.client.force_login(admin)
         user = self._create_user(username="notoken", email="notoken@example.com")
@@ -346,7 +346,7 @@ class TestUsersAdmin(
         self.assertContains(response, 'name="auth_token-TOTAL_FORMS" value="0"')
         self.assertNotContains(response, "field-created")
 
-    def test_superuser_cannot_see_other_user_auth_token_key(self):
+    def test_superuser_cannot_see_other_user_api_key(self):
         admin = self._create_admin()
         user = self._create_user(username="tokenuser", email="token@example.com")
         token = Token.objects.create(user=user)
@@ -363,15 +363,18 @@ class TestUsersAdmin(
     def test_tokenproxy_admin_unregistered(self):
         self.assertFalse(django_admin.site.is_registered(TokenProxy))
 
-    def test_user_can_delete_own_auth_token_without_permission(self):
+    def test_user_can_delete_own_api_key_without_permission(self):
         org = self._get_org()
         user = self._create_operator_with_user_permissions([org])
         token = Token.objects.create(user=user)
         self.client.force_login(user)
         path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
         response = self.client.get(path)
-        self.assertContains(response, f'value="{token.key}"')
-        self.assertContains(response, "disabled")
+        self.assertContains(
+            response,
+            f'readonly aria-label="API key" class="vTextField" value="{token.key}"',
+            html=False,
+        )
         params = user.__dict__
         params["groups"] = [str(group.pk) for group in user.groups.all()]
         params.pop("phone_number")
@@ -392,7 +395,7 @@ class TestUsersAdmin(
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Token.objects.filter(key=token.key).exists())
 
-    def test_user_cannot_delete_other_user_auth_token_without_permission(self):
+    def test_user_cannot_delete_other_user_api_key_without_permission(self):
         org = self._get_org()
         operator = self._create_operator_with_user_permissions([org])
         user = self._create_user(username="other", email="other@example.com")
@@ -452,7 +455,7 @@ class TestUsersAdmin(
             params = self._additional_params_pop(params)
             params.update(self.add_user_inline_params)
             params.update(self._get_user_edit_form_inline_params(user, org))
-            params.update(self._get_auth_token_inline_params(user, generate_token=True))
+            params.update(self._get_api_key_inline_params(user, generate_token=True))
             response = self.client.post(path, params, follow=True)
             self.assertEqual(response.status_code, 200)
             self.assertTrue(Token.objects.filter(user=user).exists())
@@ -2020,7 +2023,7 @@ class TestBasicUsersIntegration(
     app_label = "openwisp_users"
     is_integration_test = True
     _add_socialaccount_inline_params = TestUsersAdmin._add_socialaccount_inline_params
-    _get_auth_token_inline_params = TestUsersAdmin._get_auth_token_inline_params
+    _get_api_key_inline_params = TestUsersAdmin._get_api_key_inline_params
 
     def _get_user_edit_form_inline_params(self, user, organization):
         params = {
@@ -2034,7 +2037,7 @@ class TestBasicUsersIntegration(
             "emailaddress_set-0-id": user.emailaddress_set.first().id,
             "emailaddress_set-0-user": str(user.pk),
         }
-        params.update(self._get_auth_token_inline_params(user))
+        params.update(self._get_api_key_inline_params(user))
 
         try:
             organization_user = OrganizationUser.objects.get(
