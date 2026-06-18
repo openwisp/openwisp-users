@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
@@ -201,7 +202,13 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
 
-class BaseSuperUserSerializer(serializers.ModelSerializer):
+class BaseSuperUserSerializer(ValidatedModelSerializer):
+    _skip_validation_fields = [
+        "groups",
+        "user_permissions",
+        "organization_users",
+        "email_verified",
+    ]
     organization_users = OrganizationUserSerializer(required=False)
 
     def to_representation(self, instance):
@@ -214,6 +221,13 @@ class BaseSuperUserSerializer(serializers.ModelSerializer):
             user["organization"] = org_user.organization.id
             list_of_org_users.append(user)
         data["organization_users"] = list_of_org_users
+        return data
+
+    def validate(self, data):
+        values = deepcopy(data)
+        for field in self._skip_validation_fields:
+            values.pop(field, None)
+        super().validate(values)
         return data
 
 
@@ -235,6 +249,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             "is_active",
             "is_staff",
             "is_superuser",
+            "expiration_date",
             "groups",
             "organization_users",
         )
@@ -314,6 +329,7 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "is_staff",
             "is_superuser",
             "last_login",
+            "expiration_date",
             "date_joined",
             "groups",
             "user_permissions",
@@ -354,8 +370,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
                 org_user_instance.full_clean()
                 org_user_instance.save()
 
-        instance = self.instance or self.Meta.model(**validated_data)
-        instance.full_clean()
         return super().update(instance, validated_data)
 
 

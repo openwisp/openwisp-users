@@ -24,6 +24,62 @@ msgstr ""
 "Sie bekommen diese E-Mail, weil diese E-Mail-Adresse von einem Benutzer "
 "<b>%(user_display)s</b> auf <b>%(site_name)s</b> registriert wurde.\n"
 
+#: accounts/templates/account/email/account_expiration_reminder_message.html:5
+#, python-format
+msgid ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s day on %(expiry_date)s."
+msgid_plural ""
+"We inform you that your account <strong>%(username)s</strong> will expire in "
+"%(days)s days on %(expiry_date)s."
+msgstr[0] ""
+"Wir informieren Sie, dass Ihr Konto <strong>%(username)s</strong> in "
+"%(days)s Tag am %(expiry_date)s abläuft."
+msgstr[1] ""
+"Wir informieren Sie, dass Ihr Konto <strong>%(username)s</strong> in "
+"%(days)s Tagen am %(expiry_date)s abläuft."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.html:13
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:10
+msgid "Please contact your administrator if you need to extend your access."
+msgstr ""
+"Bitte kontaktieren Sie Ihren Administrator, wenn Sie Ihren Zugang verlängern "
+"möchten."
+
+#: accounts/templates/account/email/account_expiration_reminder_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s will expire in %(days)s day on "
+"%(expiry_date)s."
+msgid_plural ""
+"We inform you that your account %(username)s will expire in %(days)s days on "
+"%(expiry_date)s."
+msgstr[0] ""
+"Wir informieren Sie, dass Ihr Konto %(username)s in %(days)s Tag am "
+"%(expiry_date)s abläuft."
+msgstr[1] ""
+"Wir informieren Sie, dass Ihr Konto %(username)s in %(days)s Tagen am "
+"%(expiry_date)s abläuft."
+
+#: accounts/templates/account/email/account_expired_message.html:5
+#: accounts/templates/account/email/account_expired_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account %(username)s has been deactivated because it "
+"expired on %(expiry_date)s."
+msgstr ""
+"Wir informieren Sie, dass Ihr Konto %(username)s deaktiviert wurde, weil es "
+"am %(expiry_date)s abgelaufen ist."
+
+#: accounts/templates/account/email/account_expired_message.html:11
+#: accounts/templates/account/email/account_expired_message.txt:8
+msgid ""
+"Please contact your administrator if you need to reactivate your account."
+msgstr ""
+"Bitte kontaktieren Sie Ihren Administrator, wenn Sie Ihr Konto "
+"reaktivieren möchten."
+
+
 #: accounts/templates/account/email/email_confirmation_message.html:9
 msgid "To confirm this is correct, please click on the button below."
 msgstr "Um zu bestätigen, dass dies korrekt ist, klicken Sie bitte auf die Schaltfläche unten."

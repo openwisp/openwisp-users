@@ -12,18 +12,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: serializers.py:422
+#: admin.py:488
+msgid "Account expiration"
+msgstr "Scadenza dell'account"
+
+#: admin.py:490
+msgid "Internal"
+msgstr "Interno"
+
+#: api/serializers.py:477
 msgid "New password cannot be the same as your old password."
 msgstr "La nuova password non può essere uguale alla vecchia password."
 
-#: views.py:198
+#: api/views.py:196
 msgid "Password updated successfully"
 msgstr "Password aggiornata con successo"
 
-#: tasks.py:58
+#: base/models.py:350
+msgid "Action Required: Account Expiration Notice"
+msgstr "Azione richiesta: Avviso di scadenza dell'account"
+
+#: tasks.py:62
 msgid "Action Required: Password Expiry Notice"
 msgstr "Azione richiesta: Avviso di scadenza della password"
 
-#: tasks.py:73
+#: tasks.py:79
 msgid "Change password"
 msgstr "Cambia password"

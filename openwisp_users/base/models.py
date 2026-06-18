@@ -1,5 +1,6 @@
 import logging
 import uuid
+from smtplib import SMTPException
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -7,14 +8,20 @@ from django.contrib.auth.models import AbstractUser as BaseUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import models
-from django.utils import timezone
+from django.db import models, transaction
+from django.db.models import OuterRef, Subquery
+from django.template.loader import render_to_string
+from django.utils import timezone, translation
 from django.utils.functional import cached_property
+from django.utils.timezone import localdate, timedelta
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from swapper import load_model
 
+from openwisp_utils.admin_theme.email import send_email
+
 from .. import settings as app_settings
+from ..utils import throttle_email_batch
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +75,27 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
+    expiration_date = models.DateField(
+        _("expiration date"),
+        blank=True,
+        null=True,
+        help_text=_(
+            "If set, the account will be deactivated after this date passes and the"
+            " user will no longer be able to log in."
+        ),
+    )
 
     objects = UserManager()
 
     class Meta(BaseUser.Meta):
         abstract = True
-        indexes = [models.Index(fields=["id", "email"], name="user_id_email_idx")]
+        indexes = [
+            models.Index(fields=["id", "email"], name="user_id_email_idx"),
+            models.Index(
+                fields=["is_active", "expiration_date"],
+                name="user_active_expiry_idx",
+            ),
+        ]
 
     @staticmethod
     def _get_pk(obj):
@@ -182,6 +204,50 @@ class AbstractUser(BaseUser):
             raise ValidationError(
                 {"email": _("User with this Email address already exists.")}
             )
+        self._validate_expiration()
+
+    def _validate_expiration(self):
+        """
+        * Prevent setting the expiration date in the past
+        * Prevent reactivating users with a past expiration date
+          (requires setting a new date or clearing it)
+        """
+        if not self.expiration_date:
+            return
+        today = localdate()
+        is_past_expiration = self.expiration_date < today
+        previous_state = None
+        needs_previous_state = not self._state.adding and is_past_expiration
+        if needs_previous_state:
+            previous_state = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .only("is_active", "expiration_date")
+                .first()
+            )
+        # Prevent setting a past expiration date, but allow keeping an
+        # already expired date unchanged while updating other fields.
+        if is_past_expiration:
+            db_expiration_date = None
+            if previous_state:
+                db_expiration_date = previous_state.expiration_date
+            if self._state.adding or db_expiration_date != self.expiration_date:
+                raise ValidationError(
+                    {"expiration_date": _("Expiration date cannot be in the past.")}
+                )
+        if (
+            previous_state
+            and not previous_state.is_active
+            and self.is_active
+            and is_past_expiration
+        ):
+            raise ValidationError(
+                {
+                    "is_active": _(
+                        "Cannot activate an expired account. Clear or extend the"
+                        " expiration date first."
+                    )
+                }
+            )
 
     def _invalidate_user_organizations_dict(self):
         """
@@ -196,6 +262,172 @@ class AbstractUser(BaseUser):
             del self.organizations_owned
         except AttributeError:
             pass
+
+    @classmethod
+    def deactivate_expired_users(cls):
+        """
+        Deactivate users whose expiration_date is in the past.
+
+        Selected rows are locked with ``select_for_update`` inside an atomic
+        block so concurrent runs (or admin edits) cannot race with the
+        per-user save. Each user is saved individually with
+        ``update_fields=["is_active"]`` so post-save hooks still fire for
+        consumers that rely on them. Returns the number of users deactivated.
+
+        Emails are sent (outside the transaction) only to affected users
+        with a verified email address; all active users whose expiration
+        date is in the past are deactivated regardless of verification
+        status.
+        """
+        expiry_date = localdate()
+        deactivated_user_ids = []
+        with transaction.atomic():
+            users_to_deactivate = (
+                cls.objects.filter(
+                    is_active=True,
+                    expiration_date__lt=expiry_date,
+                )
+                .only("id")
+                .select_for_update()
+            )
+            for user in users_to_deactivate.iterator():
+                user.is_active = False
+                user.save(update_fields=["is_active"])
+                deactivated_user_ids.append(user.pk)
+
+        if not deactivated_user_ids:
+            return 0
+
+        count = len(deactivated_user_ids)
+        users = (
+            cls.objects.filter(
+                id__in=deactivated_user_ids,
+                emailaddress__verified=True,
+            )
+            .annotate(
+                verified_email=Subquery(cls._verified_email_subquery()),
+            )
+            .distinct()
+            .only(
+                "id",
+                "email",
+                "username",
+                "language",
+                "expiration_date",
+            )
+            .iterator()
+        )
+        email_count = 0
+        for user in users:
+            with translation.override(user.language):
+                try:
+                    send_email(
+                        subject=_("Your account has been deactivated"),
+                        body_text=render_to_string(
+                            "account/email/account_expired_message.txt",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                            },
+                        ).strip(),
+                        body_html=render_to_string(
+                            "account/email/account_expired_message.html",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                            },
+                        ).strip(),
+                        recipients=[user.verified_email],
+                    )
+                except (SMTPException, ConnectionError, OSError):
+                    logger.exception(
+                        "Error sending deactivation email to user %s",
+                        getattr(user, "pk", None),
+                    )
+            email_count += 1
+            throttle_email_batch(email_count)
+
+        return count
+
+    @staticmethod
+    def _verified_email_subquery():
+        return (
+            EmailAddress.objects.filter(
+                user=OuterRef("pk"),
+                verified=True,
+            )
+            .order_by("-primary", "id")
+            .values("email")[:1]
+        )
+
+    @classmethod
+    def expiration_reminder_email(cls):
+        """
+        Send reminder emails to users whose accounts will expire soon.
+
+        This method checks for active users with a verified email whose
+        expiration_date equals today + USER_EXPIRATION_WARNING_DAYS and
+        sends a localized reminder email.
+
+        Only users with a verified email address receive reminders.
+        """
+        reminder_days = app_settings.USER_EXPIRATION_WARNING_DAYS
+        if reminder_days <= 0:
+            return 0
+
+        reminder_date = localdate() + timedelta(days=reminder_days)
+        qs = (
+            cls.objects.filter(
+                is_active=True,
+                expiration_date=reminder_date,
+                emailaddress__verified=True,
+            )
+            .annotate(
+                verified_email=Subquery(cls._verified_email_subquery()),
+            )
+            .distinct()
+            .only(
+                "id",
+                "email",
+                "username",
+                "language",
+                "expiration_date",
+            )
+        )
+        count = qs.count()
+        email_count = 0
+        for user in qs.iterator():
+            with translation.override(user.language):
+                try:
+                    send_email(
+                        subject=_("Action Required: Account Expiration Notice"),
+                        body_text=render_to_string(
+                            "account/email/account_expiration_reminder_message.txt",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                                "days_remaining": reminder_days,
+                            },
+                        ).strip(),
+                        body_html=render_to_string(
+                            "account/email/account_expiration_reminder_message.html",
+                            context={
+                                "username": user.username,
+                                "expiration_date": user.expiration_date,
+                                "days_remaining": reminder_days,
+                            },
+                        ).strip(),
+                        recipients=[user.verified_email],
+                    )
+                except (SMTPException, ConnectionError, OSError):
+                    logger.exception(
+                        "Error sending expiration reminder email to user %s",
+                        getattr(user, "pk", None),
+                    )
+            email_count += 1
+            throttle_email_batch(email_count)
+
+        return count
 
 
 class BaseGroup(object):

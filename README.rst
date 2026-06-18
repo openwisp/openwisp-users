@@ -1,8 +1,8 @@
 openwisp-users
 ==============
 
-.. image:: https://github.com/openwisp/openwisp-users/workflows/OpenWISP%20Users%20CI%20Build/badge.svg?branch=master
-    :target: https://github.com/openwisp/openwisp-users/actions?query=workflow%3A%22OpenWISP+Users+CI+Build%22
+.. image:: https://github.com/openwisp/openwisp-users/actions/workflows/ci.yml/badge.svg
+    :target: https://github.com/openwisp/openwisp-users/actions/workflows/ci.yml
 
 .. image:: https://coveralls.io/repos/openwisp/openwisp-users/badge.svg
     :target: https://coveralls.io/r/openwisp/openwisp-users

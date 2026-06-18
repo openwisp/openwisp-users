@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",  # for test coverage
     "openwisp_users",
     # openwisp2 admin theme
     # (must be loaded here)
@@ -89,14 +90,11 @@ STATIC_URL = "/static/"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [
-            os.path.join(os.path.dirname(BASE_DIR), "openwisp_users", "templates")
-        ],
         "OPTIONS": {
             "loaders": [
                 "django.template.loaders.filesystem.Loader",
-                "openwisp_utils.loaders.DependencyLoader",
                 "django.template.loaders.app_directories.Loader",
+                "openwisp_utils.loaders.DependencyLoader",
             ],
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -150,15 +148,29 @@ else:
     CELERY_TASK_EAGER_PROPAGATES = True
     CELERY_BROKER_URL = "memory://"
 
+# Configuring CELERY_TIMEZONE is necessary to ensure that periodic tasks
+# are executed at the correct time based on project's timezone settings.
+CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     "password_expiry_email": {
         "task": "openwisp_users.tasks.password_expiration_email",
         "schedule": crontab(hour=1, minute=0),
     },
+    "deactivate_expired_users": {
+        "task": "openwisp_users.tasks.deactivate_expired_users",
+        "schedule": crontab(hour=0, minute=1),
+    },
+    "expiration_reminder_email": {
+        "task": "openwisp_users.tasks.expiration_reminder_email",
+        "schedule": crontab(hour=0, minute=5),
+    },
 }
 
 # during development only
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+if TESTING:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 LOGIN_REDIRECT_URL = "admin:index"
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = "email_confirmation_success"
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = "email_confirmation_success"
