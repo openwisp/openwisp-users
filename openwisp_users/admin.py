@@ -804,7 +804,7 @@ if apps.is_installed("rest_framework.authtoken"):
             prefix = prefix or self.get_default_prefix()
             if data is not None and instance and hasattr(instance, "auth_token"):
                 data = data.copy()
-                data.setdefault(f"{prefix}-0-key", instance.auth_token.key)
+                data[f"{prefix}-0-key"] = instance.auth_token.key
             super().__init__(
                 data=data,
                 files=files,
