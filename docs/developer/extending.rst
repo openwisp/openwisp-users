@@ -155,13 +155,10 @@ You can add fields in a similar way in your ``models.py`` file.
 
 .. important::
 
-    Because ``rest_framework.authtoken`` is a required dependency, your
-    custom users app must also define the ``ApiKey`` proxy model exactly
-    as shown in the sample app, using the ``if
-    apps.is_installed("rest_framework.authtoken"):`` block that imports
-    ``ApiKey`` from ``openwisp_users.base.models``, and you must include
-    the corresponding ``apikey`` migration in your app. If you omit them,
-    the admin will fail to load.
+    Custom users apps must also expose the ``ApiKey`` proxy model, as
+    shown in the sample app, by importing it from
+    ``openwisp_users.base.models``. Create and ship the corresponding
+    ``apikey`` migration too.
 
 For doubts regarding how to use, extend, or develop models please refer to
 the `"Models" section in the django documentation
