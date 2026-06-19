@@ -395,6 +395,39 @@ class TestUsersAdmin(
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Token.objects.filter(key=token.key).exists())
 
+    def test_delete_api_key_without_submitting_key(self):
+        """
+        The token key is the primary key and is intentionally not rendered in
+        the form (NonRenderingHiddenInput), so a real browser never submits
+        ``auth_token-0-key``. ``ApiKeyInlineFormSet`` must re-inject it server
+        side, otherwise the deletion does not bind to the existing token. This
+        is a regression test that posts without the key, like the browser does.
+        """
+        org = self._get_org()
+        user = self._create_operator_with_user_permissions([org])
+        token = Token.objects.create(user=user)
+        self.client.force_login(user)
+        path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        response = self.client.get(path)
+        self.assertNotContains(response, 'name="auth_token-0-key"')
+        params = user.__dict__
+        params["groups"] = [str(group.pk) for group in user.groups.all()]
+        params.pop("phone_number")
+        params.pop("password", None)
+        params.pop("_password", None)
+        params.pop("last_login")
+        params.pop("password_updated")
+        params.pop("expiration_date", None)
+        params = self._additional_params_pop(params)
+        params.update(self.add_user_inline_params)
+        params.update(self._get_user_edit_form_inline_params(user, org))
+        # the rendered form omits the key field, so the browser cannot submit it
+        params.pop("auth_token-0-key")
+        params.update({"auth_token-0-DELETE": "on"})
+        response = self.client.post(path, params, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Token.objects.filter(key=token.key).exists())
+
     def test_user_cannot_delete_other_user_api_key_without_permission(self):
         org = self._get_org()
         operator = self._create_operator_with_user_permissions([org])

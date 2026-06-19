@@ -707,7 +707,11 @@ EmailAddress = apps.get_model("account", "EmailAddress")
 if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
-# Import for the side effect of registering TokenProxy before unregistering it.
+# authtoken's admin registers TokenProxy when its admin module is imported.
+# Depending on the INSTALLED_APPS order, openwisp_users.admin may load before
+# authtoken.admin, so the unregister below would find TokenProxy not yet
+# registered and skip it. Force the import here so TokenProxy is always
+# registered first and the unregister always takes effect.
 from rest_framework.authtoken import admin as authtoken_admin  # noqa
 
 user_app_label = get_user_model()._meta.app_label
@@ -808,6 +812,15 @@ class ApiKeyInline(admin.StackedInline):
         return super().get_formset(request, obj=obj, **kwargs)
 
     def get_queryset(self, request):
+        """
+        Let users see and manage their own API key without holding the
+        API key permissions. The base inline ``get_queryset`` forces an
+        empty queryset when ``has_view_or_change_permission`` is False, and
+        that check receives no object, so the self-account exception in the
+        permission methods cannot apply there. On the user's own page we
+        therefore return the real queryset and skip that gate, while other
+        users' pages keep the default permission based filtering.
+        """
         parent_obj = getattr(self, "parent_obj", None)
         if parent_obj and parent_obj.pk == request.user.pk:
             queryset = self.model._default_manager.get_queryset()
