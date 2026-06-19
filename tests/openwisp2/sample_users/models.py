@@ -1,4 +1,3 @@
-from django.apps import apps
 from django.contrib.auth.models import Group as AbstractGroup
 from django.core.validators import RegexValidator
 from django.db import models
@@ -68,9 +67,7 @@ class Group(DetailsModel, BaseGroup, AbstractGroup):
     pass
 
 
-if apps.is_installed("rest_framework.authtoken"):
-    from openwisp_users.base.models import ApiKey  # noqa
-
+from openwisp_users.base.models import ApiKey  # noqa
 
 #########################################
 # You do not need to copy the following in
