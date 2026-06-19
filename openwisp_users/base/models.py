@@ -16,6 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.timezone import localdate, timedelta
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
+from rest_framework.authtoken.models import Token
 from swapper import load_model
 
 from openwisp_utils.admin_theme.email import send_email
@@ -530,3 +531,25 @@ class BaseOrganizationOwner(models.Model):
 
     class Meta:
         abstract = True
+
+
+class ApiKey(Token):
+    """
+    Proxy model of the DRF REST Auth Token model. It serves 2 purposes:
+
+    1. Avoid exposing the raw key through DRF's Token.__str__.
+    2. Keep API key permissions separate from DRF token permissions, which
+        would otherwise let non-superusers view or edit tokens of all users.
+    """
+
+    def __str__(self):
+        return ""
+
+    class Meta:
+        # Bind the proxy to the (possibly swapped) user app, since this
+        # module lives in openwisp_users which is not in INSTALLED_APPS
+        # when the user model is swapped out.
+        app_label = settings.AUTH_USER_MODEL.split(".")[0]
+        verbose_name = _("API key")
+        verbose_name_plural = _("API keys")
+        proxy = True

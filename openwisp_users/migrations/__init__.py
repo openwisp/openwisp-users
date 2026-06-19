@@ -162,3 +162,30 @@ def allow_operator_view_organization(apps, schema_editor):
         operator.permissions.add(*permissions)
     except ObjectDoesNotExist:
         pass
+
+
+def add_api_key_permissions_to_admins(apps, schema_editor):
+    try:
+        apps.get_model("authtoken", "Token")
+    except LookupError:
+        return
+    Group = get_model(apps, "Group")
+    try:
+        admins = Group.objects.get(name="Administrator")
+    except Group.DoesNotExist:
+        return
+    ContentType = apps.get_model("contenttypes", "ContentType")
+    PermissionModel = apps.get_model("auth", "Permission")
+    content_type, _ = ContentType.objects.get_or_create(
+        app_label=settings.AUTH_USER_MODEL.split(".", 1)[0],
+        model="apikey",
+    )
+    permissions = [
+        PermissionModel.objects.get_or_create(
+            content_type=content_type,
+            codename=f"{action}_apikey",
+            defaults={"name": f"Can {action} API key"},
+        )[0].pk
+        for action in ("add", "change", "delete", "view")
+    ]
+    admins.permissions.add(*permissions)

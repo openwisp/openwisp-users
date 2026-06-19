@@ -49,3 +49,6 @@ class OrganizationInvitation(AbstractOrganizationInvitation):
 class Group(BaseGroup, AbstractGroup):
     class Meta(BaseGroup.Meta):
         swapper.swappable_setting("openwisp_users", "Group")
+
+
+from .base.models import ApiKey  # noqa

@@ -20,6 +20,7 @@ from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.timezone import localdate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
@@ -230,6 +231,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
 
     # To ensure extended apps use this template.
     change_form_template = "admin/openwisp_users/user/change_form.html"
+
+    class Media:
+        css = {"all": ("openwisp-users/css/admin.css",)}
 
     def require_confirmation(func):
         """
@@ -703,6 +707,146 @@ EmailAddress = apps.get_model("account", "EmailAddress")
 if admin.site.is_registered(EmailAddress):
     admin.site.unregister(EmailAddress)
 
+# authtoken's admin registers TokenProxy when its admin module is imported.
+# Depending on the INSTALLED_APPS order, openwisp_users.admin may load before
+# authtoken.admin, so the unregister below would find TokenProxy not yet
+# registered and skip it. Force the import here so TokenProxy is always
+# registered first and the unregister always takes effect.
+from rest_framework.authtoken import admin as authtoken_admin  # noqa
+
+user_app_label = get_user_model()._meta.app_label
+ApiKey = apps.get_model(user_app_label, "ApiKey")
+TokenProxy = apps.get_model("authtoken", "TokenProxy")
+API_KEY_MASK = "*" * 40
+
+if admin.site.is_registered(TokenProxy):
+    admin.site.unregister(TokenProxy)
+
+
+# Keep the token primary key out of the DOM because it is the raw API key.
+class NonRenderingHiddenInput(forms.HiddenInput):
+    def render(self, name, value, attrs=None, renderer=None):
+        return ""
+
+
+class ApiKeyInlineForm(forms.ModelForm):
+    generate_token = forms.BooleanField(label=_("Create new API key"), required=False)
+
+    class Meta:
+        model = ApiKey
+        fields = ()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["generate_token"].widget = forms.HiddenInput()
+
+    def clean_generate_token(self):
+        if self.instance.pk:
+            return False
+        return self.cleaned_data.get("generate_token", False)
+
+
+class ApiKeyInlineFormSet(BaseInlineFormSet):
+    def __init__(
+        self,
+        data=None,
+        files=None,
+        instance=None,
+        save_as_new=False,
+        prefix=None,
+        queryset=None,
+        **kwargs,
+    ):
+        prefix = prefix or self.get_default_prefix()
+        # max_num=1 keeps the existing token form at index 0.
+        if data is not None and instance and hasattr(instance, "auth_token"):
+            data = data.copy()
+            data[f"{prefix}-0-key"] = instance.auth_token.key
+        super().__init__(
+            data=data,
+            files=files,
+            instance=instance,
+            save_as_new=save_as_new,
+            prefix=prefix,
+            queryset=queryset,
+            **kwargs,
+        )
+
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        form.fields[self._pk_field.name].widget = NonRenderingHiddenInput()
+
+
+class ApiKeyInline(admin.StackedInline):
+    model = ApiKey
+    form = ApiKeyInlineForm
+    formset = ApiKeyInlineFormSet
+    extra = 0
+    max_num = 1
+    readonly_fields = ("api_key", "created")
+
+    def get_fields(self, request, obj=None):
+        if obj and hasattr(obj, "auth_token"):
+            return ("api_key", "created")
+        return ("generate_token",)
+
+    @admin.display(description=_("API key"))
+    def api_key(self, obj):
+        parent_obj = getattr(self, "parent_obj", None)
+        value = (
+            obj.key
+            if parent_obj and parent_obj.pk == self.request.user.pk
+            else API_KEY_MASK
+        )
+        return format_html(
+            '<input type="text" readonly aria-label="{}" '
+            'class="vTextField" value="{}">',
+            _("API key"),
+            value,
+        )
+
+    def get_formset(self, request, obj=None, **kwargs):
+        self.request = request
+        self.parent_obj = obj
+        return super().get_formset(request, obj=obj, **kwargs)
+
+    def get_queryset(self, request):
+        """
+        Let users see and manage their own API key without holding the
+        API key permissions. The base inline ``get_queryset`` forces an
+        empty queryset when ``has_view_or_change_permission`` is False, and
+        that check receives no object, so the self-account exception in the
+        permission methods cannot apply there. On the user's own page we
+        therefore return the real queryset and skip that gate, while other
+        users' pages keep the default permission based filtering.
+        """
+        parent_obj = getattr(self, "parent_obj", None)
+        if parent_obj and parent_obj.pk == request.user.pk:
+            queryset = self.model._default_manager.get_queryset()
+            ordering = self.get_ordering(request)
+            if ordering:
+                queryset = queryset.order_by(*ordering)
+            return queryset
+        return super().get_queryset(request)
+
+    def _is_self(self, request, obj):
+        """Whether the authenticated user is viewing/editing his own account."""
+        return bool(obj and obj.pk == request.user.pk)
+
+    def has_view_permission(self, request, obj=None):
+        return self._is_self(request, obj) or super().has_view_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._is_self(request, obj) or super().has_change_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._is_self(request, obj) or super().has_delete_permission(request)
+
+
+UserAdmin.inlines.insert(1, ApiKeyInline)
+
+
 if allauth_settings.SOCIALACCOUNT_ENABLED:
     _unregister_socialaccount_models = [
         ("socialaccount", "SocialToken"),
@@ -733,9 +877,3 @@ if allauth_settings.SOCIALACCOUNT_ENABLED:
         model_class = apps.get_model(*model)
         if admin.site.is_registered(model_class):
             admin.site.unregister(model_class)
-
-if "rest_framework.authtoken" in settings.INSTALLED_APPS:  # pragma: no cover
-    TokenProxy = apps.get_model("authtoken", "TokenProxy")
-
-    if admin.site.is_registered(TokenProxy):
-        admin.site.unregister(TokenProxy)

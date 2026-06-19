@@ -67,6 +67,8 @@ class Group(DetailsModel, BaseGroup, AbstractGroup):
     pass
 
 
+from openwisp_users.base.models import ApiKey  # noqa
+
 #########################################
 # You do not need to copy the following in
 # your application it is only for module

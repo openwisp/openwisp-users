@@ -50,6 +50,10 @@ API Integration
 
 - RESTful API endpoints for user and organization management.
 - Secure API access with token-based authentication.
+- Manage a user's API key directly from the user admin page through an
+  inline, where authorized administrators can create and delete it (users
+  can always delete their own), and existing keys are masked for everyone
+  except the owner.
 
 See :doc:`rest-api` for more information.
 
