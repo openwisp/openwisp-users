@@ -344,7 +344,13 @@ class TestUsersAdmin(
         self.assertContains(response, "Add another API key")
         self.assertContains(response, "Create new API key")
         self.assertContains(response, 'name="auth_token-TOTAL_FORMS" value="0"')
-        self.assertNotContains(response, "field-created")
+        content = response.content.decode()
+        api_key_inline = content[
+            content.index('id="auth_token-group"') : content.index(
+                f'id="{self.app_label}_organizationuser-group"'
+            )
+        ]
+        self.assertNotIn("field-created", api_key_inline)
 
     def test_superuser_cannot_see_other_user_api_key(self):
         admin = self._create_admin()
