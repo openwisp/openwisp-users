@@ -1,8 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.shortcuts import redirect
-from django.urls import resolve, reverse_lazy
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
+from rest_framework.views import APIView
 
 
 class PasswordExpirationMiddleware:
@@ -25,14 +26,20 @@ class PasswordExpirationMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         # Check if the user is authenticated and their password has expired
-        if (
-            request.user.is_authenticated
-            and request.user.has_password_expired()
-            # We use `resolve()` here to get the `url_name` from the `request.path`.
-            # This is more flexible than using `reverse()` as it doesn't require
-            # passing arguments to get the correct path.
-            and resolve(request.path).url_name not in self.exempted_url_names
-        ):
+        if not (request.user.is_authenticated and request.user.has_password_expired()):
+            return response
+        # `request.resolver_match` is already populated by Django while handling
+        # the request, no need to call `resolve()` again (which would raise
+        # `Resolver404` for genuinely unmatched paths).
+        url_match = request.resolver_match
+        if url_match is None:
+            return response
+        # DRF sets `cls` on the view function returned by `APIView.as_view()`,
+        # regular Django views don't have this attribute, so this reliably
+        # tells apart API requests, which must not be redirected to an HTML
+        # page since API clients expect a proper API response.
+        is_api_request = issubclass(getattr(url_match.func, "cls", object), APIView)
+        if not is_api_request and url_match.url_name not in self.exempted_url_names:
             messages.warning(
                 request,
                 _("Your password has expired, please update your password."),
