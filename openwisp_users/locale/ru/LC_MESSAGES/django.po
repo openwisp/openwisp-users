@@ -5,25 +5,491 @@
 #
 msgid ""
 msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-02 17:37+0200\n"
 "Language: ru_RU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 "
-"&& (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 
-#: serializers.py:422
+#: admin.py:152
+msgid "Email"
+msgstr "Email"
+
+#: admin.py:160
+msgid "A staff user must belong to a group, please select one."
+msgstr "Сотрудник должен принадлежать к группе, пожалуйста, выберите одну."
+
+#: admin.py:180 admin.py:192 admin.py:533
+msgid "Account expiration"
+msgstr "Срок действия учётной записи"
+
+#: admin.py:183 admin.py:195
+msgid "Personal Info"
+msgstr "Личная информация"
+
+#: admin.py:185 admin.py:197
+msgid "Permissions"
+msgstr "Права доступа"
+
+#: admin.py:253
+msgid "Are you sure?"
+msgstr "Вы уверены?"
+
+#: admin.py:267
+msgid "Flag selected users as inactive"
+msgstr "Отметить выбранных пользователей как неактивных"
+
+#: admin.py:276
+#, python-format
+msgid "Successfully made %(count)d %(model_name)s inactive."
+msgstr "Успешно деактивировано %(count)d %(model_name)s."
+
+#: admin.py:285
+msgid "Flag selected users as active"
+msgstr "Отметить выбранных пользователей как активных"
+
+#: admin.py:300
+#, python-format
+msgid "Successfully activated %(count)d %(model_name)s"
+msgstr "Успешно активировано %(count)d %(model_name)s"
+
+#: admin.py:309
+#, python-format
+msgid "and cleared %(count)d expiration date."
+msgid_plural "and cleared %(count)d expiration dates."
+msgstr[0] "и очищена %(count)d дата истечения срока действия."
+msgstr[1] "и очищены %(count)d даты истечения срока действия."
+msgstr[2] "и очищено %(count)d дат истечения срока действия."
+
+#: admin.py:416
+#, python-format
+msgid "Can't delete %(count)d organization owner: %(owners)s"
+msgid_plural "Can't delete %(count)d organization owners: %(owners)s"
+msgstr[0] "Невозможно удалить %(count)d владельца организации: %(owners)s"
+msgstr[1] "Невозможно удалить %(count)d владельцев организации: %(owners)s"
+msgstr[2] "Невозможно удалить %(count)d владельцев организации: %(owners)s"
+
+#: admin.py:501 admin.py:667
+#, python-format
+msgid ""
+"Can't delete %(count)d organization user because it belongs to an "
+"organization owner."
+msgid_plural ""
+"Can't delete %(count)d organization users because they belong to some "
+"organization owners."
+msgstr[0] ""
+"Невозможно удалить %(count)d пользователя организации, так как он "
+"принадлежит владельцу организации."
+msgstr[1] ""
+"Невозможно удалить %(count)d пользователей организации, так как они "
+"принадлежат некоторым владельцам организации."
+msgstr[2] ""
+"Невозможно удалить %(count)d пользователей организации, так как они "
+"принадлежат некоторым владельцам организации."
+
+#: admin.py:535
+msgid "Internal"
+msgstr "Внутреннее"
+
+#: admin.py:625
+msgid ""
+"Can't delete this organization user because it belongs to an organization "
+"owner."
+msgstr ""
+"Невозможно удалить этого пользователя организации, поскольку он принадлежит "
+"владельцу организации."
+
+#: admin.py:654
+msgid "Can't delete organization users which belong to owners."
+msgstr ""
+"Невозможно удалить пользователей организации, принадлежащих владельцам."
+
+#: admin.py:736
+msgid "Create new API key"
+msgstr "Создать новый API-ключ"
+
+#: admin.py:797 admin.py:808 base/models.py:554
+msgid "API key"
+msgstr "API-ключ"
+
+#: api/authentication.py:26
+msgid "Invalid token header. No credentials provided."
+msgstr "Неверный заголовок токена. Учётные данные не предоставлены."
+
+#: api/authentication.py:29
+msgid "Invalid token header. Token string should not contain spaces."
+msgstr "Неверный заголовок токена. Строка токена не должна содержать пробелов."
+
+#: api/authentication.py:36
+msgid ""
+"Invalid token header. Token string should not contain invalid characters."
+msgstr ""
+"Неверный заголовок токена. Строка токена не должна содержать недопустимых "
+"символов."
+
+#: api/authentication.py:46
+msgid "Invalid or expired token."
+msgstr "Недействительный или истёкший токен."
+
+#: api/permissions.py:21
+msgid "Organization not found, `organization_field` not implemented correctly."
+msgstr "Организация не найдена, `organization_field` реализовано некорректно."
+
+#: api/permissions.py:49
+msgid ""
+"View's permission_classes not implemented correctly. Please use one of the "
+"child classes: IsOrganizationMember, IsOrganizationManager or "
+"IsOrganizationOwner."
+msgstr ""
+"permission_classes представления реализовано некорректно. Используйте один "
+"из дочерних классов: IsOrganizationMember, IsOrganizationManager или "
+"IsOrganizationOwner."
+
+#: api/permissions.py:58
+msgid ""
+"User is not a member of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"Пользователь не является участником организации, которой принадлежит "
+"запрашиваемый ресурс."
+
+#: api/permissions.py:68
+msgid ""
+"User is not a manager of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"Пользователь не является менеджером организации, которой принадлежит "
+"запрашиваемый ресурс."
+
+#: api/permissions.py:84
+msgid ""
+"User is not a owner of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"Пользователь не является владельцем организации, которой принадлежит "
+"запрашиваемый ресурс."
+
+#: api/serializers.py:50
+msgid "organization with this slug already exists."
+msgstr "организация с таким slug уже существует."
+
+#: api/serializers.py:264
+msgid "This field cannot be blank."
+msgstr "Это поле не может быть пустым."
+
+#: api/serializers.py:436
+msgid "The two password fields didn’t match."
+msgstr "Два поля пароля не совпадают."
+
+#: api/serializers.py:452
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr "Ваш старый пароль введён неверно. Пожалуйста, введите его снова."
+
+#: api/serializers.py:463
 msgid "New password cannot be the same as your old password."
 msgstr "Новый пароль не может совпадать с вашим старым паролем."
 
-#: views.py:198
+#: api/views.py:190
 msgid "Password updated successfully"
 msgstr "Пароль успешно обновлен"
 
-#: tasks.py:58
+#: apps.py:23
+msgid "Users and Organizations"
+msgstr "Пользователи и организации"
+
+#: apps.py:34
+msgid "Users"
+msgstr "Пользователи"
+
+#: apps.py:40
+msgid "Organizations"
+msgstr "Организации"
+
+#: apps.py:46
+msgid "Groups & Permissions"
+msgstr "Группы и права доступа"
+
+#: apps.py:54
+msgid "Organization Owners"
+msgstr "Владельцы организаций"
+
+#: apps.py:61
+msgid "Organization Users"
+msgstr "Пользователи организаций"
+
+#: apps.py:69
+msgid "Users & Organizations"
+msgstr "Пользователи и организации"
+
+#: base/models.py:61
+msgid "email address"
+msgstr "адрес электронной почты"
+
+#: base/models.py:62
+msgid "bio"
+msgstr "биография"
+
+#: base/models.py:63 base/models.py:454
+msgid "URL"
+msgstr "URL"
+
+#: base/models.py:64
+msgid "company"
+msgstr "компания"
+
+#: base/models.py:65
+msgid "location"
+msgstr "местоположение"
+
+#: base/models.py:67
+msgid "phone number"
+msgstr "номер телефона"
+
+#: base/models.py:69
+msgid "birth date"
+msgstr "дата рождения"
+
+#: base/models.py:71
+msgid "notes"
+msgstr "заметки"
+
+#: base/models.py:71
+msgid "notes for internal usage"
+msgstr "заметки для внутреннего использования"
+
+#: base/models.py:78
+msgid "password updated"
+msgstr "пароль обновлён"
+
+#: base/models.py:80
+msgid "expiration date"
+msgstr "дата истечения срока действия"
+
+#: base/models.py:84
+msgid ""
+"If set, the account will be deactivated after this date passes and the user "
+"will no longer be able to log in."
+msgstr ""
+"Если указано, учётная запись будет деактивирована после этой даты, и "
+"пользователь больше не сможет войти в систему."
+
+#: base/models.py:206
+msgid "User with this Email address already exists."
+msgstr "Пользователь с таким адресом электронной почты уже существует."
+
+#: base/models.py:236
+msgid "Expiration date cannot be in the past."
+msgstr "Дата истечения срока действия не может быть в прошлом."
+
+#: base/models.py:247
+msgid ""
+"Cannot activate an expired account. Clear or extend the expiration date "
+"first."
+msgstr ""
+"Невозможно активировать истёкшую учётную запись. Сначала очистите или "
+"продлите дату истечения срока действия."
+
+#: base/models.py:326
+msgid "Your account has been deactivated"
+msgstr "Ваша учётная запись деактивирована"
+
+#: base/models.py:404
+msgid "Action Required: Account Expiration Notice"
+msgstr ""
+"Требуется действие: Уведомление об истечении срока действия учётной записи"
+
+#: base/models.py:442
+msgid "group"
+msgstr "группа"
+
+#: base/models.py:443
+msgid "groups"
+msgstr "группы"
+
+#: base/models.py:452
+msgid "description"
+msgstr "описание"
+
+#: base/models.py:453
+msgid "email"
+msgstr "email"
+
+#: base/models.py:459
+msgid "disabled"
+msgstr "отключено"
+
+#: base/models.py:500
+#, python-format
+msgid ""
+"%(username)s is the owner of the organization: %(organization)s, and cannot "
+"be downgraded"
+msgstr ""
+"%(username)s является владельцем организации: %(organization)s, и не может "
+"быть понижен в правах"
+
+#: base/models.py:528
+msgid "The selected user is not member of this organization."
+msgstr "Выбранный пользователь не является участником этой организации."
+
+#: base/models.py:555
+msgid "API keys"
+msgstr "API-ключи"
+
+#: management/commands/export_users.py:23
+msgid "Exports user data to a CSV file"
+msgstr "Экспортирует данные пользователей в файл CSV"
+
+#: management/commands/export_users.py:46
+msgid "Comma-separated list of fields to exclude from export"
+msgstr "Список полей, разделённых запятыми, для исключения из экспорта"
+
+#: management/commands/export_users.py:53
+msgid ""
+"Filename for the exported CSV, defaults to \"openwisp_exported_users.csv\""
+msgstr ""
+"Имя файла для экспортированного CSV, по умолчанию "
+"\"openwisp_exported_users.csv\""
+
+#: management/commands/export_users.py:97
+#, python-brace-format
+msgid "User data exported successfully to {filename}!"
+msgstr "Данные пользователей успешно экспортированы в {filename}!"
+
+#: management/commands/export_users.py:180
+msgid "Error calling function {func_name!r} for field '{name}': {e}"
+msgstr "Ошибка при вызове функции {func_name!r} для поля '{name}': {e}"
+
+#: middleware.py:38
+msgid "Your password has expired, please update your password."
+msgstr "Срок действия вашего пароля истёк, пожалуйста, обновите пароль."
+
+#: mixins.py:31
+#, python-brace-format
+msgid ""
+"Please ensure that the organization of this {object_label} and the "
+"organization of the related {related_object_label} match."
+msgstr ""
+"Убедитесь, что организация этого {object_label} совпадает с организацией "
+"связанного {related_object_label}."
+
+#: mixins.py:63
+msgid "is"
+msgstr "является"
+
+#: mixins.py:63
+msgid "are"
+msgstr "являются"
+
+#: mixins.py:65
+#, python-brace-format
+msgid ""
+"The organization of this {object_label} cannot be changed because {count} "
+"{related_object_label} {verb} still related to it"
+msgstr ""
+"Организацию этого {object_label} нельзя изменить, так как {count} "
+"{related_object_label} {verb} всё ещё связаны с ним"
+
+#: mixins.py:87 multitenancy.py:150
+msgid "organization"
+msgstr "организация"
+
+#: multitenancy.py:38
+msgid "name"
+msgstr "имя"
+
+#: password_validation.py:17
+msgid "You cannot re-use your current password. Enter a new password."
+msgstr ""
+"Вы не можете повторно использовать текущий пароль. Введите новый пароль."
+
+#: password_validation.py:21
+msgid "Your password cannot be the same as your current password."
+msgstr "Ваш пароль не должен совпадать с текущим паролем."
+
+#: tasks.py:62
 msgid "Action Required: Password Expiry Notice"
 msgstr "Требуется действие: Уведомление о сроке действия пароля"
 
-#: tasks.py:73
+#: tasks.py:77
 msgid "Change password"
 msgstr "Изменить пароль"
+
+#: templates/admin/openwisp_users/action_confirmation.html:15
+msgid "Home"
+msgstr "Главная"
+
+#: templates/admin/openwisp_users/action_confirmation.html:18
+msgid "Modify active status"
+msgstr "Изменить статус активности"
+
+#: templates/admin/openwisp_users/action_confirmation.html:24
+msgid "Are you sure you want to make the selected users inactive?"
+msgstr "Вы уверены, что хотите сделать выбранных пользователей неактивными?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:26
+msgid "Are you sure you want to make the selected users active?"
+msgstr "Вы уверены, что хотите сделать выбранных пользователей активными?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:28
+msgid "Summary"
+msgstr "Сводка"
+
+#: templates/admin/openwisp_users/action_confirmation.html:31
+msgid "User"
+msgstr "Пользователь"
+
+#: templates/admin/openwisp_users/action_confirmation.html:40
+msgid "Confirm"
+msgstr "Подтвердить"
+
+#: templates/admin/openwisp_users/action_confirmation.html:42
+msgid "No, take me back"
+msgstr "Нет, вернуться назад"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the error below"
+msgstr "Пожалуйста, исправьте указанную ниже ошибку"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the errors below"
+msgstr "Пожалуйста, исправьте указанные ниже ошибки"
+
+#: templates/admin/openwisp_users/login.html:23
+#, python-format
+msgid ""
+"You are authenticated as %(username)s, but are not authorized to access this "
+"page. Would you like to login to a different account?"
+msgstr ""
+"Вы вошли как %(username)s, но не имеете доступа к этой странице. Хотите "
+"войти под другой учётной записью?"
+
+#: templates/admin/openwisp_users/login.html:34
+msgid "Email, phone number or username"
+msgstr "Email, номер телефона или имя пользователя"
+
+#: templates/admin/openwisp_users/login.html:44
+msgid "Forgot Password?"
+msgstr "Забыли пароль?"
+
+#: templates/admin/openwisp_users/login.html:47
+msgid "Log in"
+msgstr "Войти"
+
+#: templates/admin/openwisp_users/user/change_form.html:9
+msgid ""
+"\n"
+"        You do not have permission to edit or delete this user because they "
+"are owner of an organization.\n"
+"        "
+msgstr ""
+"\n"
+"        У вас нет разрешения на редактирование или удаление этого "
+"пользователя, так как он является владельцем организации.\n"
+"        "
+
+#: widgets.py:5
+msgid "Shared systemwide (no organization)"
+msgstr "Общий для всей системы (без организации)"

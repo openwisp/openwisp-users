@@ -5,25 +5,477 @@
 #
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2021-09-01 18:32-0500\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-02 17:37+0200\n"
 "Language: sl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: serializers.py:422
+#: admin.py:152
+msgid "Email"
+msgstr "E-pošta"
+
+#: admin.py:160
+msgid "A staff user must belong to a group, please select one."
+msgstr "Član osebja mora pripadati skupini, izberite eno."
+
+#: admin.py:180 admin.py:192 admin.py:533
+msgid "Account expiration"
+msgstr "Potek veljavnosti računa"
+
+#: admin.py:183 admin.py:195
+msgid "Personal Info"
+msgstr "Osebni podatki"
+
+#: admin.py:185 admin.py:197
+msgid "Permissions"
+msgstr "Dovoljenja"
+
+#: admin.py:253
+msgid "Are you sure?"
+msgstr "Ali ste prepričani?"
+
+#: admin.py:267
+msgid "Flag selected users as inactive"
+msgstr "Označi izbrane uporabnike kot neaktivne"
+
+#: admin.py:276
+#, python-format
+msgid "Successfully made %(count)d %(model_name)s inactive."
+msgstr "Uspešno deaktiviranih %(count)d %(model_name)s."
+
+#: admin.py:285
+msgid "Flag selected users as active"
+msgstr "Označi izbrane uporabnike kot aktivne"
+
+#: admin.py:300
+#, python-format
+msgid "Successfully activated %(count)d %(model_name)s"
+msgstr "Uspešno aktiviranih %(count)d %(model_name)s"
+
+#: admin.py:309
+#, python-format
+msgid "and cleared %(count)d expiration date."
+msgid_plural "and cleared %(count)d expiration dates."
+msgstr[0] "in počiščen %(count)d datum poteka."
+msgstr[1] "in počiščenih %(count)d datumov poteka."
+
+#: admin.py:416
+#, python-format
+msgid "Can't delete %(count)d organization owner: %(owners)s"
+msgid_plural "Can't delete %(count)d organization owners: %(owners)s"
+msgstr[0] "Ni mogoče izbrisati %(count)d lastnika organizacije: %(owners)s"
+msgstr[1] "Ni mogoče izbrisati %(count)d lastnikov organizacije: %(owners)s"
+
+#: admin.py:501 admin.py:667
+#, python-format
+msgid ""
+"Can't delete %(count)d organization user because it belongs to an "
+"organization owner."
+msgid_plural ""
+"Can't delete %(count)d organization users because they belong to some "
+"organization owners."
+msgstr[0] ""
+"Ni mogoče izbrisati %(count)d uporabnika organizacije, ker pripada lastniku "
+"organizacije."
+msgstr[1] ""
+"Ni mogoče izbrisati %(count)d uporabnikov organizacije, ker pripadajo "
+"nekaterim lastnikom organizacije."
+
+#: admin.py:535
+msgid "Internal"
+msgstr "Interno"
+
+#: admin.py:625
+msgid ""
+"Can't delete this organization user because it belongs to an organization "
+"owner."
+msgstr ""
+"Tega uporabnika organizacije ni mogoče izbrisati, ker pripada lastniku "
+"organizacije."
+
+#: admin.py:654
+msgid "Can't delete organization users which belong to owners."
+msgstr "Uporabnikov organizacije, ki pripadajo lastnikom, ni mogoče izbrisati."
+
+#: admin.py:736
+msgid "Create new API key"
+msgstr "Ustvari nov API ključ"
+
+#: admin.py:797 admin.py:808 base/models.py:554
+msgid "API key"
+msgstr "API ključ"
+
+#: api/authentication.py:26
+msgid "Invalid token header. No credentials provided."
+msgstr "Neveljavna glava žetona. Poverilnice niso bile posredovane."
+
+#: api/authentication.py:29
+msgid "Invalid token header. Token string should not contain spaces."
+msgstr "Neveljavna glava žetona. Niz žetona ne sme vsebovati presledkov."
+
+#: api/authentication.py:36
+msgid ""
+"Invalid token header. Token string should not contain invalid characters."
+msgstr ""
+"Neveljavna glava žetona. Niz žetona ne sme vsebovati neveljavnih znakov."
+
+#: api/authentication.py:46
+msgid "Invalid or expired token."
+msgstr "Neveljaven ali potekel žeton."
+
+#: api/permissions.py:21
+msgid "Organization not found, `organization_field` not implemented correctly."
+msgstr ""
+"Organizacije ni mogoče najti, `organization_field` ni pravilno implementiran."
+
+#: api/permissions.py:49
+msgid ""
+"View's permission_classes not implemented correctly. Please use one of the "
+"child classes: IsOrganizationMember, IsOrganizationManager or "
+"IsOrganizationOwner."
+msgstr ""
+"permission_classes poglede ni pravilno implementiran. Uporabite enega od "
+"podrazredov: IsOrganizationMember, IsOrganizationManager ali "
+"IsOrganizationOwner."
+
+#: api/permissions.py:58
+msgid ""
+"User is not a member of the organization to which the requested resource "
+"belongs."
+msgstr "Uporabnik ni član organizacije, ki ji pripada zahtevani vir."
+
+#: api/permissions.py:68
+msgid ""
+"User is not a manager of the organization to which the requested resource "
+"belongs."
+msgstr "Uporabnik ni upravitelj organizacije, ki ji pripada zahtevani vir."
+
+#: api/permissions.py:84
+msgid ""
+"User is not a owner of the organization to which the requested resource "
+"belongs."
+msgstr "Uporabnik ni lastnik organizacije, ki ji pripada zahtevani vir."
+
+#: api/serializers.py:50
+msgid "organization with this slug already exists."
+msgstr "Organizacija s tem nazivom (slug) že obstaja."
+
+#: api/serializers.py:264
+msgid "This field cannot be blank."
+msgstr "To polje ne sme biti prazno."
+
+#: api/serializers.py:436
+msgid "The two password fields didn’t match."
+msgstr "Polji z geslom se ne ujemata."
+
+#: api/serializers.py:452
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr "Vaše staro geslo je bilo vneseno napačno. Prosimo, vnesite ga znova."
+
+#: api/serializers.py:463
 msgid "New password cannot be the same as your old password."
 msgstr "Novo geslo ne more biti enako staremu."
 
-#: views.py:198
+#: api/views.py:190
 msgid "Password updated successfully"
 msgstr "Geslo je bilo uspešno posodobljeno"
 
-#: tasks.py:58
+#: apps.py:23
+msgid "Users and Organizations"
+msgstr "Uporabniki in organizacije"
+
+#: apps.py:34
+msgid "Users"
+msgstr "Uporabniki"
+
+#: apps.py:40
+msgid "Organizations"
+msgstr "Organizacije"
+
+#: apps.py:46
+msgid "Groups & Permissions"
+msgstr "Skupine in dovoljenja"
+
+#: apps.py:54
+msgid "Organization Owners"
+msgstr "Lastniki organizacij"
+
+#: apps.py:61
+msgid "Organization Users"
+msgstr "Uporabniki organizacij"
+
+#: apps.py:69
+msgid "Users & Organizations"
+msgstr "Uporabniki in organizacije"
+
+#: base/models.py:61
+msgid "email address"
+msgstr "e-poštni naslov"
+
+#: base/models.py:62
+msgid "bio"
+msgstr "biografija"
+
+#: base/models.py:63 base/models.py:454
+msgid "URL"
+msgstr "URL"
+
+#: base/models.py:64
+msgid "company"
+msgstr "podjetje"
+
+#: base/models.py:65
+msgid "location"
+msgstr "lokacija"
+
+#: base/models.py:67
+msgid "phone number"
+msgstr "telefonska številka"
+
+#: base/models.py:69
+msgid "birth date"
+msgstr "datum rojstva"
+
+#: base/models.py:71
+msgid "notes"
+msgstr "opombe"
+
+#: base/models.py:71
+msgid "notes for internal usage"
+msgstr "opombe za interno uporabo"
+
+#: base/models.py:78
+msgid "password updated"
+msgstr "geslo posodobljeno"
+
+#: base/models.py:80
+msgid "expiration date"
+msgstr "datum poteka"
+
+#: base/models.py:84
+msgid ""
+"If set, the account will be deactivated after this date passes and the user "
+"will no longer be able to log in."
+msgstr ""
+"Če je nastavljeno, bo račun po tem datumu onemogočen in uporabnik se ne bo "
+"mogel več prijaviti."
+
+#: base/models.py:206
+msgid "User with this Email address already exists."
+msgstr "Uporabnik s tem e-poštnim naslovom že obstaja."
+
+#: base/models.py:236
+msgid "Expiration date cannot be in the past."
+msgstr "Datum poteka ne sme biti v preteklosti."
+
+#: base/models.py:247
+msgid ""
+"Cannot activate an expired account. Clear or extend the expiration date "
+"first."
+msgstr ""
+"Poteklega računa ni mogoče aktivirati. Najprej počistite ali podaljšajte "
+"datum poteka."
+
+#: base/models.py:326
+msgid "Your account has been deactivated"
+msgstr "Vaš račun je bil onemogočen"
+
+#: base/models.py:404
+msgid "Action Required: Account Expiration Notice"
+msgstr "Potrebno dejanje: Obvestilo o poteku računa"
+
+#: base/models.py:442
+msgid "group"
+msgstr "skupina"
+
+#: base/models.py:443
+msgid "groups"
+msgstr "skupine"
+
+#: base/models.py:452
+msgid "description"
+msgstr "opis"
+
+#: base/models.py:453
+msgid "email"
+msgstr "e-pošta"
+
+#: base/models.py:459
+msgid "disabled"
+msgstr "onemogočeno"
+
+#: base/models.py:500
+#, python-format
+msgid ""
+"%(username)s is the owner of the organization: %(organization)s, and cannot "
+"be downgraded"
+msgstr ""
+"%(username)s je lastnik organizacije: %(organization)s in ga ni mogoče "
+"znižati"
+
+#: base/models.py:528
+msgid "The selected user is not member of this organization."
+msgstr "Izbrani uporabnik ni član te organizacije."
+
+#: base/models.py:555
+msgid "API keys"
+msgstr "API ključi"
+
+#: management/commands/export_users.py:23
+msgid "Exports user data to a CSV file"
+msgstr "Izvozi podatke uporabnikov v datoteko CSV"
+
+#: management/commands/export_users.py:46
+msgid "Comma-separated list of fields to exclude from export"
+msgstr "Z vejico ločen seznam polj, ki jih želite izključiti iz izvoza"
+
+#: management/commands/export_users.py:53
+msgid ""
+"Filename for the exported CSV, defaults to \"openwisp_exported_users.csv\""
+msgstr ""
+"Ime datoteke za izvoženo datoteko CSV, privzeto "
+"\"openwisp_exported_users.csv\""
+
+#: management/commands/export_users.py:97
+#, python-brace-format
+msgid "User data exported successfully to {filename}!"
+msgstr "Podatki uporabnikov so bili uspešno izvoženi v {filename}!"
+
+#: management/commands/export_users.py:180
+msgid "Error calling function {func_name!r} for field '{name}': {e}"
+msgstr "Napaka pri klicu funkcije {func_name!r} za polje '{name}': {e}"
+
+#: middleware.py:38
+msgid "Your password has expired, please update your password."
+msgstr "Vaše geslo je poteklo, prosimo, posodobite ga."
+
+#: mixins.py:31
+#, python-brace-format
+msgid ""
+"Please ensure that the organization of this {object_label} and the "
+"organization of the related {related_object_label} match."
+msgstr ""
+"Prepričajte se, da se organizacija tega {object_label} ujema z organizacijo "
+"povezanega {related_object_label}."
+
+#: mixins.py:63
+msgid "is"
+msgstr "je"
+
+#: mixins.py:63
+msgid "are"
+msgstr "so"
+
+#: mixins.py:65
+#, python-brace-format
+msgid ""
+"The organization of this {object_label} cannot be changed because {count} "
+"{related_object_label} {verb} still related to it"
+msgstr ""
+"Organizacije tega {object_label} ni mogoče spremeniti, ker {count} "
+"{related_object_label} {verb} še vedno povezanih z njim"
+
+#: mixins.py:87 multitenancy.py:150
+msgid "organization"
+msgstr "organizacija"
+
+#: multitenancy.py:38
+msgid "name"
+msgstr "ime"
+
+#: password_validation.py:17
+msgid "You cannot re-use your current password. Enter a new password."
+msgstr "Trenutnega gesla ne morete ponovno uporabiti. Vnesite novo geslo."
+
+#: password_validation.py:21
+msgid "Your password cannot be the same as your current password."
+msgstr "Vaše geslo ne sme biti enako trenutnemu geslu."
+
+#: tasks.py:62
 msgid "Action Required: Password Expiry Notice"
 msgstr "Potrebno dejanje: Obvestilo o poteku gesla"
 
-#: tasks.py:73
+#: tasks.py:77
 msgid "Change password"
 msgstr "Spremeni geslo"
+
+#: templates/admin/openwisp_users/action_confirmation.html:15
+msgid "Home"
+msgstr "Domov"
+
+#: templates/admin/openwisp_users/action_confirmation.html:18
+msgid "Modify active status"
+msgstr "Spremeni status aktivnosti"
+
+#: templates/admin/openwisp_users/action_confirmation.html:24
+msgid "Are you sure you want to make the selected users inactive?"
+msgstr ""
+"Ali ste prepričani, da želite izbrane uporabnike označiti kot neaktivne?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:26
+msgid "Are you sure you want to make the selected users active?"
+msgstr "Ali ste prepričani, da želite izbrane uporabnike označiti kot aktivne?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:28
+msgid "Summary"
+msgstr "Povzetek"
+
+#: templates/admin/openwisp_users/action_confirmation.html:31
+msgid "User"
+msgstr "Uporabnik"
+
+#: templates/admin/openwisp_users/action_confirmation.html:40
+msgid "Confirm"
+msgstr "Potrdi"
+
+#: templates/admin/openwisp_users/action_confirmation.html:42
+msgid "No, take me back"
+msgstr "Ne, pelji me nazaj"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the error below"
+msgstr "Prosimo, popravite spodnjo napako"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the errors below"
+msgstr "Prosimo, popravite spodnje napake"
+
+#: templates/admin/openwisp_users/login.html:23
+#, python-format
+msgid ""
+"You are authenticated as %(username)s, but are not authorized to access this "
+"page. Would you like to login to a different account?"
+msgstr ""
+"Prijavljeni ste kot %(username)s, vendar nimate dovoljenja za dostop do te "
+"strani. Ali se želite prijaviti z drugim računom?"
+
+#: templates/admin/openwisp_users/login.html:34
+msgid "Email, phone number or username"
+msgstr "E-pošta, telefonska številka ali uporabniško ime"
+
+#: templates/admin/openwisp_users/login.html:44
+msgid "Forgot Password?"
+msgstr "Ste pozabili geslo?"
+
+#: templates/admin/openwisp_users/login.html:47
+msgid "Log in"
+msgstr "Prijava"
+
+#: templates/admin/openwisp_users/user/change_form.html:9
+msgid ""
+"\n"
+"        You do not have permission to edit or delete this user because they "
+"are owner of an organization.\n"
+"        "
+msgstr ""
+"\n"
+"        Nimate dovoljenja za urejanje ali brisanje tega uporabnika, ker je "
+"lastnik organizacije.\n"
+"        "
+
+#: widgets.py:5
+msgid "Shared systemwide (no organization)"
+msgstr "Deljeno na ravni sistema (brez organizacije)"

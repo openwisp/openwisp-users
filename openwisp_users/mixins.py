@@ -63,13 +63,14 @@ class ValidateOrgMixin(object):
             verb = _("is") if count == 1 else _("are")
             message = _(
                 "The organization of this {object_label} cannot be changed "
-                "because {0} {related_object_label} {verb} still "
-                "related to it".format(
-                    count,
-                    object_label=self._meta.verbose_name,
-                    related_object_label=related_label,
-                    verb=verb,
-                )
+                "because {count} {related_object_label} {verb} still "
+                "related to it"
+            )
+            message = message.format(
+                count=count,
+                object_label=self._meta.verbose_name,
+                related_object_label=related_label,
+                verb=verb,
             )
             raise ValidationError({field_error: message})
 

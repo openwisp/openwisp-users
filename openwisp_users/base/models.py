@@ -497,9 +497,10 @@ class BaseOrganizationUser(models.Model):
         ):
             raise ValidationError(
                 _(
-                    f"{self.user.username} is the owner of the organization: "
-                    f"{self.organization}, and cannot be downgraded"
+                    "%(username)s is the owner of the organization: "
+                    "%(organization)s, and cannot be downgraded"
                 )
+                % {"username": self.user.username, "organization": self.organization}
             )
 
     @property

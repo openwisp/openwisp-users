@@ -5,37 +5,495 @@
 #
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2021-09-01 18:32-0500\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-02 17:37+0200\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin.py:488
+#: admin.py:152
+msgid "Email"
+msgstr "Email"
+
+#: admin.py:160
+msgid "A staff user must belong to a group, please select one."
+msgstr "Un utente dello staff deve appartenere a un gruppo, selezionane uno."
+
+#: admin.py:180 admin.py:192 admin.py:533
 msgid "Account expiration"
 msgstr "Scadenza dell'account"
 
-#: admin.py:490
+#: admin.py:183 admin.py:195
+msgid "Personal Info"
+msgstr "Informazioni personali"
+
+#: admin.py:185 admin.py:197
+msgid "Permissions"
+msgstr "Permessi"
+
+#: admin.py:253
+msgid "Are you sure?"
+msgstr "Sei sicuro?"
+
+#: admin.py:267
+msgid "Flag selected users as inactive"
+msgstr "Contrassegna gli utenti selezionati come inattivi"
+
+#: admin.py:276
+#, python-format
+msgid "Successfully made %(count)d %(model_name)s inactive."
+msgstr "%(count)d %(model_name)s disattivati con successo."
+
+#: admin.py:285
+msgid "Flag selected users as active"
+msgstr "Contrassegna gli utenti selezionati come attivi"
+
+#: admin.py:300
+#, python-format
+msgid "Successfully activated %(count)d %(model_name)s"
+msgstr "%(count)d %(model_name)s attivati con successo"
+
+#: admin.py:309
+#, python-format
+msgid "and cleared %(count)d expiration date."
+msgid_plural "and cleared %(count)d expiration dates."
+msgstr[0] "e cancellata %(count)d data di scadenza."
+msgstr[1] "e cancellate %(count)d date di scadenza."
+
+#: admin.py:416
+#, python-format
+msgid "Can't delete %(count)d organization owner: %(owners)s"
+msgid_plural "Can't delete %(count)d organization owners: %(owners)s"
+msgstr[0] ""
+"Impossibile eliminare %(count)d proprietario dell'organizzazione: %(owners)s"
+msgstr[1] ""
+"Impossibile eliminare %(count)d proprietari dell'organizzazione: %(owners)s"
+
+#: admin.py:501 admin.py:667
+#, python-format
+msgid ""
+"Can't delete %(count)d organization user because it belongs to an "
+"organization owner."
+msgid_plural ""
+"Can't delete %(count)d organization users because they belong to some "
+"organization owners."
+msgstr[0] ""
+"Impossibile eliminare %(count)d utente dell'organizzazione perché appartiene "
+"al proprietario dell'organizzazione."
+msgstr[1] ""
+"Impossibile eliminare %(count)d utenti dell'organizzazione perché "
+"appartengono ad alcuni proprietari dell'organizzazione."
+
+#: admin.py:535
 msgid "Internal"
 msgstr "Interno"
 
-#: api/serializers.py:477
+#: admin.py:625
+msgid ""
+"Can't delete this organization user because it belongs to an organization "
+"owner."
+msgstr ""
+"Impossibile eliminare questo utente dell'organizzazione perché appartiene al "
+"proprietario dell'organizzazione."
+
+#: admin.py:654
+msgid "Can't delete organization users which belong to owners."
+msgstr ""
+"Impossibile eliminare gli utenti dell'organizzazione che appartengono ai "
+"proprietari."
+
+#: admin.py:736
+msgid "Create new API key"
+msgstr "Crea nuova chiave API"
+
+#: admin.py:797 admin.py:808 base/models.py:554
+msgid "API key"
+msgstr "Chiave API"
+
+#: api/authentication.py:26
+msgid "Invalid token header. No credentials provided."
+msgstr "Intestazione del token non valida. Nessuna credenziale fornita."
+
+#: api/authentication.py:29
+msgid "Invalid token header. Token string should not contain spaces."
+msgstr ""
+"Intestazione del token non valida. La stringa del token non deve contenere "
+"spazi."
+
+#: api/authentication.py:36
+msgid ""
+"Invalid token header. Token string should not contain invalid characters."
+msgstr ""
+"Intestazione del token non valida. La stringa del token non deve contenere "
+"caratteri non validi."
+
+#: api/authentication.py:46
+msgid "Invalid or expired token."
+msgstr "Token non valido o scaduto."
+
+#: api/permissions.py:21
+msgid "Organization not found, `organization_field` not implemented correctly."
+msgstr ""
+"Organizzazione non trovata, `organization_field` non implementato "
+"correttamente."
+
+#: api/permissions.py:49
+msgid ""
+"View's permission_classes not implemented correctly. Please use one of the "
+"child classes: IsOrganizationMember, IsOrganizationManager or "
+"IsOrganizationOwner."
+msgstr ""
+"permission_classes della view non implementata correttamente. Utilizza una "
+"delle classi figlie: IsOrganizationMember, IsOrganizationManager o "
+"IsOrganizationOwner."
+
+#: api/permissions.py:58
+msgid ""
+"User is not a member of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"L'utente non è membro dell'organizzazione a cui appartiene la risorsa "
+"richiesta."
+
+#: api/permissions.py:68
+msgid ""
+"User is not a manager of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"L'utente non è un manager dell'organizzazione a cui appartiene la risorsa "
+"richiesta."
+
+#: api/permissions.py:84
+msgid ""
+"User is not a owner of the organization to which the requested resource "
+"belongs."
+msgstr ""
+"L'utente non è proprietario dell'organizzazione a cui appartiene la risorsa "
+"richiesta."
+
+#: api/serializers.py:50
+msgid "organization with this slug already exists."
+msgstr "esiste già un'organizzazione con questo slug."
+
+#: api/serializers.py:264
+msgid "This field cannot be blank."
+msgstr "Questo campo non può essere vuoto."
+
+#: api/serializers.py:436
+msgid "The two password fields didn’t match."
+msgstr "I due campi password non corrispondono."
+
+#: api/serializers.py:452
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr ""
+"La tua vecchia password non è stata inserita correttamente. Per favore, "
+"inseriscila di nuovo."
+
+#: api/serializers.py:463
 msgid "New password cannot be the same as your old password."
 msgstr "La nuova password non può essere uguale alla vecchia password."
 
-#: api/views.py:196
+#: api/views.py:190
 msgid "Password updated successfully"
 msgstr "Password aggiornata con successo"
 
-#: base/models.py:350
+#: apps.py:23
+msgid "Users and Organizations"
+msgstr "Utenti e Organizzazioni"
+
+#: apps.py:34
+msgid "Users"
+msgstr "Utenti"
+
+#: apps.py:40
+msgid "Organizations"
+msgstr "Organizzazioni"
+
+#: apps.py:46
+msgid "Groups & Permissions"
+msgstr "Gruppi e Permessi"
+
+#: apps.py:54
+msgid "Organization Owners"
+msgstr "Proprietari delle organizzazioni"
+
+#: apps.py:61
+msgid "Organization Users"
+msgstr "Utenti delle organizzazioni"
+
+#: apps.py:69
+msgid "Users & Organizations"
+msgstr "Utenti e Organizzazioni"
+
+#: base/models.py:61
+msgid "email address"
+msgstr "indirizzo email"
+
+#: base/models.py:62
+msgid "bio"
+msgstr "biografia"
+
+#: base/models.py:63 base/models.py:454
+msgid "URL"
+msgstr "URL"
+
+#: base/models.py:64
+msgid "company"
+msgstr "azienda"
+
+#: base/models.py:65
+msgid "location"
+msgstr "posizione"
+
+#: base/models.py:67
+msgid "phone number"
+msgstr "numero di telefono"
+
+#: base/models.py:69
+msgid "birth date"
+msgstr "data di nascita"
+
+#: base/models.py:71
+msgid "notes"
+msgstr "note"
+
+#: base/models.py:71
+msgid "notes for internal usage"
+msgstr "note per uso interno"
+
+#: base/models.py:78
+msgid "password updated"
+msgstr "password aggiornata"
+
+#: base/models.py:80
+msgid "expiration date"
+msgstr "data di scadenza"
+
+#: base/models.py:84
+msgid ""
+"If set, the account will be deactivated after this date passes and the user "
+"will no longer be able to log in."
+msgstr ""
+"Se impostata, l'account verrà disattivato dopo questa data e l'utente non "
+"potrà più accedere."
+
+#: base/models.py:206
+msgid "User with this Email address already exists."
+msgstr "Un utente con questo indirizzo email esiste già."
+
+#: base/models.py:236
+msgid "Expiration date cannot be in the past."
+msgstr "La data di scadenza non può essere nel passato."
+
+#: base/models.py:247
+msgid ""
+"Cannot activate an expired account. Clear or extend the expiration date "
+"first."
+msgstr ""
+"Impossibile attivare un account scaduto. Cancella o estendi prima la data di "
+"scadenza."
+
+#: base/models.py:326
+msgid "Your account has been deactivated"
+msgstr "Il tuo account è stato disattivato"
+
+#: base/models.py:404
 msgid "Action Required: Account Expiration Notice"
 msgstr "Azione richiesta: Avviso di scadenza dell'account"
+
+#: base/models.py:442
+msgid "group"
+msgstr "gruppo"
+
+#: base/models.py:443
+msgid "groups"
+msgstr "gruppi"
+
+#: base/models.py:452
+msgid "description"
+msgstr "descrizione"
+
+#: base/models.py:453
+msgid "email"
+msgstr "email"
+
+#: base/models.py:459
+msgid "disabled"
+msgstr "disattivato"
+
+#: base/models.py:500
+#, python-format
+msgid ""
+"%(username)s is the owner of the organization: %(organization)s, and cannot "
+"be downgraded"
+msgstr ""
+"%(username)s è il proprietario dell'organizzazione: %(organization)s, e non "
+"può essere declassato"
+
+#: base/models.py:528
+msgid "The selected user is not member of this organization."
+msgstr "L'utente selezionato non è membro di questa organizzazione."
+
+#: base/models.py:555
+msgid "API keys"
+msgstr "Chiavi API"
+
+#: management/commands/export_users.py:23
+msgid "Exports user data to a CSV file"
+msgstr "Esporta i dati degli utenti in un file CSV"
+
+#: management/commands/export_users.py:46
+msgid "Comma-separated list of fields to exclude from export"
+msgstr "Elenco di campi separati da virgola da escludere dall'esportazione"
+
+#: management/commands/export_users.py:53
+msgid ""
+"Filename for the exported CSV, defaults to \"openwisp_exported_users.csv\""
+msgstr ""
+"Nome del file CSV esportato, il valore predefinito è "
+"\"openwisp_exported_users.csv\""
+
+#: management/commands/export_users.py:97
+#, python-brace-format
+msgid "User data exported successfully to {filename}!"
+msgstr "Dati utente esportati con successo in {filename}!"
+
+#: management/commands/export_users.py:180
+msgid "Error calling function {func_name!r} for field '{name}': {e}"
+msgstr ""
+"Errore durante la chiamata della funzione {func_name!r} per il campo "
+"'{name}': {e}"
+
+#: middleware.py:38
+msgid "Your password has expired, please update your password."
+msgstr "La tua password è scaduta, aggiornala."
+
+#: mixins.py:31
+#, python-brace-format
+msgid ""
+"Please ensure that the organization of this {object_label} and the "
+"organization of the related {related_object_label} match."
+msgstr ""
+"Assicurati che l'organizzazione di questo {object_label} corrisponda "
+"all'organizzazione del relativo {related_object_label}."
+
+#: mixins.py:63
+msgid "is"
+msgstr "è"
+
+#: mixins.py:63
+msgid "are"
+msgstr "sono"
+
+#: mixins.py:65
+#, python-brace-format
+msgid ""
+"The organization of this {object_label} cannot be changed because {count} "
+"{related_object_label} {verb} still related to it"
+msgstr ""
+"L'organizzazione di questo {object_label} non può essere modificata perché "
+"{count} {related_object_label} {verb} ancora collegati ad essa"
+
+#: mixins.py:87 multitenancy.py:150
+msgid "organization"
+msgstr "organizzazione"
+
+#: multitenancy.py:38
+msgid "name"
+msgstr "nome"
+
+#: password_validation.py:17
+msgid "You cannot re-use your current password. Enter a new password."
+msgstr ""
+"Non puoi riutilizzare la tua password attuale. Inserisci una nuova password."
+
+#: password_validation.py:21
+msgid "Your password cannot be the same as your current password."
+msgstr "La tua password non può essere uguale alla password attuale."
 
 #: tasks.py:62
 msgid "Action Required: Password Expiry Notice"
 msgstr "Azione richiesta: Avviso di scadenza della password"
 
-#: tasks.py:79
+#: tasks.py:77
 msgid "Change password"
 msgstr "Cambia password"
+
+#: templates/admin/openwisp_users/action_confirmation.html:15
+msgid "Home"
+msgstr "Home"
+
+#: templates/admin/openwisp_users/action_confirmation.html:18
+msgid "Modify active status"
+msgstr "Modifica stato attivo"
+
+#: templates/admin/openwisp_users/action_confirmation.html:24
+msgid "Are you sure you want to make the selected users inactive?"
+msgstr "Sei sicuro di voler rendere inattivi gli utenti selezionati?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:26
+msgid "Are you sure you want to make the selected users active?"
+msgstr "Sei sicuro di voler rendere attivi gli utenti selezionati?"
+
+#: templates/admin/openwisp_users/action_confirmation.html:28
+msgid "Summary"
+msgstr "Riepilogo"
+
+#: templates/admin/openwisp_users/action_confirmation.html:31
+msgid "User"
+msgstr "Utente"
+
+#: templates/admin/openwisp_users/action_confirmation.html:40
+msgid "Confirm"
+msgstr "Conferma"
+
+#: templates/admin/openwisp_users/action_confirmation.html:42
+msgid "No, take me back"
+msgstr "No, torna indietro"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the error below"
+msgstr "Correggi l'errore sottostante"
+
+#: templates/admin/openwisp_users/login.html:7
+msgid "Please correct the errors below"
+msgstr "Correggi gli errori sottostanti"
+
+#: templates/admin/openwisp_users/login.html:23
+#, python-format
+msgid ""
+"You are authenticated as %(username)s, but are not authorized to access this "
+"page. Would you like to login to a different account?"
+msgstr ""
+"Sei autenticato come %(username)s, ma non sei autorizzato ad accedere a "
+"questa pagina. Vuoi accedere con un altro account?"
+
+#: templates/admin/openwisp_users/login.html:34
+msgid "Email, phone number or username"
+msgstr "Email, numero di telefono o nome utente"
+
+#: templates/admin/openwisp_users/login.html:44
+msgid "Forgot Password?"
+msgstr "Password dimenticata?"
+
+#: templates/admin/openwisp_users/login.html:47
+msgid "Log in"
+msgstr "Accedi"
+
+#: templates/admin/openwisp_users/user/change_form.html:9
+msgid ""
+"\n"
+"        You do not have permission to edit or delete this user because they "
+"are owner of an organization.\n"
+"        "
+msgstr ""
+"\n"
+"        Non hai il permesso di modificare o eliminare questo utente perché è "
+"proprietario di un'organizzazione.\n"
+"        "
+
+#: widgets.py:5
+msgid "Shared systemwide (no organization)"
+msgstr "Condiviso a livello di sistema (nessuna organizzazione)"

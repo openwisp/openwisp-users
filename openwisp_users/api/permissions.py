@@ -46,7 +46,7 @@ class BaseOrganizationPermission(ObjectOrganizationMixin, BasePermission):
     def validate_membership(self, user, org):
         raise NotImplementedError(
             _(
-                "View's permission_classes not implemented correctly."
+                "View's permission_classes not implemented correctly. "
                 "Please use one of the child classes: IsOrganizationMember, "
                 "IsOrganizationManager or IsOrganizationOwner."
             )
