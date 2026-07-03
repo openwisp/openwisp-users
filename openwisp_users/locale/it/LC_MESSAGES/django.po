@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-02 17:37+0200\n"
+"POT-Creation-Date: 2026-07-03 10:10+0200\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -141,11 +141,11 @@ msgstr ""
 
 #: api/permissions.py:49
 msgid ""
-"View's permission_classes not implemented correctly. Please use one of the "
+"View's permission_classes not implemented correctly.Please use one of the "
 "child classes: IsOrganizationMember, IsOrganizationManager or "
 "IsOrganizationOwner."
 msgstr ""
-"permission_classes della view non implementata correttamente. Utilizza una "
+"permission_classes della view non implementate correttamente. Utilizza una "
 "delle classi figlie: IsOrganizationMember, IsOrganizationManager o "
 "IsOrganizationOwner."
 
@@ -370,7 +370,7 @@ msgstr ""
 msgid "Your password has expired, please update your password."
 msgstr "La tua password è scaduta, aggiornala."
 
-#: mixins.py:31
+#: mixins.py:32
 #, python-brace-format
 msgid ""
 "Please ensure that the organization of this {object_label} and the "
@@ -379,24 +379,22 @@ msgstr ""
 "Assicurati che l'organizzazione di questo {object_label} corrisponda "
 "all'organizzazione del relativo {related_object_label}."
 
-#: mixins.py:63
-msgid "is"
-msgstr "è"
-
-#: mixins.py:63
-msgid "are"
-msgstr "sono"
-
 #: mixins.py:65
 #, python-brace-format
 msgid ""
 "The organization of this {object_label} cannot be changed because {count} "
-"{related_object_label} {verb} still related to it"
-msgstr ""
+"{related_object_label} is still related to it"
+msgid_plural ""
+"The organization of this {object_label} cannot be changed because {count} "
+"{related_object_label} are still related to it"
+msgstr[0] ""
 "L'organizzazione di questo {object_label} non può essere modificata perché "
-"{count} {related_object_label} {verb} ancora collegati ad essa"
+"{count} {related_object_label} è ancora collegato ad essa"
+msgstr[1] ""
+"L'organizzazione di questo {object_label} non può essere modificata perché "
+"{count} {related_object_label} sono ancora collegati ad essa"
 
-#: mixins.py:87 multitenancy.py:150
+#: mixins.py:88 multitenancy.py:150
 msgid "organization"
 msgstr "organizzazione"
 

@@ -5,6 +5,7 @@ mixins used by other openwisp components to implement multi-tenancy
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext_lazy
 from swapper import get_model_name
 
 
@@ -60,17 +61,17 @@ class ValidateOrgMixin(object):
             related_label = (
                 rel_meta.verbose_name if count == 1 else rel_meta.verbose_name_plural
             )
-            verb = _("is") if count == 1 else _("are")
-            message = _(
+            message = ngettext_lazy(
                 "The organization of this {object_label} cannot be changed "
-                "because {count} {related_object_label} {verb} still "
-                "related to it"
+                "because {count} {related_object_label} is still related to it",
+                "The organization of this {object_label} cannot be changed "
+                "because {count} {related_object_label} are still related to it",
+                count,
             )
             message = message.format(
                 count=count,
                 object_label=self._meta.verbose_name,
                 related_object_label=related_label,
-                verb=verb,
             )
             raise ValidationError({field_error: message})
 

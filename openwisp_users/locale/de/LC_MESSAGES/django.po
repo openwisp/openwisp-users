@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-02 17:11+0200\n"
+"POT-Creation-Date: 2026-07-03 10:10+0200\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -67,8 +67,10 @@ msgstr[1] "und %(count)d Ablaufdaten gelöscht."
 #, python-format
 msgid "Can't delete %(count)d organization owner: %(owners)s"
 msgid_plural "Can't delete %(count)d organization owners: %(owners)s"
-msgstr[0] "%(count)d Organisationseigentümer kann nicht gelöscht werden: %(owners)s"
-msgstr[1] "%(count)d Organisationseigentümer können nicht gelöscht werden: %(owners)s"
+msgstr[0] ""
+"%(count)d Organisationseigentümer kann nicht gelöscht werden: %(owners)s"
+msgstr[1] ""
+"%(count)d Organisationseigentümer können nicht gelöscht werden: %(owners)s"
 
 #: admin.py:501 admin.py:667
 #, python-format
@@ -82,8 +84,8 @@ msgstr[0] ""
 "%(count)d Organisationsbenutzer kann nicht gelöscht werden, da er einem "
 "Organisationseigentümer gehört."
 msgstr[1] ""
-"%(count)d Organisationsbenutzer können nicht gelöscht werden, da sie "
-"einigen Organisationseigentümern gehören."
+"%(count)d Organisationsbenutzer können nicht gelöscht werden, da sie einigen "
+"Organisationseigentümern gehören."
 
 #: admin.py:535
 msgid "Internal"
@@ -139,11 +141,11 @@ msgstr ""
 
 #: api/permissions.py:49
 msgid ""
-"View's permission_classes not implemented correctly. Please use one of "
-"the child classes: IsOrganizationMember, IsOrganizationManager or "
+"View's permission_classes not implemented correctly.Please use one of the "
+"child classes: IsOrganizationMember, IsOrganizationManager or "
 "IsOrganizationOwner."
 msgstr ""
-"permission_classes der View wurde nicht korrekt implementiert. Bitte "
+"permission_classes der View wurden nicht korrekt implementiert. Bitte "
 "verwenden Sie eine der Unterklassen: IsOrganizationMember, "
 "IsOrganizationManager oder IsOrganizationOwner."
 
@@ -368,7 +370,7 @@ msgstr ""
 msgid "Your password has expired, please update your password."
 msgstr "Ihr Passwort ist abgelaufen, bitte aktualisieren Sie Ihr Passwort."
 
-#: mixins.py:31
+#: mixins.py:32
 #, python-brace-format
 msgid ""
 "Please ensure that the organization of this {object_label} and the "
@@ -377,24 +379,22 @@ msgstr ""
 "Bitte stellen Sie sicher, dass die Organisation dieses {object_label} mit "
 "der Organisation des zugehörigen {related_object_label} übereinstimmt."
 
-#: mixins.py:63
-msgid "is"
-msgstr "ist"
-
-#: mixins.py:63
-msgid "are"
-msgstr "sind"
-
 #: mixins.py:65
 #, python-brace-format
 msgid ""
 "The organization of this {object_label} cannot be changed because {count} "
-"{related_object_label} {verb} still related to it"
-msgstr ""
+"{related_object_label} is still related to it"
+msgid_plural ""
+"The organization of this {object_label} cannot be changed because {count} "
+"{related_object_label} are still related to it"
+msgstr[0] ""
 "Die Organisation dieses {object_label} kann nicht geändert werden, da "
-"{count} {related_object_label} {verb} noch damit verknüpft sind"
+"{count} {related_object_label} noch damit verknüpft ist"
+msgstr[1] ""
+"Die Organisation dieses {object_label} kann nicht geändert werden, da "
+"{count} {related_object_label} noch damit verknüpft sind"
 
-#: mixins.py:87 multitenancy.py:150
+#: mixins.py:88 multitenancy.py:150
 msgid "organization"
 msgstr "Organisation"
 
