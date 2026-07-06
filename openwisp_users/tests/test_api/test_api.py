@@ -11,6 +11,7 @@ from swapper import load_model
 
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
+from ...api.serializers import OrganizationUserSerializer
 from ..utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -29,6 +30,11 @@ class TestUsersApi(
             username="administrator", password="admin", email="test@test.org"
         )
         self.client.force_login(user)
+
+    def test_organization_user_is_admin_label(self):
+        serializer = OrganizationUserSerializer()
+        self.assertEqual(list(serializer.fields), ["organization", "is_admin"])
+        self.assertEqual(serializer.fields["is_admin"].label, "Organization manager")
 
     # Tests for Organization Model API endpoints
     def test_organization_list_api(self):

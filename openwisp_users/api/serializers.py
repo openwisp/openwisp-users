@@ -189,8 +189,8 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganizationUser
         fields = (
-            "is_admin",
             "organization",
+            "is_admin",
         )
 
     def to_internal_value(self, data):
