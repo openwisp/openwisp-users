@@ -108,6 +108,7 @@ class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
     formset = RequiredInlineFormSet
     view_on_site = False
+    fields = ("organization", "is_admin")
     autocomplete_fields = ("organization",)
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -593,6 +594,7 @@ class OrganizationUserAdmin(
 ):
     view_on_site = False
     actions = ["delete_selected_overridden"]
+    fields = ("user", "organization", "is_admin")
     search_fields = ["user__username", "organization__name"]
 
     def get_readonly_fields(self, request, obj=None):

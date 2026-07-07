@@ -523,6 +523,25 @@ class TestUsersAdmin(
         )
         self.assertNotContains(response, "viewsitelink")
 
+    def test_organization_user_is_admin_label(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        org = self._create_org()
+        ou = self._create_org_user(organization=org, user=admin)
+        response = self.client.get(
+            reverse(f"admin:{self.app_label}_organizationuser_change", args=[ou.pk])
+        )
+        self.assertContains(
+            response,
+            '<label class="vCheckboxLabel" for="id_is_admin">'
+            "Organization manager</label>",
+        )
+        content = response.content.decode()
+        self.assertLess(
+            content.index('class="form-row field-organization"'),
+            content.index('class="form-row field-is_admin"'),
+        )
+
     def test_admin_change_user_is_superuser_editable(self):
         admin = self._create_admin()
         self.client.force_login(admin)
@@ -712,7 +731,7 @@ class TestUsersAdmin(
         self.assertNotContains(
             response,
             '<input type="checkbox" name="is_admin" id="id_is_admin">'
-            '<label class="vCheckboxLabel" for="id_is_admin">Is admin'
+            '<label class="vCheckboxLabel" for="id_is_admin">Organization manager'
             "</label>",
         )
         response = self.client.get(
