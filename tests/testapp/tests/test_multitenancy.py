@@ -67,3 +67,31 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             select_widget=True,
             administrator=True,
         )
+
+    def test_shelf_disabled_organization_admin_guard(self):
+        org = self._get_org()
+        shelf = self._create_shelf(name="disable-guard-shelf", organization=org)
+        self.client.force_login(self._get_admin())
+        org.is_active = False
+        org.save()
+        change_path = reverse("admin:testapp_shelf_change", args=[shelf.pk])
+        delete_path = reverse("admin:testapp_shelf_delete", args=[shelf.pk])
+
+        with self.subTest("change blocked for superuser"):
+            # has_view_permission is untouched, so the read-only form
+            # still renders with a 200; has_change_permission is checked
+            # before form validation on POST, so it 403s regardless of
+            # what other field values are (or aren't) submitted
+            r = self.client.get(change_path)
+            self.assertEqual(r.status_code, 200)
+            r = self.client.post(
+                change_path, {"name": "renamed-shelf", "organization": str(org.pk)}
+            )
+            self.assertEqual(r.status_code, 403)
+            shelf.refresh_from_db()
+            self.assertEqual(shelf.name, "disable-guard-shelf")
+
+        with self.subTest("delete still allowed"):
+            r = self.client.post(delete_path, {"post": "yes"}, follow=True)
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(self.shelf_model.objects.filter(pk=shelf.pk).count(), 0)

@@ -20,6 +20,9 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
+    # opt-out hook: set to False on subclasses that should allow writes
+    # to objects belonging to a disabled organization
+    disabled_organization_write_protection = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,6 +61,19 @@ class MultitenantAdminMixin(object):
             qsarg = "{0}__organization__in".format(self.multitenant_parent)
             return qs.filter(**{qsarg: user.organizations_managed})
 
+    def has_change_permission(self, request, obj=None):
+        """
+        Objects belonging to a disabled organization stay readable and
+        deletable, but cannot be changed, regardless of the user being a
+        superuser. Subclasses can opt out with
+        ``disabled_organization_write_protection = False``.
+        """
+        if self.disabled_organization_write_protection and obj is not None:
+            organization = getattr(obj, "organization", None)
+            if organization is not None and not organization.is_active:
+                return False
+        return super().has_change_permission(request, obj)
+
     def _edit_form(self, request, form):
         """
         Modifies the form querysets as follows;
@@ -67,10 +83,14 @@ class MultitenantAdminMixin(object):
               or shared relations
             * do not allow organization field to be empty (shared org)
         else show everything
+        Organization choices always exclude disabled organizations,
+        superusers included.
         """
         fields = form.base_fields
         user = request.user
         org_field = fields.get("organization")
+        if org_field:
+            org_field.queryset = org_field.queryset.filter(is_active=True)
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:

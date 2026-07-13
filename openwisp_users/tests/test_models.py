@@ -410,6 +410,93 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertIsInstance(org_user, OrganizationUser)
         self.assertTrue(org_user.is_admin)
 
+    def test_add_user_disabled_organization(self):
+        org = self._create_org(name="disabled-org", is_active=False)
+        user = self._create_user()
+        with self.assertRaisesMessage(
+            ValidationError, "Cannot add users to a disabled organization."
+        ):
+            org.add_user(user)
+        self.assertEqual(org.organization_users.count(), 0)
+
+    def test_organization_user_clean_disabled_organization(self):
+        with self.subTest("add a new membership to a disabled organization"):
+            org = self._create_org(name="disabled-org", is_active=False)
+            user = self._create_user()
+            org_user = OrganizationUser(organization=org, user=user)
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot add users to a disabled organization."
+            ):
+                org_user.full_clean()
+
+        with self.subTest("modify a membership after its organization is disabled"):
+            org = self._create_org(name="test-org-disable-change")
+            user = self._create_user(username="user2", email="user2@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.is_admin = True
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+            # deleting the row must still work
+            org_user.delete()
+            self.assertEqual(OrganizationUser.objects.filter(pk=org_user.pk).count(), 0)
+
+        with self.subTest("move an existing membership to a disabled organization"):
+            active_org = self._create_org(name="active-org")
+            disabled_org = self._create_org(name="disabled-org-2", is_active=False)
+            user = self._create_user(username="user3", email="user3@example.com")
+            org_user = self._create_org_user(organization=active_org, user=user)
+            org_user.organization = disabled_org
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+
+    def test_organization_owner_clean_disabled_organization(self):
+        with self.subTest("assign an owner to a disabled organization"):
+            org = self._create_org(name="disabled-org-owner")
+            user = self._create_user()
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_owner = OrganizationOwner(organization=org, organization_user=org_user)
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot assign an owner to a disabled organization."
+            ):
+                org_owner.full_clean()
+
+        with self.subTest("unassign an owner after its organization is disabled"):
+            org = self._create_org(name="test-org-owner-delete")
+            user = self._create_user(username="user4", email="user4@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
+            )
+            org.is_active = False
+            org.save()
+            org_owner.delete()
+            self.assertEqual(
+                OrganizationOwner.objects.filter(pk=org_owner.pk).count(), 0
+            )
+
+    def test_create_organization_owner_signal_defends_bypassed_validation(self):
+        # Django never runs full_clean() automatically on save(), so this
+        # models a write that bypasses validation (migration, fixture,
+        # shell); the signal must not crash.
+        org = self._create_org(name="disabled-org-signal", is_active=False)
+        user = self._create_user()
+        # Bypassing validation by creating an OrganizationUser directly,
+        # without calling full_clean() to test signal receiver.
+        OrganizationUser.objects.create(organization=org, user=user, is_admin=True)
+        self.assertEqual(
+            OrganizationOwner.objects.filter(organization=org).exists(), False
+        )
+
     def test_has_password_expired(self):
         staff_user = self._create_operator()
         end_user = self._create_user()

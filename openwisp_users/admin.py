@@ -98,7 +98,15 @@ class OrganizationOwnerInline(admin.StackedInline):
     extra = 0
     autocomplete_fields = ("organization_user",)
 
+    def has_add_permission(self, request, obj=None):
+        # obj is the parent Organization here
+        if obj is not None and not obj.is_active:
+            return False
+        return super().has_add_permission(request, obj)
+
     def has_change_permission(self, request, obj=None):
+        if obj is not None and not obj.is_active:
+            return False
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
             return False
         return super().has_change_permission(request, obj)
@@ -113,17 +121,18 @@ class OrganizationUserInline(admin.StackedInline):
 
     def get_formset(self, request, obj=None, **kwargs):
         """
-        In form dropdowns, display only organizations
-        in which operator `is_admin` and for superusers
-        display all organizations
+        In form dropdowns, display only active organizations;
+        non-superusers additionally only see organizations
+        in which they are `is_admin`.
         """
         formset = super().get_formset(request, obj=obj, **kwargs)
+        org_field = formset.form.base_fields["organization"]
+        org_field.queryset = org_field.queryset.filter(is_active=True)
         if request.user.is_superuser:
             return formset
-        if not request.user.is_superuser:
-            formset.form.base_fields["organization"].queryset = (
-                Organization.objects.filter(pk__in=request.user.organizations_managed)
-            )
+        org_field.queryset = org_field.queryset.filter(
+            pk__in=request.user.organizations_managed
+        )
         return formset
 
     def get_extra(self, request, obj=None, **kwargs):
@@ -582,6 +591,29 @@ class OrganizationAdmin(
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False
         return super().has_change_permission(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        """
+        A disabled organization can only be re-enabled: every other
+        field becomes readonly (owner unassignment is still possible
+        via the inline's delete action, which does not go through here).
+        """
+        fields = super().get_readonly_fields(request, obj)
+        if obj and not obj.is_active:
+            editable_fields = [
+                f.name
+                for f in self.model._meta.local_fields
+                if f.editable and f.name != "is_active"
+            ]
+            fields = list(fields) + [f for f in editable_fields if f not in fields]
+        return fields
+
+    def get_prepopulated_fields(self, request, obj=None):
+        # prepopulated_fields cannot reference a field that is also
+        # readonly, which is the case for "slug" on a disabled organization
+        if obj and not obj.is_active:
+            return {}
+        return super().get_prepopulated_fields(request, obj)
 
     class Media(CopyableFieldsAdmin.Media):
         css = {"all": ("openwisp-users/css/admin.css",)}

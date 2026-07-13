@@ -26,6 +26,7 @@ from .. import settings as app_settings
 from ..admin import OrganizationAdmin, OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
 from ..multitenancy import MultitenantAdminMixin
+from ..widgets import OrganizationAutocompleteSelect
 from .utils import (
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
@@ -1864,6 +1865,176 @@ class TestUsersAdmin(
             self.assertEqual(r.status_code, 200)
             self.assertContains(r, '-DELETE">Delete')
 
+    def test_disabled_organization_change_form(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        org = self._create_org(name="disabled-admin-org", is_active=False)
+        path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
+
+        with self.subTest("Fields readonly except is_active, no 500"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(
+                response, f'<input type="text" name="name" value="{org.name}"'
+            )
+            self.assertContains(response, org.name)
+            self.assertContains(response, 'name="is_active"')
+
+        with self.subTest("re-enabling works"):
+            params = {
+                "is_active": "on",
+                "owner-TOTAL_FORMS": "0",
+                "owner-INITIAL_FORMS": "0",
+                "owner-MIN_NUM_FORMS": "0",
+                "owner-MAX_NUM_FORMS": "1",
+            }
+            params.update(self._get_org_edit_form_inline_params(admin, org))
+            response = self.client.post(path, params, follow=True)
+            self.assertNotContains(response, "Please correct the error below.")
+            org.refresh_from_db()
+            self.assertEqual(org.is_active, True)
+
+    def test_organization_owner_inline_disabled_organization(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+
+        with self.subTest("Don't allow adding new owners"):
+            org = self._create_org(name="disabled-owner-add", is_active=False)
+            user = self._create_user(username="dis-add", email="dis-add@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
+            params = {
+                "is_active": "",
+                "owner-TOTAL_FORMS": "1",
+                "owner-INITIAL_FORMS": "0",
+                "owner-MIN_NUM_FORMS": "0",
+                "owner-MAX_NUM_FORMS": "1",
+                "owner-0-organization_user": f"{org_user.pk}",
+                "owner-0-organization": f"{org.pk}",
+            }
+            params.update(self._get_org_edit_form_inline_params(admin, org))
+            self.client.post(path, params, follow=True)
+            self.assertEqual(
+                OrganizationOwner.objects.filter(organization=org).count(), 0
+            )
+
+        with self.subTest("Don't allow changing existing owners"):
+            org = self._create_org(name="disabled-owner-change")
+            user1 = self._create_user(
+                username="dis-change1", email="dis-change1@example.com"
+            )
+            user2 = self._create_user(
+                username="dis-change2", email="dis-change2@example.com"
+            )
+            org_user1 = self._create_org_user(
+                organization=org, user=user1, is_admin=True
+            )
+            org_user2 = self._create_org_user(organization=org, user=user2)
+            org_owner = OrganizationOwner.objects.get(organization_user=org_user1)
+            # Disable organization
+            org.is_active = False
+            org.save()
+            path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
+            params = {
+                "is_active": "",
+                "owner-TOTAL_FORMS": "1",
+                "owner-INITIAL_FORMS": "1",
+                "owner-MIN_NUM_FORMS": "0",
+                "owner-MAX_NUM_FORMS": "1",
+                "owner-0-organization_user": f"{org_user2.pk}",
+                "owner-0-organization": f"{org.pk}",
+                "owner-0-id": f"{org_owner.pk}",
+            }
+            params.update(self._get_org_edit_form_inline_params(admin, org))
+            self.client.post(path, params, follow=True)
+            org_owner.refresh_from_db()
+            self.assertEqual(org_owner.organization_user, org_user1)
+
+        with self.subTest(
+            "Allow deleting organization owner even if organization is disabled"
+        ):
+            path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
+            params = {
+                "is_active": "",
+                "owner-TOTAL_FORMS": "1",
+                "owner-INITIAL_FORMS": "1",
+                "owner-MIN_NUM_FORMS": "0",
+                "owner-MAX_NUM_FORMS": "1",
+                "owner-0-organization_user": f"{org_user1.pk}",
+                "owner-0-organization": f"{org.pk}",
+                "owner-0-id": f"{org_owner.pk}",
+                "owner-0-DELETE": "on",
+            }
+            params.update(self._get_org_edit_form_inline_params(admin, org))
+            self.client.post(path, params, follow=True)
+            self.assertEqual(
+                OrganizationOwner.objects.filter(pk=org_owner.pk).count(), 0
+            )
+
+    def test_organization_user_admin_disabled_organization(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        org = self._create_org(name="disabled-orguser-admin")
+        user = self._create_user(
+            username="dis-orguser", email="dis-orguser@example.com"
+        )
+        org_user = self._create_org_user(organization=org, user=user)
+        org.is_active = False
+        org.save()
+        change_path = reverse(
+            f"admin:{self.app_label}_organizationuser_change", args=[org_user.pk]
+        )
+
+        with self.subTest("Change blocked for superuser"):
+            # has_view_permission is untouched, so the read-only form
+            # still renders with a 200, POSTing a change is what must
+            # be rejected
+            response = self.client.get(change_path)
+            self.assertEqual(response.status_code, 200)
+            response = self.client.post(
+                change_path,
+                {
+                    "user": str(user.pk),
+                    "organization": str(org.pk),
+                    "is_admin": "on",
+                },
+                follow=True,
+            )
+            org_user.refresh_from_db()
+            self.assertFalse(org_user.is_admin)
+
+        with self.subTest("Delete still allowed"):
+            delete_path = reverse(
+                f"admin:{self.app_label}_organizationuser_delete", args=[org_user.pk]
+            )
+            response = self.client.post(delete_path, {"post": "yes"}, follow=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(OrganizationUser.objects.filter(pk=org_user.pk).count(), 0)
+
+    def test_user_admin_inline_disabled_organization(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        org = self._create_org(name="disabled-user-inline", is_active=False)
+        params = dict(
+            username="disableduserinline",
+            email="disableduserinline@example.com",
+            password1="tester",
+            password2="tester",
+        )
+        params.update(self.add_user_inline_params)
+        params.update(self._additional_params_add())
+        params.update(
+            {
+                f"{self.app_label}_organizationuser-TOTAL_FORMS": 1,
+                f"{self.app_label}_organizationuser-0-organization": str(org.pk),
+            }
+        )
+        res = self.client.post(
+            reverse(f"admin:{self.app_label}_user_add"), params, follow=True
+        )
+        self.assertContains(res, "errors field-organization")
+        self.assertEqual(User.objects.filter(username="disableduserinline").count(), 0)
+
     def test_delete_org_user(self):
         self.client.force_login(self._get_admin())
         user1 = self._create_user(username="user1", email="user1@email.com")
@@ -2443,6 +2614,28 @@ class TestMultitenantAdmin(TestMultitenantAdminMixin, TestCase):
                 assert option["id"] not in Organization.objects.exclude(
                     pk__in=user.organizations_managed
                 )
+
+        data["org1"].is_active = False
+        data["org1"].save()
+
+        with self.subTest("widget path excludes disabled org for superadmin"):
+            user = User.objects.filter(is_superuser=True, is_staff=True).first()
+            self.client.force_login(user)
+            response = self.client.get(url, {**payload, "exclude_disabled": "true"})
+            self.assertEqual(response.status_code, 200)
+            ids = [option["id"] for option in response.json()["results"]]
+            self.assertNotIn(str(data["org1"].pk), ids)
+
+        with self.subTest("list filter path keeps disabled org for superadmin"):
+            response = self.client.get(url, payload)
+            self.assertEqual(response.status_code, 200)
+            ids = [option["id"] for option in response.json()["results"]]
+            self.assertIn(str(data["org1"].pk), ids)
+
+    def test_organization_autocomplete_widget_url_excludes_disabled(self):
+        field = OrganizationUser._meta.get_field("organization")
+        widget = OrganizationAutocompleteSelect(field, django_admin.site)
+        self.assertIn("exclude_disabled=true", widget.get_url())
 
 
 class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):

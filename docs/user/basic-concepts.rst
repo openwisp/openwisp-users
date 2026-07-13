@@ -149,6 +149,42 @@ instance of the platform.
     `django-organizations
     <https://github.com/bennylope/django-organizations>`_ third-party app.
 
+.. _disabling_an_organization:
+
+Disabling an Organization
+-------------------------
+
+Superusers and managers of the organization can disable it, by unchecking
+its **Is active** flag on the "Change organization" page or via the REST
+API (subject to the usual permission requirements for editing an
+organization).
+
+Disabling an organization does not delete anything: all of its data,
+including users, memberships, and related objects, remains fully
+**readable** and **deletable**. What changes is:
+
+- **No new object can be created for a disabled organization**, and
+  **existing objects belonging to it cannot be modified**, superusers
+  included. This applies to the organization's own record too: once
+  disabled, only its **Is active** flag can be changed (to re-enable it)
+  or its owner unassigned; everything else is locked until it is
+  re-enabled.
+- Deleting objects, including the organization itself, is always allowed,
+  so cleanup is never blocked.
+- The organization stops appearing in **organization selection widgets**
+  (e.g. when creating a new object), so it can no longer be picked for new
+  data. It still appears in admin **list filters**, so its existing data
+  remains easy to find for auditing purposes.
+- Re-enabling a disabled organization is allowed for the same users who
+  can disable it: superusers and managers of that organization.
+
+.. note::
+
+    In the REST API, attempting to update an object belonging to a
+    disabled organization returns an HTTP 400 or 403 response with a clear
+    error message, instead of failing silently or being blocked without
+    explanation.
+
 Organization Membership and Roles
 ---------------------------------
 

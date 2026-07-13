@@ -1,6 +1,7 @@
 import swapper
 from django.core.exceptions import ValidationError
 from django.db.models import ForeignKey, ManyToManyField, Q
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 from django_filters.filters import QuerySetRequestMixin as BaseQuerySetRequestMixin
 from rest_framework.authentication import SessionAuthentication
@@ -8,7 +9,11 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 
 from .authentication import BearerAuthentication
-from .permissions import DjangoModelPermissions, IsOrganizationManager
+from .permissions import (
+    DisabledOrgReadOnly,
+    DjangoModelPermissions,
+    IsOrganizationManager,
+)
 
 Organization = swapper.load_model("openwisp_users", "Organization")
 
@@ -159,18 +164,27 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def filter_fields(self):
         user = self.context["request"].user
-        # superuser can see everything
-        if user.is_superuser or user.is_anonymous:
-            return
-        # non superusers can see only items of organizations they're related to
-        organization_filter = getattr(user, self._user_attr)
+        # superuser can see everything, except disabled organizations
+        superuser = user.is_superuser or user.is_anonymous
+        if not superuser:
+            # non superusers can see only items of organizations
+            # they're related to
+            organization_filter = getattr(user, self._user_attr)
         for field in self.fields:
             if field == "organization" and not self.fields[field].read_only:
                 # queryset attribute will not be present if set to read_only
-                self.fields[field].allow_null = False
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
+                # disabled organizations are excluded for everyone, superusers
+                # included, since they can only be re-enabled, not written to
+                queryset = self.fields[field].queryset.filter(is_active=True)
+                self.fields[field].error_messages["does_not_exist"] = _(
+                    'Organization with pk "{pk_value}" does not exist or is disabled.'
                 )
+                if not superuser:
+                    self.fields[field].allow_null = False
+                    queryset = queryset.filter(pk__in=organization_filter)
+                self.fields[field].queryset = queryset
+                continue
+            if superuser:
                 continue
             conditions = Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
@@ -308,4 +322,5 @@ class ProtectedAPIMixin(object):
     permission_classes = (
         IsOrganizationManager,
         DjangoModelPermissions,
+        DisabledOrgReadOnly,
     )

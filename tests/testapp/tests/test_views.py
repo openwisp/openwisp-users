@@ -64,6 +64,25 @@ class TestAutocompleteJsonView(TestMultitenantAdminMixin, TestCase):
             else:
                 self.fail("Null option not found in response")
 
+    def test_autocomplete_view_excludes_disabled_organization(self):
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2", is_active=False)
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        path = self._get_autocomplete_view_path("testapp", "book", "organization")
+
+        with self.subTest("widget path excludes disabled org"):
+            response = self.client.get(path + "&exclude_disabled=true")
+            ids = [option["id"] for option in response.json()["results"]]
+            self.assertIn(str(org1.pk), ids)
+            self.assertNotIn(str(org2.pk), ids)
+
+        with self.subTest("list filter path keeps disabled org"):
+            response = self.client.get(path)
+            ids = [option["id"] for option in response.json()["results"]]
+            self.assertIn(str(org1.pk), ids)
+            self.assertIn(str(org2.pk), ids)
+
     def test_autocomplete_view_for_inline_admin(self):
         admin = self._get_admin()
         self.client.force_login(admin)
