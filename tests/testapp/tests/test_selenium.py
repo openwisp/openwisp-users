@@ -1,6 +1,7 @@
 from django.contrib.auth.models import Permission
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import Q
+from django.test import tag
 from django.urls import reverse
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,6 +16,7 @@ from .mixins import TestMultitenancyMixin
 Organization = load_model("openwisp_users", "Organization")
 
 
+@tag("selenium_tests")
 class TestOrganizationAutocompleteField(
     SeleniumTestMixin, TestMultitenancyMixin, StaticLiveServerTestCase
 ):
@@ -28,17 +30,13 @@ class TestOrganizationAutocompleteField(
     ):
         self.login(username=username, password=password)
         self.open(path)
-        self.web_driver.find_element(
-            By.CSS_SELECTOR, "#select2-id_organization-container"
-        ).click()
+        self.find_element(By.CSS_SELECTOR, "#select2-id_organization-container").click()
         WebDriverWait(self.web_driver, 2).until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, ".select2-results__option.loading-results")
             )
         )
-        options = self.web_driver.find_elements(
-            By.CSS_SELECTOR, ".select2-results__option"
-        )
+        options = self.find_elements(By.CSS_SELECTOR, ".select2-results__option")
         for option in options:
             self.assertIn(option.text, visible)
             self.assertNotIn(option.text, hidden)
@@ -47,6 +45,7 @@ class TestOrganizationAutocompleteField(
         path = reverse("admin:testapp_book_add")
         org1 = self._create_org(name="org1")
         org2 = self._create_org(name="org2")
+        disabled_org = self._create_org(name="disabled-org", is_active=False)
         administrator = self._create_administrator(
             organizations=[org1], username="tester", password="tester"
         )
@@ -61,8 +60,10 @@ class TestOrganizationAutocompleteField(
                 path=path,
                 username=self.admin_username,
                 password=self.admin_password,
-                visible=Organization.objects.values_list("name", flat=True),
-                hidden=[],
+                visible=Organization.objects.exclude(id=disabled_org.id).values_list(
+                    "name", flat=True
+                ),
+                hidden=[disabled_org.name],
             )
         self.logout()
 
@@ -76,9 +77,7 @@ class TestOrganizationAutocompleteField(
                     "name", flat=True
                 ),
             )
-            org_select = Select(
-                self.web_driver.find_element(By.CSS_SELECTOR, "#id_organization")
-            )
+            org_select = Select(self.find_element(By.CSS_SELECTOR, "#id_organization"))
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
         self.logout()
@@ -95,9 +94,7 @@ class TestOrganizationAutocompleteField(
                     id__in=[org1.id, org2.id]
                 ).values_list("name", flat=True),
             )
-            org_select = Select(
-                self.web_driver.find_element(By.CSS_SELECTOR, "#id_organization")
-            )
+            org_select = Select(self.find_element(By.CSS_SELECTOR, "#id_organization"))
             self.assertEqual(len(org_select.all_selected_options), 0)
         self.logout()
 
@@ -137,9 +134,7 @@ class TestOrganizationAutocompleteField(
                 )
                 + ["Shared systemwide (no organization)"],
             )
-            org_select = Select(
-                self.web_driver.find_element(By.CSS_SELECTOR, "#id_organization")
-            )
+            org_select = Select(self.find_element(By.CSS_SELECTOR, "#id_organization"))
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
         self.logout()

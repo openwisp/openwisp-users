@@ -18,6 +18,7 @@ Organization = load_model("openwisp_users", "Organization")
 User = get_user_model()
 Group = load_model("openwisp_users", "Group")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
+OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 
 
 class TestUsersApi(
@@ -59,7 +60,7 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(7):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
@@ -113,6 +114,28 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["name"], "test org change")
 
+    def test_patch_disabled_organization_field_without_reenabling_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"name": "test org change"}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        org1.refresh_from_db()
+        self.assertEqual(org1.name, "test org")
+
+    def test_patch_disabled_organization_reenable_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"is_active": True}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        org1.refresh_from_db()
+        self.assertTrue(org1.is_active)
+
     def test_create_organization_owner_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")
@@ -135,6 +158,50 @@ class TestUsersApi(
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["owner"], None)
+
+    def test_create_organization_owner_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"owner": {"organization_user": org1_user1.pk}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
+
+    def test_reenable_organization_with_owner_assignment_in_one_request_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {
+            "is_active": True,
+            "owner": {"organization_user": org1_user1.pk},
+        }
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
+        org1.refresh_from_db()
+        self.assertFalse(org1.is_active)
+
+    def test_remove_organization_owner_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        self._create_org_owner(organization_user=org1_user1, organization=org1)
+        self.assertEqual(OrganizationOwner.objects.count(), 1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"owner": {"organization_user": ""}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["owner"], None)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
 
     def test_organization_delete_api(self):
         org1 = self._create_org(name="test org 2")
@@ -574,6 +641,20 @@ class TestUsersApi(
         r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
 
+    def test_create_user_organization_users_disabled_org_api(self):
+        path = reverse("users:user_list")
+        org1 = self._create_org(name="disabled-org", is_active=False)
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "password",
+            "organization_users": {"is_admin": False, "organization": org1.pk},
+        }
+        r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(User.objects.filter(username="tester").count(), 0)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
+
     def test_post_with_no_email(self):
         path = reverse("users:user_list")
         data = {"username": "", "email": "", "password": ""}
@@ -627,6 +708,15 @@ class TestUsersApi(
         self.assertEqual(OrganizationUser.objects.count(), 1)
         self.assertEqual(r.data["organization_users"][0]["organization"], org1.pk)
 
+    def test_patch_user_organization_users_disabled_org_api(self):
+        user = self._get_user()
+        org1 = self._create_org(name="disabled-org", is_active=False)
+        path = reverse("users:user_detail", args=(user.pk,))
+        data = {"organization_users": {"is_admin": False, "organization": org1.pk}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
+
     def test_patch_user_detail_api(self):
         user = self._get_user()
         path = reverse("users:user_detail", args=(user.pk,))
@@ -656,6 +746,20 @@ class TestUsersApi(
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.data["organization_users"][0]["is_admin"])
+
+    def test_toggle_org_admin_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=False)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:user_detail", args=(user1.pk,))
+        data = {"organization_users": [{"is_admin": True, "organization": org1.pk}]}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(
+            OrganizationUser.objects.get(user=user1, organization=org1).is_admin
+        )
 
     def test_assign_user_to_groups_api(self):
         user = self._get_user()
@@ -732,7 +836,7 @@ class TestUsersApi(
     def test_organization_slug_post_custom_validation_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(7):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)

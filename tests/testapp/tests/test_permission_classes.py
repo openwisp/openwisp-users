@@ -4,6 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 from swapper import load_model
 
+from openwisp_users.api.permissions import DisabledOrgReadOnly
 from openwisp_users.api.throttling import AuthRateThrottle
 
 from ..models import Template
@@ -361,3 +362,102 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
                 "option": 200,
             },
         )
+
+    def _assert_disabled_org_blocks_write_but_allows_read(
+        self, template, auth, detail_url
+    ):
+        for method in ("put", "patch"):
+            with self.subTest(f"{method.upper()} blocked for superuser"):
+                response = getattr(self.client, method)(
+                    detail_url,
+                    data={"name": "renamed"},
+                    content_type="application/json",
+                    **auth,
+                )
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(
+                    str(response.data["detail"]), str(DisabledOrgReadOnly.message)
+                )
+                template.refresh_from_db()
+                self.assertEqual(template.name, "test-template")
+
+        with self.subTest("GET allowed"):
+            response = self.client.get(detail_url, **auth)
+            self.assertEqual(response.status_code, 200)
+
+    def test_bare_protected_api_mixin_view_blocks_disabled_org_write(self):
+        """
+        ProtectedTemplateDetailView declares no permission_classes of its
+        own; it relies entirely on inheriting ProtectedAPIMixin. Proves the
+        guard applies without a downstream app having to re-declare it.
+        """
+        org = self._get_org()
+        template = self._create_template(organization=org)
+        org.is_active = False
+        org.save()
+        admin = self._get_admin()
+        token = self._obtain_auth_token(username=admin)
+        auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
+        detail_url = reverse("test_protected_template_detail", args=[template.pk])
+        self._assert_disabled_org_blocks_write_but_allows_read(
+            template, auth, detail_url
+        )
+
+    def test_disabled_org_read_only_permission(self):
+        org = self._get_org()
+        template = self._create_template(organization=org)
+        org.is_active = False
+        org.save()
+        admin = self._get_admin()
+        token = self._obtain_auth_token(username=admin)
+        auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
+        detail_url = reverse("test_template_detail", args=[template.pk])
+        allowed_url = reverse(
+            "test_template_disabled_org_write_allowed_detail", args=[template.pk]
+        )
+        self._assert_disabled_org_blocks_write_but_allows_read(
+            template, auth, detail_url
+        )
+
+        with self.subTest("opt-out view allows write"):
+            response = self.client.put(
+                allowed_url,
+                data={"name": "renamed"},
+                content_type="application/json",
+                **auth,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest("shared object unaffected"):
+            shared_template = self._create_template(
+                name="shared-template", organization=None
+            )
+            shared_url = reverse("test_template_detail", args=[shared_template.pk])
+            response = self.client.put(
+                shared_url,
+                data={"name": "shared-renamed"},
+                content_type="application/json",
+                **auth,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest("DELETE allowed"):
+            response = self.client.delete(detail_url, **auth)
+            self.assertEqual(response.status_code, 204)
+
+    def test_organization_field_excludes_disabled_org(self):
+        disabled_org = self._create_org(name="disabled-org", is_active=False)
+        admin = self._get_admin()
+        token = self._obtain_auth_token(username=admin)
+        auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.post(
+            reverse("test_template_list"),
+            data={"name": "t1", "organization": str(disabled_org.pk)},
+            content_type="application/json",
+            **auth,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "does not exist or is disabled", str(response.data["organization"][0])
+        )
+        self.assertEqual(self.template_model.objects.filter(name="t1").count(), 0)

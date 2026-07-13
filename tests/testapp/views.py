@@ -22,9 +22,11 @@ from openwisp_users.api.mixins import (
     FilterByParentMembership,
     FilterByParentOwned,
     FilterDjangoByOrgManaged,
+    ProtectedAPIMixin,
 )
 from openwisp_users.api.permissions import (
     BaseOrganizationPermission,
+    DisabledOrgReadOnly,
     DjangoModelPermissions,
     IsOrganizationManager,
     IsOrganizationMember,
@@ -211,6 +213,7 @@ class TemplateListCreateView(FilterByOrganizationManaged, ListCreateAPIView):
     permission_classes = (
         IsOrganizationMember,
         DjangoModelPermissions,
+        DisabledOrgReadOnly,
     )
     queryset = Template.objects.all()
 
@@ -221,7 +224,25 @@ class TemplateDetailView(FilterByOrganizationManaged, RetrieveUpdateDestroyAPIVi
     permission_classes = (
         IsOrganizationMember,
         DjangoModelPermissions,
+        DisabledOrgReadOnly,
     )
+    queryset = Template.objects.all()
+
+
+class TemplateDisabledOrgWriteAllowedDetailView(TemplateDetailView):
+    allow_disabled_organization_writes = True
+
+
+class ProtectedTemplateDetailView(
+    ProtectedAPIMixin, FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView
+):
+    """
+    Uses ProtectedAPIMixin directly, with no permission_classes/
+    authentication_classes override, to prove the disabled-organization
+    guard is inherited automatically rather than manually re-declared.
+    """
+
+    serializer_class = TemplateSerializer
     queryset = Template.objects.all()
 
 
@@ -285,6 +306,10 @@ shelf_list_manager_view = ShelfListManagerView.as_view()
 shelf_list_owner_view = ShelfListOwnerView.as_view()
 template_list = TemplateListCreateView.as_view()
 template_detail = TemplateDetailView.as_view()
+template_disabled_org_write_allowed_detail = (
+    TemplateDisabledOrgWriteAllowedDetailView.as_view()
+)
+protected_template_detail = ProtectedTemplateDetailView.as_view()
 library_list = LibraryListCreateView.as_view()
 library_detail = LibraryDetailView.as_view()
 book_nested_shelf = BookNestedShelfListCreateView.as_view()

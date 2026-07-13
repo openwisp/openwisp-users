@@ -469,14 +469,14 @@ class BaseOrganization(models.Model):
         automatically via a signal receiver.
         Without this change, the add_user method would throw IntegrityError.
         """
-
         if not self.users.all().exists():
             is_admin = True
 
         OrganizationUser = load_model("openwisp_users", "OrganizationUser")
-        return OrganizationUser.objects.create(
-            user=user, organization=self, is_admin=is_admin
-        )
+        org_user = OrganizationUser(user=user, organization=self, is_admin=is_admin)
+        org_user.full_clean()
+        org_user.save()
+        return org_user
 
 
 class BaseOrganizationUser(models.Model):
@@ -491,6 +491,14 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
+        if self.organization_id and not self.organization.is_active:
+            if self._state.adding:
+                raise ValidationError(
+                    {"organization": _("Cannot add users to a disabled organization.")}
+                )
+            raise ValidationError(
+                _("Memberships of a disabled organization cannot be modified.")
+            )
         if (
             not self._state.adding
             and self.user.is_owner(self.organization_id)
@@ -521,6 +529,10 @@ class BaseOrganizationOwner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def clean(self):
+        if self.organization_id and not self.organization.is_active:
+            raise ValidationError(
+                _("Cannot assign an owner to a disabled organization.")
+            )
         if self.organization_user.organization.pk != self.organization.pk:
             raise ValidationError(
                 {
