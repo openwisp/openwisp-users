@@ -12,6 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils.module_loading import import_string
@@ -29,6 +30,19 @@ User = get_user_model()
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 logger = logging.getLogger(__name__)
 OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+
+
+def _full_clean_or_raise(instance):
+    """
+    Django's ValidationError raised by full_clean() is not caught by DRF
+    unless it happens inside a serializer's validate(); these call sites
+    call full_clean() from create()/update(), so it must be converted
+    manually or it propagates as an unhandled 500.
+    """
+    try:
+        instance.full_clean()
+    except DjangoValidationError as e:
+        raise serializers.ValidationError(serializers.as_serializer_error(e))
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
@@ -77,7 +91,7 @@ class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
             queryset = OrganizationUser.objects.filter(
                 Q(organization__in=user.organizations_managed)
             )
-        return queryset.select_related()
+        return queryset.filter(organization__is_active=True).select_related()
 
 
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
@@ -107,6 +121,26 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
             "modified",
         )
 
+    def validate(self, data):
+        if (
+            self.instance
+            and not self.instance.is_active
+            and data.get("is_active") is not True
+        ):
+            owner_data = data.get("owner") or {}
+            is_pure_owner_unassignment = (
+                set(data.keys()) <= {"owner"}
+                and owner_data.get("organization_user") is None
+            )
+            if not is_pure_owner_unassignment:
+                raise serializers.ValidationError(
+                    _(
+                        "This organization is disabled: only re-enabling it, "
+                        "unassigning its owner, or deleting it is allowed."
+                    )
+                )
+        return super().validate(data)
+
     def update(self, instance, validated_data):
         if validated_data.get("owner"):
             org_owner = validated_data.pop("owner")
@@ -121,7 +155,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                     org_owner = OrganizationOwner.objects.create(
                         organization=instance, organization_user=org_user
                     )
-                    org_owner.full_clean()
+                    _full_clean_or_raise(org_owner)
                     org_owner.save()
                 return super().update(instance, validated_data)
 
@@ -138,7 +172,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                         org_owner = OrganizationOwner.objects.create(
                             organization=instance, organization_user=org_user
                         )
-                        org_owner.full_clean()
+                        _full_clean_or_raise(org_owner)
                         org_owner.save()
 
         instance = self.instance or self.Meta.model(**validated_data)
@@ -188,9 +222,9 @@ class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
     def get_queryset(self):
         user = self.context["request"].user
         if user.is_superuser:
-            queryset = Organization.objects.all()
+            queryset = Organization.active.all()
         else:
-            queryset = Organization.objects.filter(pk__in=user.organizations_managed)
+            queryset = Organization.active.filter(pk__in=user.organizations_managed)
         return queryset
 
 
@@ -293,7 +327,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             if org_user_data.get("organization") is not None:
                 org_user_data["user"] = instance
                 org_user_instance = OrganizationUser(**org_user_data)
-                org_user_instance.full_clean()
+                _full_clean_or_raise(org_user_instance)
                 org_user_instance.save()
 
         if instance.email:
@@ -365,20 +399,16 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             except OrganizationUser.DoesNotExist:
                 pass
             if org_user:
-                if (
-                    str(org_user_data["organization"].id)
-                    in instance.organizations_dict.keys()
-                ):
-                    if org_user.is_admin != org_user_data.get("is_admin"):
-                        org_user.is_admin = org_user_data["is_admin"]
-                        org_user.full_clean()
-                        org_user.save()
-                    else:
-                        org_user.delete()
+                if org_user.is_admin != org_user_data.get("is_admin"):
+                    org_user.is_admin = org_user_data["is_admin"]
+                    _full_clean_or_raise(org_user)
+                    org_user.save()
+                else:
+                    org_user.delete()
             else:
                 org_user_data["user"] = instance
                 org_user_instance = OrganizationUser(**org_user_data)
-                org_user_instance.full_clean()
+                _full_clean_or_raise(org_user_instance)
                 org_user_instance.save()
 
         return super().update(instance, validated_data)
