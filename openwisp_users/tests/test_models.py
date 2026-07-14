@@ -457,6 +457,17 @@ class TestUsers(TestOrganizationMixin, TestCase):
             ):
                 org_user.full_clean()
 
+        with self.subTest("unchanged membership of a disabled organization passes"):
+            org = self._create_org(name="test-org-noop")
+            user = self._create_user(username="user5", email="user5@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            # a no-op full_clean() (nothing changed) must not raise, otherwise
+            # Django admin cannot save a user who has a disabled-org membership
+            org_user.full_clean()
+
     def test_organization_owner_clean_disabled_organization(self):
         with self.subTest("assign an owner to a disabled organization"):
             org = self._create_org(name="disabled-org-owner")
@@ -483,6 +494,20 @@ class TestUsers(TestOrganizationMixin, TestCase):
             self.assertEqual(
                 OrganizationOwner.objects.filter(pk=org_owner.pk).count(), 0
             )
+
+        with self.subTest("unchanged owner of a disabled organization passes"):
+            org = self._create_org(name="test-org-owner-noop")
+            user = self._create_user(username="user6", email="user6@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
+            )
+            org.is_active = False
+            org.save()
+            org_owner.refresh_from_db()
+            # disabling an organization that already has an owner must not fail
+            # when the untouched owner row is re-validated
+            org_owner.full_clean()
 
     def test_create_organization_owner_signal_defends_bypassed_validation(self):
         # Django never runs full_clean() automatically on save(), so this

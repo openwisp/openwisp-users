@@ -496,9 +496,21 @@ class BaseOrganizationUser(models.Model):
                 raise ValidationError(
                     {"organization": _("Cannot add users to a disabled organization.")}
                 )
-            raise ValidationError(
-                _("Memberships of a disabled organization cannot be modified.")
+            # Only block real modifications: Django re-runs full_clean() on
+            # untouched inline rows, so a no-op save of a user who belongs to a
+            # disabled organization must not fail.
+            db_values = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .values("organization_id", "is_admin")
+                .first()
             )
+            if db_values is None or (
+                db_values["organization_id"] != self.organization_id
+                or db_values["is_admin"] != self.is_admin
+            ):
+                raise ValidationError(
+                    _("Memberships of a disabled organization cannot be modified.")
+                )
         if (
             not self._state.adding
             and self.user.is_owner(self.organization_id)
@@ -530,9 +542,21 @@ class BaseOrganizationOwner(models.Model):
 
     def clean(self):
         if self.organization_id and not self.organization.is_active:
-            raise ValidationError(
-                _("Cannot assign an owner to a disabled organization.")
+            # Only block assigning or changing an owner: an untouched owner row
+            # is re-validated when its organization is disabled, and that must
+            # not prevent disabling the organization.
+            db_values = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .values("organization_id", "organization_user_id")
+                .first()
             )
+            if db_values is None or (
+                db_values["organization_id"] != self.organization_id
+                or db_values["organization_user_id"] != self.organization_user_id
+            ):
+                raise ValidationError(
+                    _("Cannot assign an owner to a disabled organization.")
+                )
         if self.organization_user.organization.pk != self.organization.pk:
             raise ValidationError(
                 {

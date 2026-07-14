@@ -141,6 +141,19 @@ This object-level permission class blocks updating an object that belongs
 to a :ref:`disabled organization <disabling_an_organization>`. Read (safe
 methods) and ``DELETE`` remain allowed.
 
+.. important::
+
+    ``DisabledOrgReadOnly`` guards **updates only**. It implements
+    ``has_object_permission``, which DRF does not call on ``POST``, so it
+    does **not** block *creating* a new object for a disabled
+    organization. Create protection instead relies on the organization
+    field excluding disabled organizations: use one of the
+    ``FilterSerializerByOrganization`` mixins (or a related field backed
+    by ``Organization.active``) on the serializer. A plain
+    ``ModelSerializer`` whose organization field defaults to
+    ``Organization.objects`` will happily create objects for a disabled
+    organization even under ``ProtectedAPIMixin``.
+
 A view can opt out of this guard by setting
 ``allow_disabled_organization_writes = True``:
 

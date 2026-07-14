@@ -38,6 +38,7 @@ from openwisp_utils.admin import CopyableFieldsAdmin
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
 from .utils import BaseAdmin
+from .widgets import OrganizationAutocompleteSelect
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -112,9 +113,36 @@ class OrganizationOwnerInline(admin.StackedInline):
         return super().has_change_permission(request, obj)
 
 
+class OrganizationUserInlineFormSet(RequiredInlineFormSet):
+    """
+    Renders existing memberships of a disabled organization as read-only so
+    the row survives a no-op save (the disabled organization is not part of
+    the field queryset otherwise) and its select widget shows the disabled
+    organization instead of rendering empty. Deleting the row stays possible.
+    """
+
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        instance = getattr(form, "instance", None)
+        if (
+            instance
+            and instance.pk
+            and instance.organization_id
+            and not instance.organization.is_active
+        ):
+            org_field = form.fields.get("organization")
+            if org_field is not None:
+                org_field.disabled = True
+                org_field.queryset = Organization.objects.filter(
+                    pk=instance.organization_id
+                )
+            if "is_admin" in form.fields:
+                form.fields["is_admin"].disabled = True
+
+
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
-    formset = RequiredInlineFormSet
+    formset = OrganizationUserInlineFormSet
     view_on_site = False
     fields = ("organization", "is_admin")
     autocomplete_fields = ("organization",)
@@ -134,6 +162,30 @@ class OrganizationUserInline(admin.StackedInline):
             pk__in=request.user.organizations_managed
         )
         return formset
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Route the organization picker through the ``ow-auto-filter`` endpoint
+        so disabled organizations are excluded from the dropdown for everyone,
+        superusers included (the stock ``admin:autocomplete`` endpoint does not
+        filter them). Only replaces the widget when the field is actually an
+        autocomplete field, so that disabling ``autocomplete_fields`` keeps
+        rendering a plain select.
+        """
+        if db_field.name == "organization" and db_field.name in (
+            self.get_autocomplete_fields(request)
+        ):
+            kwargs["widget"] = OrganizationAutocompleteSelect(
+                db_field, self.admin_site, using=kwargs.get("using")
+            )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def has_add_permission(self, request, obj=None):
+        # an operator who manages no active organization cannot pick one, so
+        # the add row would be unusable: hide it
+        if not request.user.is_superuser and not request.user.organizations_managed:
+            return False
+        return super().has_add_permission(request, obj)
 
     def get_extra(self, request, obj=None, **kwargs):
         if not obj:
