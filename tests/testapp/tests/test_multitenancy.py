@@ -1,8 +1,21 @@
-from django.test import TestCase
+from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from ..models import Book, Shelf
+from openwisp_users.multitenancy import MultitenantAdminMixin
+
+from ..admin import ShelfAdmin
+from ..models import Book, Library, Shelf
 from .mixins import TestMultitenancyMixin
+
+User = get_user_model()
+
+
+class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    # Library has no organization field; it is reached through its Book parent
+    multitenant_parent = "book"
 
 
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
@@ -95,3 +108,50 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             r = self.client.post(delete_path, {"post": "yes"}, follow=True)
             self.assertEqual(r.status_code, 200)
             self.assertEqual(self.shelf_model.objects.filter(pk=shelf.pk).count(), 0)
+
+    def test_multitenant_parent_disabled_organization_guard(self):
+        data = self._create_multitenancy_test_env()
+        library_admin = LibraryParentAdmin(Library, admin.site)
+        request = RequestFactory().get("/")
+        request.user = self._get_admin()
+        active_library = Library.objects.create(name="lib-active", book=data["b1"])
+        disabled_library = Library.objects.create(
+            name="lib-disabled", book=data["b3_inactive"]
+        )
+
+        with self.subTest("change allowed for object of active parent org"):
+            self.assertEqual(
+                library_admin.has_change_permission(request, active_library), True
+            )
+
+        with self.subTest("change blocked for object of disabled parent org"):
+            # applies to superusers too: the object is reached through
+            # multitenant_parent, so the guard must traverse it
+            self.assertEqual(
+                library_admin.has_change_permission(request, disabled_library), False
+            )
+
+        with self.subTest("delete still allowed for object of disabled parent org"):
+            self.assertEqual(
+                library_admin.has_delete_permission(request, disabled_library), True
+            )
+
+    def test_add_permission_hidden_without_active_managed_org(self):
+        disabled_org = self._create_org(name="operator-disabled-org", is_active=False)
+        active_org = self._create_org(name="operator-active-org")
+        operator = self._create_operator()
+        operator.user_permissions.add(Permission.objects.get(codename="add_shelf"))
+        shelf_admin = ShelfAdmin(Shelf, admin.site)
+        request = RequestFactory().get("/")
+
+        with self.subTest("no active managed org hides the Add button"):
+            self._create_org_user(
+                user=operator, organization=disabled_org, is_admin=True
+            )
+            request.user = User.objects.get(pk=operator.pk)
+            self.assertEqual(shelf_admin.has_add_permission(request), False)
+
+        with self.subTest("an active managed org restores the Add button"):
+            self._create_org_user(user=operator, organization=active_org, is_admin=True)
+            request.user = User.objects.get(pk=operator.pk)
+            self.assertEqual(shelf_admin.has_add_permission(request), True)

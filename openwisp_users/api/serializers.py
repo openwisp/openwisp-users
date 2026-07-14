@@ -111,21 +111,30 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        if (
-            self.instance
-            and not self.instance.is_active
-            and data.get("is_active") is not True
-        ):
+        if self.instance and not self.instance.is_active:
+            keys = set(data.keys())
             owner_data = data.get("owner") or {}
-            is_pure_owner_unassignment = (
-                set(data.keys()) <= {"owner"}
-                and owner_data.get("organization_user") is None
+            owner_present = "owner" in data
+            is_owner_unassignment = (
+                owner_present and owner_data.get("organization_user") is None
             )
-            if not is_pure_owner_unassignment:
+            reenabling = data.get("is_active") is True
+            # While disabled, only re-enabling (Is active) and/or unassigning
+            # the owner are allowed, and neither can be combined with any other
+            # change (editing a field or assigning an owner). This matches the
+            # admin interface, which locks every field except Is active, so the
+            # admin, the API and the docs tell the same story.
+            allowed = (
+                keys <= {"is_active", "owner"}
+                and (not owner_present or is_owner_unassignment)
+                and (reenabling or is_owner_unassignment)
+            )
+            if not allowed:
                 raise serializers.ValidationError(
                     _(
                         "This organization is disabled: only re-enabling it, "
-                        "unassigning its owner, or deleting it is allowed."
+                        "unassigning its owner, or deleting it is allowed. Edit "
+                        "other fields or assign an owner after re-enabling it."
                     )
                 )
         return super().validate(data)
@@ -208,6 +217,12 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
+    default_error_messages = {
+        "does_not_exist": _(
+            'Organization with pk "{pk_value}" does not exist or is disabled.'
+        ),
+    }
+
     def get_queryset(self):
         user = self.context["request"].user
         if user.is_superuser:
@@ -304,20 +319,24 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         password = validated_data.pop("password")
         email_verified = validated_data.pop("email_verified", False)
 
-        instance = self.instance or self.Meta.model(**validated_data)
-        instance.set_password(password)
-        instance.full_clean()
-        instance.save()
+        # Keep user and membership creation in a single transaction so a
+        # membership validation failure does not leave a half-created user
+        # behind while _full_clean_or_raise returns a 400.
+        with transaction.atomic():
+            instance = self.instance or self.Meta.model(**validated_data)
+            instance.set_password(password)
+            instance.full_clean()
+            instance.save()
 
-        if group_data:
-            instance.groups.add(*group_data)
+            if group_data:
+                instance.groups.add(*group_data)
 
-        if org_user_data:
-            if org_user_data.get("organization") is not None:
-                org_user_data["user"] = instance
-                org_user_instance = OrganizationUser(**org_user_data)
-                _full_clean_or_raise(org_user_instance)
-                org_user_instance.save()
+            if org_user_data:
+                if org_user_data.get("organization") is not None:
+                    org_user_data["user"] = instance
+                    org_user_instance = OrganizationUser(**org_user_data)
+                    _full_clean_or_raise(org_user_instance)
+                    org_user_instance.save()
 
         if instance.email:
             try:

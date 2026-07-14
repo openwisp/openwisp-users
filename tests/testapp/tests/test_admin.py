@@ -47,7 +47,8 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
 
 class TestTemplateAdmin(TestOrganizationMixin, TestCase):
     def test_org_admin_create_shareable_template(self):
-        administrator = self._create_administrator()
+        org = self._create_org(name="test-org")
+        administrator = self._create_administrator(organizations=[org])
         self.client.force_login(administrator)
         response = self.client.post(
             reverse("admin:testapp_template_add"),

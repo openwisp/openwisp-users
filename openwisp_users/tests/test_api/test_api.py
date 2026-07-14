@@ -1,9 +1,12 @@
+from unittest import mock
+
 import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import localdate, timedelta
@@ -60,7 +63,7 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
@@ -135,6 +138,20 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 200)
         org1.refresh_from_db()
         self.assertTrue(org1.is_active)
+
+    def test_reenable_disabled_organization_with_field_edit_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        # re-enabling and editing another field in one request is rejected,
+        # the two-step matches the admin and the docs
+        data = {"is_active": True, "name": "renamed while disabled"}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        org1.refresh_from_db()
+        self.assertEqual(org1.is_active, False)
+        self.assertEqual(org1.name, "test org")
 
     def test_create_organization_owner_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
@@ -655,6 +672,27 @@ class TestUsersApi(
         self.assertEqual(User.objects.filter(username="tester").count(), 0)
         self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
 
+    def test_create_user_membership_failure_rolls_back_user_api(self):
+        # A membership validation failure after the user row is written must
+        # roll the user back instead of leaving a half-created account behind.
+        path = reverse("users:user_list")
+        org1 = self._get_org()
+        data = {
+            "username": "rollbackuser",
+            "email": "rollbackuser@test.com",
+            "password": "password",
+            "organization_users": {"is_admin": False, "organization": org1.pk},
+        }
+        with mock.patch.object(
+            OrganizationUser,
+            "full_clean",
+            side_effect=DjangoValidationError("membership boom"),
+        ):
+            r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(User.objects.filter(username="rollbackuser").count(), 0)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
+
     def test_post_with_no_email(self):
         path = reverse("users:user_list")
         data = {"username": "", "email": "", "password": ""}
@@ -761,6 +799,25 @@ class TestUsersApi(
             OrganizationUser.objects.get(user=user1, organization=org1).is_admin
         )
 
+    def test_patch_resend_disabled_org_membership_preserves_it_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=False)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:user_detail", args=(user1.pk,))
+        # Re-sending an unchanged membership of a disabled organization must
+        # not silently delete it. The membership field only accepts active
+        # organizations, so the request is rejected (400) before the toggle
+        # delete path can run, and the membership is preserved.
+        data = {"organization_users": [{"is_admin": False, "organization": org1.pk}]}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("does not exist or is disabled", str(r.data))
+        self.assertEqual(
+            OrganizationUser.objects.filter(user=user1, organization=org1).count(), 1
+        )
+
     def test_assign_user_to_groups_api(self):
         user = self._get_user()
         self.assertEqual(user.groups.count(), 0)
@@ -836,7 +893,7 @@ class TestUsersApi(
     def test_organization_slug_post_custom_validation_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(7):
+        with self.assertNumQueries(6):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)

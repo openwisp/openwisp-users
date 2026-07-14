@@ -1894,6 +1894,39 @@ class TestUsersAdmin(
             org.refresh_from_db()
             self.assertEqual(org.is_active, True)
 
+    def test_disable_organization_with_owner(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        org = self._create_org(name="org-with-owner")
+        user = self._create_user(
+            username="ownerdisable", email="ownerdisable@example.com"
+        )
+        org_user = self._create_org_user(organization=org, user=user, is_admin=True)
+        org_owner = OrganizationOwner.objects.get(organization_user=org_user)
+        path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
+        params = {
+            "name": org.name,
+            "slug": org.slug,
+            # unchecking Is active must be allowed even when an owner exists
+            "is_active": "",
+            "owner-TOTAL_FORMS": "1",
+            "owner-INITIAL_FORMS": "1",
+            "owner-MIN_NUM_FORMS": "0",
+            "owner-MAX_NUM_FORMS": "1",
+            "owner-0-organization_user": f"{org_user.pk}",
+            "owner-0-organization": f"{org.pk}",
+            "owner-0-id": f"{org_owner.pk}",
+        }
+        params.update(self._get_org_edit_form_inline_params(admin, org))
+        response = self.client.post(path, params, follow=True)
+        self.assertNotContains(
+            response, "Cannot assign an owner to a disabled organization"
+        )
+        self.assertNotContains(response, "Please correct the error")
+        org.refresh_from_db()
+        self.assertEqual(org.is_active, False)
+        self.assertEqual(OrganizationOwner.objects.filter(pk=org_owner.pk).count(), 1)
+
     def test_organization_owner_inline_disabled_organization(self):
         admin = self._get_admin()
         self.client.force_login(admin)
@@ -2034,6 +2067,96 @@ class TestUsersAdmin(
         )
         self.assertContains(res, "errors field-organization")
         self.assertEqual(User.objects.filter(username="disableduserinline").count(), 0)
+
+    def test_user_inline_org_picker_excludes_disabled(self):
+        # the membership organization picker must go through the ow-auto-filter
+        # endpoint with exclude_disabled=true, so disabled orgs are not offered
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        response = self.client.get(reverse(f"admin:{self.app_label}_user_add"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "exclude_disabled=true")
+
+    def test_user_admin_change_with_disabled_org_membership(self):
+        admin = self._get_admin()
+        self.client.force_login(admin)
+        org = self._create_org(name="disabled-membership-org")
+        user = self._create_user(
+            username="memberofdisabled", email="memberofdisabled@example.com"
+        )
+        org_user = self._create_org_user(organization=org, user=user, is_admin=True)
+        org.is_active = False
+        org.save()
+        path = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        inline_prefix = f"{self.app_label}_organizationuser"
+
+        def _base_params():
+            params = user.__dict__.copy()
+            params["groups"] = []
+            params.pop("phone_number", None)
+            params.pop("password", None)
+            params.pop("_password", None)
+            params.pop("last_login")
+            params.pop("password_updated")
+            params.pop("expiration_date", None)
+            params = self._additional_params_pop(params)
+            params.update(self.add_user_inline_params)
+            params.update(self._get_user_edit_form_inline_params(user, org))
+            return params
+
+        with self.subTest("disabled-org membership is rendered read-only"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "disabled-membership-org")
+            self.assertContains(
+                response, f'name="{inline_prefix}-0-organization" disabled'
+            )
+
+        with self.subTest("editing an unrelated field saves without error"):
+            params = _base_params()
+            params["first_name"] = "Changed"
+            # the disabled inline fields are not submitted by a real browser
+            params.update(
+                {
+                    f"{inline_prefix}-TOTAL_FORMS": 1,
+                    f"{inline_prefix}-INITIAL_FORMS": 1,
+                    f"{inline_prefix}-MIN_NUM_FORMS": 0,
+                    f"{inline_prefix}-MAX_NUM_FORMS": 1000,
+                    f"{inline_prefix}-0-id": str(org_user.pk),
+                }
+            )
+            response = self.client.post(path, params, follow=True)
+            self.assertNotContains(response, "Please correct the error")
+            self.assertNotContains(response, "Select a valid choice")
+            user.refresh_from_db()
+            self.assertEqual(user.first_name, "Changed")
+            # the membership must still exist and be unchanged
+            org_user.refresh_from_db()
+            self.assertEqual(org_user.organization_id, org.pk)
+            self.assertEqual(org_user.is_admin, True)
+
+        with self.subTest("a new active-org membership can be added alongside it"):
+            active_org = self._create_org(name="active-alongside-org")
+            params = _base_params()
+            params.update(
+                {
+                    f"{inline_prefix}-TOTAL_FORMS": 2,
+                    f"{inline_prefix}-INITIAL_FORMS": 1,
+                    f"{inline_prefix}-MIN_NUM_FORMS": 0,
+                    f"{inline_prefix}-MAX_NUM_FORMS": 1000,
+                    f"{inline_prefix}-0-id": str(org_user.pk),
+                    f"{inline_prefix}-1-organization": str(active_org.pk),
+                    f"{inline_prefix}-1-is_admin": "on",
+                }
+            )
+            response = self.client.post(path, params, follow=True)
+            self.assertNotContains(response, "Please correct the error")
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=user, organization=active_org
+                ).count(),
+                1,
+            )
 
     def test_delete_org_user(self):
         self.client.force_login(self._get_admin())
