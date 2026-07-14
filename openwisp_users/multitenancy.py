@@ -61,6 +61,22 @@ class MultitenantAdminMixin(object):
             qsarg = "{0}__organization__in".format(self.multitenant_parent)
             return qs.filter(**{qsarg: user.organizations_managed})
 
+    def _get_object_organization(self, obj):
+        """
+        Returns the organization an object belongs to, traversing
+        ``multitenant_parent`` for models whose organization is reached
+        through a parent (e.g. a Book through its Shelf).
+        """
+        organization = getattr(obj, "organization", None)
+        if organization is None and self.multitenant_parent:
+            parent = obj
+            for attr in self.multitenant_parent.split("__"):
+                parent = getattr(parent, attr, None)
+                if parent is None:
+                    break
+            organization = getattr(parent, "organization", None)
+        return organization
+
     def has_change_permission(self, request, obj=None):
         """
         Objects belonging to a disabled organization stay readable and
@@ -69,10 +85,41 @@ class MultitenantAdminMixin(object):
         ``disabled_organization_write_protection = False``.
         """
         if self.disabled_organization_write_protection and obj is not None:
-            organization = getattr(obj, "organization", None)
+            organization = self._get_object_organization(obj)
             if organization is not None and not organization.is_active:
                 return False
         return super().has_change_permission(request, obj)
+
+    def has_add_permission(self, request, *args, **kwargs):
+        """
+        Hide the Add button from operators who manage no active organization:
+        the organization dropdown would be empty and the form could never be
+        submitted. Does not apply to the user admin or to models without an
+        organization (directly or through ``multitenant_parent``).
+
+        ``*args`` keeps this compatible with both ``ModelAdmin``
+        (``request``) and ``InlineModelAdmin`` (``request, obj``), since this
+        mixin is used on inlines too.
+        """
+        if (
+            not request.user.is_superuser
+            and self.model != User
+            and not request.user.organizations_managed
+        ):
+            org_field = (
+                self.model._meta.get_field("organization")
+                if hasattr(self.model, "organization")
+                else None
+            )
+            # If the model has a required organization field (OrgMixin, not
+            # ShareableOrgMixin which allows null/blank), the dropdown would be
+            # empty — block. If it's optional or reached through a parent,
+            # the form can still be submitted without picking an org.
+            if org_field is not None:
+                return False
+            if org_field is None and self.multitenant_parent:
+                return False
+        return super().has_add_permission(request, *args, **kwargs)
 
     def _edit_form(self, request, form):
         """

@@ -83,6 +83,14 @@ class TestAutocompleteJsonView(TestMultitenantAdminMixin, TestCase):
             self.assertIn(str(org1.pk), ids)
             self.assertIn(str(org2.pk), ids)
 
+        with self.subTest("exclude_disabled=false keeps disabled org"):
+            # only the literal "true" enables the filter, otherwise a value
+            # like "false" would wrongly exclude disabled organizations
+            response = self.client.get(path + "&exclude_disabled=false")
+            ids = [option["id"] for option in response.json()["results"]]
+            self.assertIn(str(org1.pk), ids)
+            self.assertIn(str(org2.pk), ids)
+
     def test_autocomplete_view_for_inline_admin(self):
         admin = self._get_admin()
         self.client.force_login(admin)

@@ -175,8 +175,12 @@ including users, memberships, and related objects, remains fully
   (e.g. when creating a new object), so it can no longer be picked for new
   data. It still appears in admin **list filters**, so its existing data
   remains easy to find for auditing purposes.
-- Re-enabling a disabled organization is allowed for the same users who
-  can disable it: superusers and managers of that organization.
+- Re-enabling a disabled organization is allowed **only for superusers**.
+  Once an organization is disabled, its managers lose access to it (a
+  disabled organization is no longer part of the organizations they
+  manage), so they can no longer edit it, including re-enabling it. A
+  superuser must re-enable the organization before its managers regain
+  access.
 
 .. note::
 
@@ -184,6 +188,16 @@ including users, memberships, and related objects, remains fully
     disabled organization returns an HTTP 400 or 403 response with a clear
     error message, instead of failing silently or being blocked without
     explanation.
+
+.. note::
+
+    Re-enabling an organization and editing its other fields must be done
+    in **two separate steps**, matching the admin interface (which locks
+    every field except **Is active** while the organization is disabled).
+    First re-enable the organization (change only **Is active**), then
+    edit its other fields or assign an owner. A single request that both
+    re-enables the organization and changes another field (or assigns an
+    owner) is rejected.
 
 Organization Membership and Roles
 ---------------------------------
