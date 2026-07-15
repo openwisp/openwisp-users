@@ -92,7 +92,7 @@ class MultitenantAdminMixin(object):
 
     def has_add_permission(self, request, *args, **kwargs):
         """
-        Hide the Add button from operators who manage no active organization:
+        Hide the Add button from admins who manage no active organization:
         the organization dropdown would be empty and the form could never be
         submitted. Does not apply to the user admin or to models without an
         organization (directly or through ``multitenant_parent``).
@@ -106,22 +106,15 @@ class MultitenantAdminMixin(object):
             and self.model != User
             and not request.user.organizations_managed
         ):
-            org_field = (
-                self.model._meta.get_field("organization")
-                if hasattr(self.model, "organization")
-                else None
-            )
-            # If the model has a required organization field (OrgMixin, not
-            # ShareableOrgMixin which allows null/blank), the dropdown would be
-            # empty — block. If it's optional or reached through a parent,
-            # the form can still be submitted without picking an org.
-            if org_field is not None:
-                return False
-            if org_field is None and self.multitenant_parent:
+            # Any model with an organization field (directly, or reached
+            # through multitenant_parent) is blocked: _edit_form() makes the
+            # field required for non-superusers, so the form could not be
+            # submitted without an active organization to pick anyway.
+            if hasattr(self.model, "organization") or self.multitenant_parent:
                 return False
         return super().has_add_permission(request, *args, **kwargs)
 
-    def _edit_form(self, request, form):
+    def _edit_form(self, request, form, obj=None):
         """
         Modifies the form querysets as follows;
         if current user is not superuser:
@@ -131,13 +124,24 @@ class MultitenantAdminMixin(object):
             * do not allow organization field to be empty (shared org)
         else show everything
         Organization choices always exclude disabled organizations,
-        superusers included.
+        superusers included, except an admin that opted out of write
+        protection (``disabled_organization_write_protection = False``)
+        keeps the edited object's own disabled organization selectable,
+        or the form could never be saved.
         """
         fields = form.base_fields
         user = request.user
         org_field = fields.get("organization")
+        keep_disabled_org_pk = None
+        if not self.disabled_organization_write_protection and obj is not None:
+            organization = self._get_object_organization(obj)
+            if organization is not None and not organization.is_active:
+                keep_disabled_org_pk = organization.pk
         if org_field:
-            org_field.queryset = org_field.queryset.filter(is_active=True)
+            allowed = Q(is_active=True)
+            if keep_disabled_org_pk is not None:
+                allowed |= Q(pk=keep_disabled_org_pk)
+            org_field.queryset = org_field.queryset.filter(allowed)
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
@@ -145,7 +149,10 @@ class MultitenantAdminMixin(object):
             # organizations relation;
             # may be readonly and not present in field list
             if org_field:
-                org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
+                managed = Q(pk__in=orgs_pk)
+                if keep_disabled_org_pk is not None:
+                    managed |= Q(pk=keep_disabled_org_pk)
+                org_field.queryset = org_field.queryset.filter(managed)
                 org_field.empty_label = None
                 org_field.required = True
             # other relations
@@ -160,7 +167,7 @@ class MultitenantAdminMixin(object):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        self._edit_form(request, form)
+        self._edit_form(request, form, obj)
         return form
 
     def get_formset(self, request, obj=None, **kwargs):

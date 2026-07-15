@@ -68,8 +68,13 @@ class TagAdmin(BaseAdmin):
     pass
 
 
+class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    # Library has no organization field; it is reached through its Book parent
+    multitenant_parent = "book"
+
+
 admin.site.register(Shelf, ShelfAdmin)
 admin.site.register(Book, BookAdmin)
 admin.site.register(Template, TemplateAdmin)
-admin.site.register(Library)
+admin.site.register(Library, LibraryParentAdmin)
 admin.site.register(Tag, TagAdmin)

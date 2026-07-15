@@ -23,6 +23,7 @@ from swapper import load_model
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 
 from .. import settings as app_settings
+from .mixins import DISABLED_ORGANIZATION_ERROR_MESSAGE
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -123,20 +124,30 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if self.instance and not self.instance.is_active:
-            keys = set(data.keys())
             owner_data = data.get("owner") or {}
             owner_present = "owner" in data
             is_owner_unassignment = (
                 owner_present and owner_data.get("organization_user") is None
             )
             reenabling = data.get("is_active") is True
+            # A key whose submitted value matches the value already stored is
+            # not a change, so a read-modify-write PUT that resends every
+            # field unchanged except is_active must not be rejected just
+            # because e.g. "name" is present in the payload.
+            changed_keys = {
+                key
+                for key in data
+                if key != "owner" and getattr(self.instance, key) != data[key]
+            }
+            if owner_present:
+                changed_keys.add("owner")
             # While disabled, only re-enabling (Is active) and/or unassigning
             # the owner are allowed, and neither can be combined with any other
             # change (editing a field or assigning an owner). This matches the
             # admin interface, which locks every field except Is active, so the
             # admin, the API and the docs tell the same story.
             allowed = (
-                keys <= {"is_active", "owner"}
+                changed_keys <= {"is_active", "owner"}
                 and (not owner_present or is_owner_unassignment)
                 and (reenabling or is_owner_unassignment)
             )
@@ -229,9 +240,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
     default_error_messages = {
-        "does_not_exist": _(
-            'Organization with pk "{pk_value}" does not exist or is disabled.'
-        ),
+        "does_not_exist": DISABLED_ORGANIZATION_ERROR_MESSAGE,
     }
 
     def get_queryset(self):
