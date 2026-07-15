@@ -501,12 +501,13 @@ class BaseOrganizationUser(models.Model):
             # disabled organization must not fail.
             db_values = (
                 self._meta.model.objects.filter(pk=self.pk)
-                .values("organization_id", "is_admin")
+                .values("organization_id", "is_admin", "user_id")
                 .first()
             )
             if db_values is None or (
                 db_values["organization_id"] != self.organization_id
                 or db_values["is_admin"] != self.is_admin
+                or db_values["user_id"] != self.user_id
             ):
                 raise ValidationError(
                     _("Memberships of a disabled organization cannot be modified.")

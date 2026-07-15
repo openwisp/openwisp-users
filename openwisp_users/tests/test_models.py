@@ -468,6 +468,21 @@ class TestUsers(TestOrganizationMixin, TestCase):
             # Django admin cannot save a user who has a disabled-org membership
             org_user.full_clean()
 
+        with self.subTest("reassign the user of a disabled organization membership"):
+            org = self._create_org(name="test-org-reassign-user")
+            user = self._create_user(username="user6", email="user6@example.com")
+            other_user = self._create_user(username="user7", email="user7@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            org_user.user = other_user
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+
     def test_organization_owner_clean_disabled_organization(self):
         with self.subTest("assign an owner to a disabled organization"):
             org = self._create_org(name="disabled-org-owner")

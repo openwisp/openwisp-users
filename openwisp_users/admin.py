@@ -147,6 +147,12 @@ class OrganizationUserInline(admin.StackedInline):
     fields = ("organization", "is_admin")
     autocomplete_fields = ("organization",)
 
+    def get_queryset(self, request):
+        # OrganizationUserInlineFormSet.add_fields() reads
+        # instance.organization.is_active for every row; select_related
+        # folds that per-row query into this one.
+        return super().get_queryset(request).select_related("organization")
+
     def get_formset(self, request, obj=None, **kwargs):
         """
         In form dropdowns, display only active organizations;

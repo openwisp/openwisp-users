@@ -6,16 +6,19 @@ from django.urls import reverse
 
 from openwisp_users.multitenancy import MultitenantAdminMixin
 
-from ..admin import ShelfAdmin
+from ..admin import LibraryParentAdmin, ShelfAdmin
 from ..models import Book, Library, Shelf
 from .mixins import TestMultitenancyMixin
 
 User = get_user_model()
 
 
-class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-    # Library has no organization field; it is reached through its Book parent
-    multitenant_parent = "book"
+class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    # dedicated admin used only to test the disabled_organization_write_protection
+    # opt-out; kept separate from ShelfAdmin so its default (protected)
+    # behaviour stays covered by the other tests in this file
+    disabled_organization_write_protection = False
+    fields = ["name", "organization"]
 
 
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
@@ -155,3 +158,30 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             self._create_org_user(user=operator, organization=active_org, is_admin=True)
             request.user = User.objects.get(pk=operator.pk)
             self.assertEqual(shelf_admin.has_add_permission(request), True)
+
+    def test_disabled_organization_write_protection_opt_out(self):
+        org = self._get_org()
+        shelf = self._create_shelf(name="opt-out-shelf", organization=org)
+        org.is_active = False
+        org.save()
+        shelf_admin = ShelfDisabledOrgWriteAllowedAdmin(Shelf, admin.site)
+        request = RequestFactory().get("/")
+        request.user = self._get_admin()
+
+        with self.subTest("change permission is not blocked for the opted-out admin"):
+            self.assertEqual(shelf_admin.has_change_permission(request, shelf), True)
+
+        with self.subTest("the disabled organization stays in the field's choices"):
+            form_class = shelf_admin.get_form(request, shelf)
+            org_field = form_class.base_fields["organization"]
+            self.assertIn(org.pk, org_field.queryset.values_list("pk", flat=True))
+
+        with self.subTest("the form can still be saved"):
+            form_class = shelf_admin.get_form(request, shelf)
+            form = form_class(
+                data={"name": shelf.name, "organization": org.pk}, instance=shelf
+            )
+            self.assertTrue(form.is_valid(), form.errors)
+            form.save()
+            shelf.refresh_from_db()
+            self.assertEqual(shelf.organization_id, org.pk)
