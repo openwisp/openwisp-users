@@ -59,7 +59,10 @@ attribute, which defaults to ``True``. Set it to ``False`` on a specific
 
 The ``organization`` form field's queryset also excludes disabled
 organizations for everyone, superusers included, so a disabled
-organization can never be *selected* for a new or existing object either.
+organization can never be *selected* for a new object. The one exception
+is an object that already belongs to a disabled organization on a
+``ModelAdmin`` with the opt-out set: its own (disabled) organization stays
+selectable in the field so the existing value can still be saved.
 
 ``MultitenantOrgFilter``
 ------------------------
