@@ -64,7 +64,9 @@ class TestOrganizationAutocompleteField(
         )
         administrator.user_permissions.add(
             *Permission.objects.filter(
-                Q(codename__contains="shelf") | Q(codename="view_organization")
+                Q(codename__contains="shelf")
+                | Q(codename="view_organization")
+                | Q(codename__contains="book")
             ).values_list("id", flat=True),
         )
 
