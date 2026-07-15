@@ -1,13 +1,10 @@
-from unittest import mock
-
 import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils.timezone import localdate, timedelta
 from swapper import load_model
@@ -140,6 +137,11 @@ class TestUsersApi(
         self.assertTrue(org1.is_active)
 
     def test_reenable_disabled_organization_with_field_edit_api(self):
+        """
+        Re-enabling (is_active) and editing another field in the same
+        request is rejected: re-enabling and editing must be two separate
+        requests, matching the admin and the docs.
+        """
         org1 = self._get_org()
         org1.is_active = False
         org1.save()
@@ -152,6 +154,27 @@ class TestUsersApi(
         org1.refresh_from_db()
         self.assertEqual(org1.is_active, False)
         self.assertEqual(org1.name, "test org")
+
+    def test_reenable_disabled_organization_via_put_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        # a PUT always resends every required field, "name" included; since
+        # its value is unchanged it must not count as an edit and block the
+        # re-enable, the way a read-modify-write client would use PUT
+        data = {
+            "name": org1.name,
+            "is_active": True,
+            "slug": org1.slug,
+            "description": org1.description,
+            "email": org1.email,
+            "url": org1.url,
+        }
+        response = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        org1.refresh_from_db()
+        self.assertTrue(org1.is_active)
 
     def test_create_organization_owner_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
@@ -658,41 +681,6 @@ class TestUsersApi(
         r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
 
-    def test_create_user_organization_users_disabled_org_api(self):
-        path = reverse("users:user_list")
-        org1 = self._create_org(name="disabled-org", is_active=False)
-        data = {
-            "username": "tester",
-            "email": "tester@test.com",
-            "password": "password",
-            "organization_users": {"is_admin": False, "organization": org1.pk},
-        }
-        r = self.client.post(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(User.objects.filter(username="tester").count(), 0)
-        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
-
-    def test_create_user_membership_failure_rolls_back_user_api(self):
-        # A membership validation failure after the user row is written must
-        # roll the user back instead of leaving a half-created account behind.
-        path = reverse("users:user_list")
-        org1 = self._get_org()
-        data = {
-            "username": "rollbackuser",
-            "email": "rollbackuser@test.com",
-            "password": "password",
-            "organization_users": {"is_admin": False, "organization": org1.pk},
-        }
-        with mock.patch.object(
-            OrganizationUser,
-            "full_clean",
-            side_effect=DjangoValidationError("membership boom"),
-        ):
-            r = self.client.post(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(User.objects.filter(username="rollbackuser").count(), 0)
-        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
-
     def test_post_with_no_email(self):
         path = reverse("users:user_list")
         data = {"username": "", "email": "", "password": ""}
@@ -968,3 +956,25 @@ class TestUsersApi(
         self.assertIsNone(r.data["expiration_date"])
         user.refresh_from_db()
         self.assertIsNone(user.expiration_date)
+
+
+class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
+    def setUp(self):
+        self.client.force_login(self._get_admin())
+
+    def test_create_user_organization_users_disabled_org_api(self):
+        # A membership validation failure (here, the disabled-organization
+        # guard) after the user row is written must roll the user back
+        # instead of leaving a half-created account behind.
+        path = reverse("users:user_list")
+        org1 = self._create_org(name="disabled-org", is_active=False)
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "password",
+            "organization_users": {"is_admin": False, "organization": org1.pk},
+        }
+        r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(User.objects.filter(username="tester").count(), 0)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)

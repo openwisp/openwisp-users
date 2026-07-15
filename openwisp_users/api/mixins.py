@@ -17,6 +17,10 @@ from .permissions import (
 
 Organization = swapper.load_model("openwisp_users", "Organization")
 
+DISABLED_ORGANIZATION_ERROR_MESSAGE = _(
+    'Organization with pk "{pk_value}" does not exist or is disabled.'
+)
+
 
 class OrgLookup:
     @property
@@ -165,8 +169,9 @@ class FilterSerializerByOrganization(OrgLookup):
     def filter_fields(self):
         user = self.context["request"].user
         # superuser can see everything, except disabled organizations
-        superuser = user.is_superuser or user.is_anonymous
-        if not superuser:
+        # The anonymouse use case exist so we don't run into errors with swagger
+        is_superuser_or_anonymous = user.is_superuser or user.is_anonymous
+        if not is_superuser_or_anonymous:
             # non superusers can see only items of organizations
             # they're related to
             organization_filter = getattr(user, self._user_attr)
@@ -176,15 +181,15 @@ class FilterSerializerByOrganization(OrgLookup):
                 # disabled organizations are excluded for everyone, superusers
                 # included, since they can only be re-enabled, not written to
                 queryset = self.fields[field].queryset.filter(is_active=True)
-                self.fields[field].error_messages["does_not_exist"] = _(
-                    'Organization with pk "{pk_value}" does not exist or is disabled.'
-                )
-                if not superuser:
+                self.fields[field].error_messages[
+                    "does_not_exist"
+                ] = DISABLED_ORGANIZATION_ERROR_MESSAGE
+                if not is_superuser_or_anonymous:
                     self.fields[field].allow_null = False
                     queryset = queryset.filter(pk__in=organization_filter)
                 self.fields[field].queryset = queryset
                 continue
-            if superuser:
+            if is_superuser_or_anonymous:
                 continue
             conditions = Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
