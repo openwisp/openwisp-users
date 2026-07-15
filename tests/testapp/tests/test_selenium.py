@@ -3,6 +3,7 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import Q
 from django.test import tag
 from django.urls import reverse
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
@@ -24,6 +25,18 @@ class TestOrganizationAutocompleteField(
         self.admin = self._create_admin(
             username=self.admin_username, password=self.admin_password
         )
+
+    def logout(self, driver=None):
+        super().logout(driver)
+        driver = driver or self.web_driver
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.url_to_be(f"{self.live_server_url}{reverse('admin:logout')}")
+            )
+        except TimeoutException:
+            self.fail(
+                "Browser failed to logout the user: URL did not change to logout page"
+            )
 
     def _test_multitenant_autocomplete_org_field(
         self, username, password, path, visible, hidden
