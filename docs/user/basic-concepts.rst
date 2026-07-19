@@ -56,7 +56,7 @@ Permissions
 
 The permission system used by OpenWISP is based on the `Django Permission
 System
-<https://docs.djangoproject.com/en/4.2/topics/auth/default/#permissions-and-authorization>`_.
+<https://docs.djangoproject.com/en/5.2/topics/auth/default/#permissions-and-authorization>`_.
 
 In short, a permission indicates whether a user has the authority to
 perform the following operations:
@@ -72,7 +72,7 @@ perform the following operations:
 
     For more detailed technical information, please refer to the `Django
     Documentation
-    <https://docs.djangoproject.com/en/4.2/topics/auth/default/>`_.
+    <https://docs.djangoproject.com/en/5.2/topics/auth/default/>`_.
 
 .. _default_permission_groups:
 
@@ -160,16 +160,19 @@ Here's a summary of the default organization roles.
 Organization Manager
 ~~~~~~~~~~~~~~~~~~~~
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/org-manager.png
-    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/org-manager.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/1.3/org-manager.png
+    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/1.3/org-manager.png
     :alt: Organization Manager
 
-Any user with the "Is admin" flag enabled for a specific organization (as
-shown in the screenshot above) is considered by the system a manager of
-that organization. Organization managers have the authority to view and
-interact with the data belonging to that organization according to their
-set of permissions (as defined in :ref:`Permission Groups
-<default_permission_groups>`).
+Any user with the "Organization manager" flag enabled for a specific
+organization (as shown in the screenshot above) is considered by the
+system a manager of that organization. Organization managers have the
+authority to view and interact with the data belonging to that
+organization according to their set of permissions (as defined in
+:ref:`Permission Groups <default_permission_groups>`).
+
+In the REST API and internal model field, this flag is represented as
+``is_admin``.
 
 To modify this flag, navigate to the "ORGANIZATION USERS" section on the
 "Change user" page.
@@ -177,13 +180,13 @@ To modify this flag, navigate to the "ORGANIZATION USERS" section on the
 Organization Members (End-Users)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/org-member.png
-    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/org-member.png
+.. image:: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/1.3/org-member.png
+    :target: https://github.com/openwisp/openwisp-users/raw/docs/docs/images/1.3/org-member.png
     :alt: Organization Member
 
-Any user with the "Is admin" flag disabled for a specific organization (as
-shown in the screenshot above) is considered by the system a regular
-end-user of that organization.
+Any user with the "Organization manager" flag disabled for a specific
+organization (``is_admin=False`` in the REST API and internal model field)
+is considered by the system a regular end-user of that organization.
 
 These users are consumers of a service provided by the organization. They
 will not be able to see or interact with any object of that organization

@@ -265,6 +265,10 @@ Create User
     users with their email address flagged as verified. This will also
     skip sending the verification link to their email address.
 
+    When creating organization memberships, the organization manager flag
+    is represented internally by the ``is_admin`` field in the
+    ``organization_users`` payload.
+
 Get User Detail
 ~~~~~~~~~~~~~~~
 
@@ -279,12 +283,24 @@ Change User Detail
 
     PUT /api/v1/users/user/{id}/
 
+.. note::
+
+    When editing organization memberships, the organization manager flag
+    is represented internally by the ``is_admin`` field in the
+    ``organization_users`` payload.
+
 Patch User Detail
 ~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PATCH /api/v1/users/user/{id}/
+
+.. note::
+
+    When patching organization memberships, the organization manager flag
+    is represented internally by the ``is_admin`` field in the
+    ``organization_users`` payload.
 
 Delete User
 ~~~~~~~~~~~
