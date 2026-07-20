@@ -66,7 +66,7 @@ Now you need to add ``myusers`` to ``INSTALLED_APPS`` in your
 
 For more information about how to work with Django projects and Django
 apps, please refer to the `Django documentation
-<https://docs.djangoproject.com/en/4.2/intro/tutorial01/>`_.
+<https://docs.djangoproject.com/en/5.2/intro/tutorial01/>`_.
 
 2. Install OpenWISP Users
 -------------------------
@@ -141,7 +141,7 @@ You have to replicate and adapt that code in your project.
 
 For more information regarding the concept of ``AppConfig`` please refer
 to the `"Applications" section in the django documentation
-<https://docs.djangoproject.com/en/4.2/ref/applications/>`_.
+<https://docs.djangoproject.com/en/5.2/ref/applications/>`_.
 
 7. Create Your Custom Models
 ----------------------------
@@ -162,7 +162,7 @@ You can add fields in a similar way in your ``models.py`` file.
 
 For doubts regarding how to use, extend, or develop models please refer to
 the `"Models" section in the django documentation
-<https://docs.djangoproject.com/en/4.2/topics/db/models/>`_.
+<https://docs.djangoproject.com/en/5.2/topics/db/models/>`_.
 
 8. Add Swapper Configurations
 -----------------------------
@@ -224,7 +224,7 @@ are described below.
 For more information regarding how the Django admin works, or how it can
 be customized, please refer to `"The Django admin site" section in the
 Django documentation
-<https://docs.djangoproject.com/en/4.2/ref/contrib/admin/>`_.
+<https://docs.djangoproject.com/en/5.2/ref/contrib/admin/>`_.
 
 1. Monkey Patching
 ~~~~~~~~~~~~~~~~~~
@@ -348,7 +348,7 @@ file in the sample project.
 
 For more information about URL configuration in Django, please refer to
 the `"URL dispatcher" section in the Django documentation
-<https://docs.djangoproject.com/en/4.2/topics/http/urls/>`_.
+<https://docs.djangoproject.com/en/5.2/topics/http/urls/>`_.
 
 12. Import the Automated Tests
 ------------------------------
@@ -395,4 +395,4 @@ Remember to use these views in root URL configurations in point 11.
 
 For more information about Django views, please refer to the `views
 section in the Django documentation
-<https://docs.djangoproject.com/en/4.2/topics/http/views/>`_.
+<https://docs.djangoproject.com/en/5.2/topics/http/views/>`_.

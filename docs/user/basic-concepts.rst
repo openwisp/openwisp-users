@@ -56,7 +56,7 @@ Permissions
 
 The permission system used by OpenWISP is based on the `Django Permission
 System
-<https://docs.djangoproject.com/en/4.2/topics/auth/default/#permissions-and-authorization>`_.
+<https://docs.djangoproject.com/en/5.2/topics/auth/default/#permissions-and-authorization>`_.
 
 In short, a permission indicates whether a user has the authority to
 perform the following operations:
@@ -72,7 +72,7 @@ perform the following operations:
 
     For more detailed technical information, please refer to the `Django
     Documentation
-    <https://docs.djangoproject.com/en/4.2/topics/auth/default/>`_.
+    <https://docs.djangoproject.com/en/5.2/topics/auth/default/>`_.
 
 .. _default_permission_groups:
 
