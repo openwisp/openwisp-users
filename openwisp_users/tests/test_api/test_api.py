@@ -4,7 +4,7 @@ from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils.timezone import localdate, timedelta
 from swapper import load_model
@@ -18,6 +18,7 @@ Organization = load_model("openwisp_users", "Organization")
 User = get_user_model()
 Group = load_model("openwisp_users", "Group")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
+OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 
 
 class TestUsersApi(
@@ -113,6 +114,68 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["name"], "test org change")
 
+    def test_patch_disabled_organization_field_without_reenabling_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"name": "test org change"}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        org1.refresh_from_db()
+        self.assertEqual(org1.name, "test org")
+
+    def test_patch_disabled_organization_reenable_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"is_active": True}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        org1.refresh_from_db()
+        self.assertTrue(org1.is_active)
+
+    def test_reenable_disabled_organization_with_field_edit_api(self):
+        """
+        Re-enabling (is_active) and editing another field in the same
+        request is rejected: re-enabling and editing must be two separate
+        requests, matching the admin and the docs.
+        """
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        # re-enabling and editing another field in one request is rejected,
+        # the two-step matches the admin and the docs
+        data = {"is_active": True, "name": "renamed while disabled"}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        org1.refresh_from_db()
+        self.assertEqual(org1.is_active, False)
+        self.assertEqual(org1.name, "test org")
+
+    def test_reenable_disabled_organization_via_put_api(self):
+        org1 = self._get_org()
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        # a PUT always resends every required field, "name" included; since
+        # its value is unchanged it must not count as an edit and block the
+        # re-enable, the way a read-modify-write client would use PUT
+        data = {
+            "name": org1.name,
+            "is_active": True,
+            "slug": org1.slug,
+            "description": org1.description,
+            "email": org1.email,
+            "url": org1.url,
+        }
+        response = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        org1.refresh_from_db()
+        self.assertTrue(org1.is_active)
+
     def test_create_organization_owner_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")
@@ -135,6 +198,50 @@ class TestUsersApi(
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["owner"], None)
+
+    def test_create_organization_owner_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"owner": {"organization_user": org1_user1.pk}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
+
+    def test_reenable_organization_with_owner_assignment_in_one_request_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {
+            "is_active": True,
+            "owner": {"organization_user": org1_user1.pk},
+        }
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
+        org1.refresh_from_db()
+        self.assertFalse(org1.is_active)
+
+    def test_remove_organization_owner_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        self._create_org_owner(organization_user=org1_user1, organization=org1)
+        self.assertEqual(OrganizationOwner.objects.count(), 1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {"owner": {"organization_user": ""}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["owner"], None)
+        self.assertEqual(OrganizationOwner.objects.count(), 0)
 
     def test_organization_delete_api(self):
         org1 = self._create_org(name="test org 2")
@@ -627,6 +734,15 @@ class TestUsersApi(
         self.assertEqual(OrganizationUser.objects.count(), 1)
         self.assertEqual(r.data["organization_users"][0]["organization"], org1.pk)
 
+    def test_patch_user_organization_users_disabled_org_api(self):
+        user = self._get_user()
+        org1 = self._create_org(name="disabled-org", is_active=False)
+        path = reverse("users:user_detail", args=(user.pk,))
+        data = {"organization_users": {"is_admin": False, "organization": org1.pk}}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
+
     def test_patch_user_detail_api(self):
         user = self._get_user()
         path = reverse("users:user_detail", args=(user.pk,))
@@ -656,6 +772,39 @@ class TestUsersApi(
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.data["organization_users"][0]["is_admin"])
+
+    def test_toggle_org_admin_disabled_org_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=False)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:user_detail", args=(user1.pk,))
+        data = {"organization_users": [{"is_admin": True, "organization": org1.pk}]}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertFalse(
+            OrganizationUser.objects.get(user=user1, organization=org1).is_admin
+        )
+
+    def test_patch_resend_disabled_org_membership_preserves_it_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=False)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:user_detail", args=(user1.pk,))
+        # Re-sending an unchanged membership of a disabled organization must
+        # not silently delete it. The membership field only accepts active
+        # organizations, so the request is rejected (400) before the toggle
+        # delete path can run, and the membership is preserved.
+        data = {"organization_users": [{"is_admin": False, "organization": org1.pk}]}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("does not exist or is disabled", str(r.data))
+        self.assertEqual(
+            OrganizationUser.objects.filter(user=user1, organization=org1).count(), 1
+        )
 
     def test_assign_user_to_groups_api(self):
         user = self._get_user()
@@ -807,3 +956,25 @@ class TestUsersApi(
         self.assertIsNone(r.data["expiration_date"])
         user.refresh_from_db()
         self.assertIsNone(user.expiration_date)
+
+
+class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
+    def setUp(self):
+        self.client.force_login(self._get_admin())
+
+    def test_create_user_organization_users_disabled_org_api(self):
+        # A membership validation failure (here, the disabled-organization
+        # guard) after the user row is written must roll the user back
+        # instead of leaving a half-created account behind.
+        path = reverse("users:user_list")
+        org1 = self._create_org(name="disabled-org", is_active=False)
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "password",
+            "organization_users": {"is_admin": False, "organization": org1.pk},
+        }
+        r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(User.objects.filter(username="tester").count(), 0)
+        self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)

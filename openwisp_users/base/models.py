@@ -469,14 +469,14 @@ class BaseOrganization(models.Model):
         automatically via a signal receiver.
         Without this change, the add_user method would throw IntegrityError.
         """
-
         if not self.users.all().exists():
             is_admin = True
 
         OrganizationUser = load_model("openwisp_users", "OrganizationUser")
-        return OrganizationUser.objects.create(
-            user=user, organization=self, is_admin=is_admin
-        )
+        org_user = OrganizationUser(user=user, organization=self, is_admin=is_admin)
+        org_user.full_clean()
+        org_user.save()
+        return org_user
 
 
 class BaseOrganizationUser(models.Model):
@@ -491,6 +491,27 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
+        if self.organization_id and not self.organization.is_active:
+            if self._state.adding:
+                raise ValidationError(
+                    {"organization": _("Cannot add users to a disabled organization.")}
+                )
+            # Only block real modifications: Django re-runs full_clean() on
+            # untouched inline rows, so a no-op save of a user who belongs to a
+            # disabled organization must not fail.
+            db_values = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .values("organization_id", "is_admin", "user_id")
+                .first()
+            )
+            if db_values is None or (
+                db_values["organization_id"] != self.organization_id
+                or db_values["is_admin"] != self.is_admin
+                or db_values["user_id"] != self.user_id
+            ):
+                raise ValidationError(
+                    _("Memberships of a disabled organization cannot be modified.")
+                )
         if (
             not self._state.adding
             and self.user.is_owner(self.organization_id)
@@ -521,6 +542,22 @@ class BaseOrganizationOwner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def clean(self):
+        if self.organization_id and not self.organization.is_active:
+            # Only block assigning or changing an owner: an untouched owner row
+            # is re-validated when its organization is disabled, and that must
+            # not prevent disabling the organization.
+            db_values = (
+                self._meta.model.objects.filter(pk=self.pk)
+                .values("organization_id", "organization_user_id")
+                .first()
+            )
+            if db_values is None or (
+                db_values["organization_id"] != self.organization_id
+                or db_values["organization_user_id"] != self.organization_user_id
+            ):
+                raise ValidationError(
+                    _("Cannot assign an owner to a disabled organization.")
+                )
         if self.organization_user.organization.pk != self.organization.pk:
             raise ValidationError(
                 {

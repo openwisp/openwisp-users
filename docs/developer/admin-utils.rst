@@ -31,6 +31,39 @@ This class has two important attributes:
   <https://github.com/openwisp/openwisp-firmware-upgrader/search?q=multitenant_parent>`_
   for a real-world example.
 
+Disabled Organization Write Protection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``MultitenantAdminMixin`` also blocks changes to any object belonging to a
+:ref:`disabled organization <disabling_an_organization>`, while still
+allowing that object to be viewed and deleted. This applies to superusers
+too: there is no per-user bypass (the only way to opt out is the
+class-level attribute described below). For models whose organization is
+reached through a parent (via ``multitenant_parent``), the mixin traverses
+the parent to find the organization, so those child objects are protected
+as well.
+
+This is controlled by the ``disabled_organization_write_protection`` class
+attribute, which defaults to ``True``. Set it to ``False`` on a specific
+``ModelAdmin`` to opt out:
+
+.. code-block:: python
+
+    from django.contrib import admin
+    from openwisp_users.multitenancy import MultitenantAdminMixin
+
+
+    class BookAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+        disabled_organization_write_protection = False
+        # other attributes
+
+The ``organization`` form field's queryset also excludes disabled
+organizations for everyone, superusers included, so a disabled
+organization can never be *selected* for a new object. The one exception
+is an object that already belongs to a disabled organization on a
+``ModelAdmin`` with the opt-out set: its own (disabled) organization stays
+selectable in the field so the existing value can still be saved.
+
 ``MultitenantOrgFilter``
 ------------------------
 

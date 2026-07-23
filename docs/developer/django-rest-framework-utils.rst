@@ -131,13 +131,69 @@ organization managers or owners to view shared objects in read-only mode.
 
 Standard users will not be able to view or list shared objects.
 
+``DisabledOrgReadOnly``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+**Full python path**:
+``openwisp_users.api.permissions.DisabledOrgReadOnly``.
+
+This object-level permission class blocks updating an object that belongs
+to a :ref:`disabled organization <disabling_an_organization>`. Read (safe
+methods) and ``DELETE`` remain allowed.
+
+.. important::
+
+    ``DisabledOrgReadOnly`` guards **updates only**. It implements
+    ``has_object_permission``, which DRF does not call on ``POST``, so it
+    does **not** block *creating* a new object for a disabled
+    organization. Create protection instead relies on the organization
+    field excluding disabled organizations: use one of the
+    ``FilterSerializerByOrganization`` mixins (or a related field backed
+    by ``Organization.active``) on the serializer. A plain
+    ``ModelSerializer`` whose organization field defaults to
+    ``Organization.objects`` will happily create objects for a disabled
+    organization even under ``ProtectedAPIMixin``.
+
+A view can opt out of this guard by setting
+``allow_disabled_organization_writes = True``:
+
+.. code-block:: python
+
+    from openwisp_users.api.permissions import DisabledOrgReadOnly
+    from rest_framework.generics import RetrieveUpdateDestroyAPIView
+
+
+    class SubnetView(RetrieveUpdateDestroyAPIView):
+        permission_classes = (DisabledOrgReadOnly,)
+        allow_disabled_organization_writes = True
+        # other attributes
+
+``DisabledOrgReadOnly`` is already included in ``ProtectedAPIMixin``'s
+default ``permission_classes`` (see below), so views that use
+``ProtectedAPIMixin`` get this guard automatically without any extra
+configuration.
+
+.. note::
+
+    ``Organization.active`` (django-organizations' ``ActiveOrgManager``)
+    is the canonical queryset for active organizations: use
+    ``Organization.active.all()`` when writing custom code that needs to
+    select from or filter active organizations, instead of filtering
+    ``Organization.objects`` manually.
+
 ``ProtectedAPIMixin``
 ---------------------
 
 **Full python path**: ``openwisp_users.api.mixins.ProtectedAPIMixin``.
 
 This mixin provides a set of authentication and permission classes that
-are commonly used across various OpenWISP modules API views.
+are commonly used across various OpenWISP modules API views, including
+``DisabledOrgReadOnly`` (see above).
+
+If a view overrides ``permission_classes`` entirely instead of extending
+``ProtectedAPIMixin.permission_classes``, it will not inherit
+``DisabledOrgReadOnly`` (or any future addition to the mixin's defaults)
+automatically, and must re-declare it explicitly if the guard is needed.
 
 Usage example:
 
@@ -254,6 +310,15 @@ The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
 and ``FilterSerializerByOrgOwned`` can be used to solve this issue.
 
 These serializers do not allow non-superusers to create shared objects.
+
+.. _multi_tenant_serializers_disabled_org:
+
+The ``organization`` field's queryset also excludes :ref:`disabled
+organizations <disabling_an_organization>`, for everyone, superusers
+included, so a disabled organization can never be selected when creating
+or updating an object. Submitting the primary key of a disabled
+organization returns a validation error explaining that the organization
+does not exist or is disabled.
 
 Usage example:
 

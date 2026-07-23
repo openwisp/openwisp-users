@@ -4,6 +4,7 @@ from copy import deepcopy
 from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -12,12 +13,27 @@ from swapper import load_model
 
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 
+from .mixins import DISABLED_ORGANIZATION_ERROR_MESSAGE
+
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
 User = get_user_model()
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 logger = logging.getLogger(__name__)
 OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+
+
+def _full_clean_or_raise(instance):
+    """
+    Django's ValidationError raised by full_clean() is not caught by DRF
+    unless it happens inside a serializer's validate(); these call sites
+    call full_clean() from create()/update(), so it must be converted
+    manually or it propagates as an unhandled 500.
+    """
+    try:
+        instance.full_clean()
+    except DjangoValidationError as e:
+        raise serializers.ValidationError(serializers.as_serializer_error(e))
 
 
 class OrganizationSerializer(ValidatedModelSerializer):
@@ -66,7 +82,7 @@ class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
             queryset = OrganizationUser.objects.filter(
                 Q(organization__in=user.organizations_managed)
             )
-        return queryset.select_related()
+        return queryset.filter(organization__is_active=True).select_related()
 
 
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
@@ -96,6 +112,45 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
             "modified",
         )
 
+    def validate(self, data):
+        if self.instance and not self.instance.is_active:
+            owner_data = data.get("owner") or {}
+            owner_present = "owner" in data
+            is_owner_unassignment = (
+                owner_present and owner_data.get("organization_user") is None
+            )
+            reenabling = data.get("is_active") is True
+            # A key whose submitted value matches the value already stored is
+            # not a change, so a read-modify-write PUT that resends every
+            # field unchanged except is_active must not be rejected just
+            # because e.g. "name" is present in the payload.
+            changed_keys = {
+                key
+                for key in data
+                if key != "owner" and getattr(self.instance, key) != data[key]
+            }
+            if owner_present:
+                changed_keys.add("owner")
+            # While disabled, only re-enabling (Is active) and/or unassigning
+            # the owner are allowed, and neither can be combined with any other
+            # change (editing a field or assigning an owner). This matches the
+            # admin interface, which locks every field except Is active, so the
+            # admin, the API and the docs tell the same story.
+            allowed = (
+                changed_keys <= {"is_active", "owner"}
+                and (not owner_present or is_owner_unassignment)
+                and (reenabling or is_owner_unassignment)
+            )
+            if not allowed:
+                raise serializers.ValidationError(
+                    _(
+                        "This organization is disabled: only re-enabling it, "
+                        "unassigning its owner, or deleting it is allowed. Edit "
+                        "other fields or assign an owner after re-enabling it."
+                    )
+                )
+        return super().validate(data)
+
     def update(self, instance, validated_data):
         if validated_data.get("owner"):
             org_owner = validated_data.pop("owner")
@@ -110,7 +165,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                     org_owner = OrganizationOwner.objects.create(
                         organization=instance, organization_user=org_user
                     )
-                    org_owner.full_clean()
+                    _full_clean_or_raise(org_owner)
                     org_owner.save()
                 return super().update(instance, validated_data)
 
@@ -127,7 +182,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                         org_owner = OrganizationOwner.objects.create(
                             organization=instance, organization_user=org_user
                         )
-                        org_owner.full_clean()
+                        _full_clean_or_raise(org_owner)
                         org_owner.save()
 
         instance = self.instance or self.Meta.model(**validated_data)
@@ -174,12 +229,16 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
+    default_error_messages = {
+        "does_not_exist": DISABLED_ORGANIZATION_ERROR_MESSAGE,
+    }
+
     def get_queryset(self):
         user = self.context["request"].user
         if user.is_superuser:
-            queryset = Organization.objects.all()
+            queryset = Organization.active.all()
         else:
-            queryset = Organization.objects.filter(pk__in=user.organizations_managed)
+            queryset = Organization.active.filter(pk__in=user.organizations_managed)
         return queryset
 
 
@@ -270,20 +329,24 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         password = validated_data.pop("password")
         email_verified = validated_data.pop("email_verified", False)
 
-        instance = self.instance or self.Meta.model(**validated_data)
-        instance.set_password(password)
-        instance.full_clean()
-        instance.save()
+        # Keep user and membership creation in a single transaction so a
+        # membership validation failure does not leave a half-created user
+        # behind while _full_clean_or_raise returns a 400.
+        with transaction.atomic():
+            instance = self.instance or self.Meta.model(**validated_data)
+            instance.set_password(password)
+            instance.full_clean()
+            instance.save()
 
-        if group_data:
-            instance.groups.add(*group_data)
+            if group_data:
+                instance.groups.add(*group_data)
 
-        if org_user_data:
-            if org_user_data.get("organization") is not None:
-                org_user_data["user"] = instance
-                org_user_instance = OrganizationUser(**org_user_data)
-                org_user_instance.full_clean()
-                org_user_instance.save()
+            if org_user_data:
+                if org_user_data.get("organization") is not None:
+                    org_user_data["user"] = instance
+                    org_user_instance = OrganizationUser(**org_user_data)
+                    _full_clean_or_raise(org_user_instance)
+                    org_user_instance.save()
 
         if instance.email:
             try:
@@ -354,20 +417,16 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             except OrganizationUser.DoesNotExist:
                 pass
             if org_user:
-                if (
-                    str(org_user_data["organization"].id)
-                    in instance.organizations_dict.keys()
-                ):
-                    if org_user.is_admin != org_user_data.get("is_admin"):
-                        org_user.is_admin = org_user_data["is_admin"]
-                        org_user.full_clean()
-                        org_user.save()
-                    else:
-                        org_user.delete()
+                if org_user.is_admin != org_user_data.get("is_admin"):
+                    org_user.is_admin = org_user_data["is_admin"]
+                    _full_clean_or_raise(org_user)
+                    org_user.save()
+                else:
+                    org_user.delete()
             else:
                 org_user_data["user"] = instance
                 org_user_instance = OrganizationUser(**org_user_data)
-                org_user_instance.full_clean()
+                _full_clean_or_raise(org_user_instance)
                 org_user_instance.save()
 
         return super().update(instance, validated_data)

@@ -20,6 +20,9 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
+    # opt-out hook: set to False on subclasses that should allow writes
+    # to objects belonging to a disabled organization
+    disabled_organization_write_protection = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -58,7 +61,60 @@ class MultitenantAdminMixin(object):
             qsarg = "{0}__organization__in".format(self.multitenant_parent)
             return qs.filter(**{qsarg: user.organizations_managed})
 
-    def _edit_form(self, request, form):
+    def _get_object_organization(self, obj):
+        """
+        Returns the organization an object belongs to, traversing
+        ``multitenant_parent`` for models whose organization is reached
+        through a parent (e.g. a Book through its Shelf).
+        """
+        organization = getattr(obj, "organization", None)
+        if organization is None and self.multitenant_parent:
+            parent = obj
+            for attr in self.multitenant_parent.split("__"):
+                parent = getattr(parent, attr, None)
+                if parent is None:
+                    break
+            organization = getattr(parent, "organization", None)
+        return organization
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Objects belonging to a disabled organization stay readable and
+        deletable, but cannot be changed, regardless of the user being a
+        superuser. Subclasses can opt out with
+        ``disabled_organization_write_protection = False``.
+        """
+        if self.disabled_organization_write_protection and obj is not None:
+            organization = self._get_object_organization(obj)
+            if organization is not None and not organization.is_active:
+                return False
+        return super().has_change_permission(request, obj)
+
+    def has_add_permission(self, request, *args, **kwargs):
+        """
+        Hide the Add button from admins who manage no active organization:
+        the organization dropdown would be empty and the form could never be
+        submitted. Does not apply to the user admin or to models without an
+        organization (directly or through ``multitenant_parent``).
+
+        ``*args`` keeps this compatible with both ``ModelAdmin``
+        (``request``) and ``InlineModelAdmin`` (``request, obj``), since this
+        mixin is used on inlines too.
+        """
+        if (
+            not request.user.is_superuser
+            and self.model != User
+            and not request.user.organizations_managed
+        ):
+            # Any model with an organization field (directly, or reached
+            # through multitenant_parent) is blocked: _edit_form() makes the
+            # field required for non-superusers, so the form could not be
+            # submitted without an active organization to pick anyway.
+            if hasattr(self.model, "organization") or self.multitenant_parent:
+                return False
+        return super().has_add_permission(request, *args, **kwargs)
+
+    def _edit_form(self, request, form, obj=None):
         """
         Modifies the form querysets as follows;
         if current user is not superuser:
@@ -67,10 +123,25 @@ class MultitenantAdminMixin(object):
               or shared relations
             * do not allow organization field to be empty (shared org)
         else show everything
+        Organization choices always exclude disabled organizations,
+        superusers included, except an admin that opted out of write
+        protection (``disabled_organization_write_protection = False``)
+        keeps the edited object's own disabled organization selectable,
+        or the form could never be saved.
         """
         fields = form.base_fields
         user = request.user
         org_field = fields.get("organization")
+        keep_disabled_org_pk = None
+        if not self.disabled_organization_write_protection and obj is not None:
+            organization = self._get_object_organization(obj)
+            if organization is not None and not organization.is_active:
+                keep_disabled_org_pk = organization.pk
+        if org_field:
+            allowed = Q(is_active=True)
+            if keep_disabled_org_pk is not None:
+                allowed |= Q(pk=keep_disabled_org_pk)
+            org_field.queryset = org_field.queryset.filter(allowed)
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
@@ -78,7 +149,10 @@ class MultitenantAdminMixin(object):
             # organizations relation;
             # may be readonly and not present in field list
             if org_field:
-                org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
+                managed = Q(pk__in=orgs_pk)
+                if keep_disabled_org_pk is not None:
+                    managed |= Q(pk=keep_disabled_org_pk)
+                org_field.queryset = org_field.queryset.filter(managed)
                 org_field.empty_label = None
                 org_field.required = True
             # other relations
@@ -93,7 +167,7 @@ class MultitenantAdminMixin(object):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        self._edit_form(request, form)
+        self._edit_form(request, form, obj)
         return form
 
     def get_formset(self, request, obj=None, **kwargs):
