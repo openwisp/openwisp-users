@@ -7,7 +7,7 @@ from unittest.mock import patch
 import django
 from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
-from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
+from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -25,6 +25,7 @@ from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 from .. import settings as app_settings
 from ..admin import OrganizationAdmin, OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
+from ..auth import SESSION_KEY
 from ..multitenancy import MultitenantAdminMixin
 from .utils import (
     TestMultitenantAdminMixin,
@@ -2456,6 +2457,12 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
             reverse("admin:login"),
             data={"username": user.username, "password": "tester"},
         )
+        # The login itself must succeed but the user should be redirected
+        # to the password-change page instead of /admin/,
+        authenticated_user = get_user(self.client)
+        self.assertEqual(authenticated_user.is_authenticated, True)
+        self.assertEqual(authenticated_user.pk, user.pk)
+        self.assertIn(SESSION_KEY, self.client.session)
         self.assertEqual(login_response.status_code, 302)
         self.assertEqual(login_response.url, "/accounts/password/change/?next=/admin/")
 

@@ -1,8 +1,10 @@
 import logging
 
+from allauth.account.signals import user_logged_in as allauth_user_logged_in
 from django.apps import AppConfig
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.signals import user_logged_in
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -13,6 +15,7 @@ from openwisp_utils import settings as utils_settings
 from openwisp_utils.admin_theme.menu import register_menu_group
 
 from . import settings as app_settings
+from .auth import EXTERNAL, PASSWORD, set_authentication_method
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +140,34 @@ class OpenwispUsersConfig(AppConfig):
             sender=OrganizationUser,
             dispatch_uid="make_first_org_user_org_owner",
         )
+        self.connect_authentication_method_signals()
+
+    def connect_authentication_method_signals(self):
+        """
+        Connect signal handlers that record the authentication method.
+
+        ``request.user.backend`` cannot distinguish different login methods.
+        The connected receivers use Django's
+        ``user_logged_in`` signal as the default, and
+        ``allauth_user_logged_in`` signal to override it for social logins.
+        """
+        user_logged_in.connect(
+            self.handle_password_login,
+            dispatch_uid="openwisp_users_handle_password_login",
+        )
+        allauth_user_logged_in.connect(
+            self.handle_allauth_login,
+            dispatch_uid="openwisp_users_handle_allauth_login",
+        )
+
+    @classmethod
+    def handle_password_login(cls, request, **kwargs):
+        set_authentication_method(request, PASSWORD)
+
+    @classmethod
+    def handle_allauth_login(cls, request, sociallogin=None, **kwargs):
+        if sociallogin is not None:
+            set_authentication_method(request, EXTERNAL)
 
     @classmethod
     def handle_org_is_active_change(cls, instance, **kwargs):

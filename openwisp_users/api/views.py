@@ -1,7 +1,12 @@
 from allauth.account.models import EmailAddress
+from allauth.account.utils import user_pk_to_url_str
+from dj_rest_auth.views import PasswordResetConfirmView as BasePasswordResetConfirmView
+from dj_rest_auth.views import PasswordResetView as BasePasswordResetView
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import (
     GenericAPIView,
@@ -16,6 +21,8 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_users.auth import password_expired_response_payload
+from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
 from .mixins import FilterByParent
@@ -26,6 +33,7 @@ from .serializers import (
     GroupSerializer,
     OrganizationDetailSerializer,
     OrganizationSerializer,
+    PasswordResetSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
     UserDetailSerializer,
@@ -58,7 +66,69 @@ class ObtainAuthTokenView(ObtainAuthToken):
         request_body=ObtainTokenRequest, responses={200: ObtainTokenResponse}
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        # A token should not be issued for an expired password, mirroring how
+        # PasswordExpirationMiddleware blocks REST requests before they
+        # reach the view.
+        if user.has_password_expired():
+            return Response(password_expired_response_payload(request), status=403)
+        token, _created = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key})
+
+
+class PasswordResetView(BasePasswordResetView):
+    """
+    Requests a password reset e-mail for a user identified by username,
+    e-mail address or phone number, mirroring the identifiers accepted at
+    local login.
+    """
+
+    serializer_class = PasswordResetSerializer
+    throttle_classes = [AuthRateThrottle]
+
+    def get_users(self, identifier):
+        return UsersAuthenticationBackend().get_users(identifier).filter(is_active=True)
+
+    def get_password_reset_url(self, user, token):
+        """
+        Points the emailed link at the REST confirm endpoint instead of
+        allauth's HTML page. Isolated here so a subclass (e.g.
+        openwisp-radius) can point it at a different frontend without
+        touching token generation or email sending.
+        """
+        uid = user_pk_to_url_str(user)
+        confirm_path = reverse("users:rest_password_reset_confirm")
+        url = self.request.build_absolute_uri(confirm_path)
+        return f"{url}?uid={uid}&token={token}"
+
+
+class PasswordResetConfirmView(BasePasswordResetConfirmView):
+    """
+    Sets a new password given a valid uid/token pair.
+
+    Unlike PasswordResetView, an invalid uid/token still returns a plain
+    400: the pair is already an unguessable secret, so there is nothing
+    left to enumerate (see dj-rest-auth's PasswordResetConfirmSerializer,
+    reused unchanged below).
+    """
+
+    throttle_classes = [AuthRateThrottle]
+
+    def validate_user(self, user):
+        """
+        No-op extension point: openwisp-radius overrides this to reject a
+        reset when the user is not a member of the requesting organization.
+        """
+        pass
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.validate_user(serializer.user)
+        serializer.save()
+        return Response({"detail": _("Password has been reset with the new password.")})
 
 
 class BaseOrganizationView(ProtectedAPIMixin):
@@ -191,6 +261,20 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
+class PasswordChangeView(ChangePasswordView):
+    """
+    Self-service alias of ChangePasswordView: the caller doesn't need to
+    already know their own pk (a REST client that just received a
+    password_expired error may not know their own pk).
+    """
+
+    def get_object(self):
+        return self.request.user
+
+    def get_permissions(self):
+        return [IsAuthenticated()]
+
+
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
     model = EmailAddress
     serializer_class = EmailAddressSerializer
@@ -253,6 +337,8 @@ class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
+rest_password_reset = PasswordResetView.as_view()
+rest_password_reset_confirm = PasswordResetConfirmView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
 user_list = UsersListCreateView.as_view()
@@ -260,5 +346,6 @@ user_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()
+password_change = PasswordChangeView.as_view()
 email_update = EmailUpdateView.as_view()
 email_list = EmailListCreateView.as_view()

@@ -1,7 +1,13 @@
+from unittest.mock import patch
+
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.timezone import now, timedelta
+from rest_framework.authtoken.models import Token
 
+from openwisp_users import settings as app_settings
+from openwisp_users.api.urls import get_api_urls
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 
@@ -15,6 +21,30 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         url = reverse("users:user_auth_token")
         r = self.client.post(url, params)
         self.assertIn("token", r.data)
+
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10)
+    def test_obtain_auth_token_expired_password_rejected(self):
+        user = self._create_user(
+            username="tester",
+            password="tester",
+            password_updated=now().date() - timedelta(days=180),
+        )
+        params = {"username": "tester", "password": "tester"}
+        url = reverse("users:user_auth_token")
+        response = self.client.post(url, params)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["code"], "password_expired")
+        self.assertEqual(
+            response.data["detail"],
+            "Your password has expired. Update it to continue.",
+        )
+        self.assertEqual(
+            response.data["api_password_change_url"],
+            response.wsgi_request.build_absolute_uri(
+                reverse("users:rest_password_change")
+            ),
+        )
+        self.assertEqual(Token.objects.filter(user=user).exists(), False)
 
     def test_protected_api_mixin_view(self):
         auth_error = "Authentication credentials were not provided."
@@ -38,3 +68,24 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 404)
+
+
+class TestGetApiUrls(TestCase):
+    @patch.object(app_settings, "USERS_AUTH_API", False)
+    def test_auth_routes_absent_when_users_auth_api_disabled(self):
+        # Disabling OPENWISP_USERS_AUTH_API is how blocking an expired
+        # password without exposing any of these local-credential routes
+        # is meant to work; this proves they are actually absent, not
+        # just unreachable.
+        url_names = {pattern.name for pattern in get_api_urls()}
+        self.assertEqual(
+            url_names.isdisjoint(
+                {
+                    "user_auth_token",
+                    "rest_password_reset",
+                    "rest_password_reset_confirm",
+                    "rest_password_change",
+                }
+            ),
+            True,
+        )

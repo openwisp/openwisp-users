@@ -1,13 +1,19 @@
 import re
 from unittest.mock import patch
 
+from allauth.core.context import request_context
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.models import SocialAccount, SocialLogin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from .. import settings as app_settings
+from ..auth import EXTERNAL, PASSWORD, SESSION_KEY
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -21,6 +27,49 @@ class TestAccountView(TestOrganizationMixin, TestCase):
             follow=True,
         )
         return response
+
+    def _complete_social_login(self, user):
+        # Drives the same post-authentication entry point every allauth
+        # provider callback calls once a provider confirms the user's
+        # identity, without needing to mock a real OAuth handshake.
+        SocialAccount.objects.create(user=user, provider="google", uid="1234567890")
+        sociallogin = SocialLogin(
+            account=SocialAccount(provider="google", uid="1234567890")
+        )
+        request = RequestFactory().get("/")
+        request.session = self.client.session
+        request.user = AnonymousUser()
+        request._messages = FallbackStorage(request)
+        with request_context(request):
+            complete_social_login(request, sociallogin)
+        request.session.save()
+        self.client.cookies["sessionid"] = request.session.session_key
+
+    def test_password_login_marks_session_as_password(self):
+        self._create_org_user()
+        self._login_user()
+        self.assertEqual(self.client.session[SESSION_KEY], PASSWORD)
+
+    def test_social_login_marks_session_as_external(self):
+        user = self._create_org_user().user
+        self._complete_social_login(user)
+        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
+    def test_external_session_bypasses_expired_password_check(self):
+        user = self._create_administrator(organizations=[self._get_org()])
+        User.objects.update(password_updated=now() - timedelta(days=60))
+        user.refresh_from_db()
+        self.assertEqual(user.has_password_expired(), True)
+        # PasswordExpirationMiddleware must not block a session marked EXTERNAL
+        # logged in using social login, even if the user's local password has expired.
+        self._complete_social_login(user)
+        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+        response = self.client.get(reverse("admin:index"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response, "Your password has expired, please update your password."
+        )
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_password_expired_user_logins(self):

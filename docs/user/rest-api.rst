@@ -68,6 +68,76 @@ Example usage:
 
     {"token": "7a2e1d3d008253c123c61d56741003db5a194256"}
 
+.. _rest_password_reset:
+
+Request Password Reset
+----------------------
+
+.. code-block:: text
+
+    /api/v1/users/password/reset/
+
+This endpoint only accepts the ``POST`` method and sends a password reset
+e-mail to the user identified by the ``input`` parameter, which can be a
+username, e-mail address or phone number.
+
+The response is always the same regardless of whether ``input`` matched a
+user, so this endpoint cannot be used to find out whether an identifier is
+registered.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X POST http://localhost:8000/api/v1/users/password/reset/ -d "input=openwisp"
+
+.. _rest_password_reset_confirm:
+
+Confirm Password Reset
+----------------------
+
+.. code-block:: text
+
+    /api/v1/users/password/reset/confirm/
+
+This endpoint only accepts the ``POST`` method and sets a new password
+given the ``uid`` and ``token`` received in the password reset e-mail,
+along with ``new_password1`` and ``new_password2``.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X POST http://localhost:8000/api/v1/users/password/reset/confirm/ \
+        -d "uid=<uid>" -d "token=<token>" \
+        -d "new_password1=newpass123" -d "new_password2=newpass123"
+
+.. _rest_password_change:
+
+Change Own Password
+-------------------
+
+.. code-block:: text
+
+    /api/v1/users/user/password/change/
+
+This endpoint only accepts the ``PUT`` method and lets an authenticated
+user change their own password, given their ``current_password`` and a
+``new_password`` (confirmed via ``confirm_password``). Unlike the "Change
+User password" endpoint listed below, which requires the target user's
+``id``, this endpoint always operates on the requesting user, which is
+what a client that just received a ``password_expired`` error needs.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X PUT http://localhost:8000/api/v1/users/user/password/change/ \
+        -H "Authorization: Bearer $TOKEN" \
+        -d "current_password=oldpass123" \
+        -d "new_password=newpass123" \
+        -d "confirm_password=newpass123"
+
 .. _authenticating_rest_api:
 
 Authenticating with the User Token

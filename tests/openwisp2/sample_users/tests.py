@@ -16,6 +16,9 @@ from openwisp_users.tests.test_api.test_api import TestUsersApi as BaseTestUsers
 from openwisp_users.tests.test_api.test_authentication import (
     AuthenticationTests as BaseAuthenticationTests,
 )
+from openwisp_users.tests.test_api.test_password_reset import (
+    TestPasswordResetAPI as BaseTestPasswordResetAPI,
+)
 from openwisp_users.tests.test_api.test_throttling import (
     RatelimitTests as BaseRatelimitTests,
 )
@@ -23,6 +26,9 @@ from openwisp_users.tests.test_api.test_views import (
     TestRestFrameworkViews as BaseTestRestFrameworkViews,
 )
 from openwisp_users.tests.test_backends import TestBackends as BaseTestBackends
+from openwisp_users.tests.test_middlewares import (
+    TestPasswordExpirationMiddleware as BaseTestPasswordExpirationMiddleware,
+)
 from openwisp_users.tests.test_models import TestUsers as BaseTestUsers
 
 additional_fields = [
@@ -141,6 +147,14 @@ class TestUsersApi(BaseTestUsersApi):
     pass
 
 
+class TestPasswordExpirationMiddleware(BaseTestPasswordExpirationMiddleware):
+    pass
+
+
+class TestPasswordResetAPI(BaseTestPasswordResetAPI):
+    pass
+
+
 del BaseTestUsersAdmin
 del BaseTestUserPasswordExpiration
 del BaseTestBasicUsersIntegration
@@ -152,3 +166,5 @@ del BaseTestRestFrameworkViews
 del BaseTestBackends
 del BaseTestUsersApi
 del BaseTestAccountView
+del BaseTestPasswordExpirationMiddleware
+del BaseTestPasswordResetAPI
