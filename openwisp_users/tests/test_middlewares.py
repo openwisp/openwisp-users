@@ -1,6 +1,9 @@
+import re
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user, get_user_model
+from django.core import mail
 from django.test import TestCase, modify_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
@@ -128,3 +131,42 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
             HTTP_AUTHORIZATION=f"Bearer {token.key}",
         )
         self.assertEqual(response.status_code, 200)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_use_rest_password_reset(self):
+        self._login_expired_admin()
+        response = self.client.post(
+            reverse("users:rest_password_reset"),
+            data={"input": "admin"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_use_rest_password_reset_confirm(self):
+        admin = self._login_expired_admin()
+        self.client.post(
+            reverse("users:rest_password_reset"),
+            data={"input": "admin"},
+            content_type="application/json",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox.pop()
+        reset_url = re.search(r"https?://[^\s?]+\?[^\s]+", email.body).group(0)
+        query = parse_qs(urlparse(reset_url).query)
+        uid = query["uid"][0]
+        token = query["token"][0]
+        response = self.client.post(
+            reverse("users:rest_password_reset_confirm"),
+            data={
+                "uid": uid,
+                "token": token,
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        admin.refresh_from_db()
+        self.assertEqual(admin.check_password("newpassword123"), True)

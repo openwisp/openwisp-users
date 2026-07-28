@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm as BasePasswordResetForm
 from django.template import loader
@@ -20,8 +21,8 @@ class PasswordResetForm(BasePasswordResetForm):
         This allows subclasses to more easily customize the default policies
         that prevent users with unusable passwords from resetting their password.
         """
-        user = User.objects.get(email=email)
-        return [user] if user.has_usable_password() else []
+        users = User.objects.filter(email__iexact=email)
+        return [user for user in users if user.has_usable_password()]
 
     def save(
         self,
@@ -43,8 +44,6 @@ class PasswordResetForm(BasePasswordResetForm):
             # PasswordResetConfirmSerializer uses to validate the token
             # (allauth.account.forms.default_token_generator when allauth
             # is installed), otherwise every confirm request is rejected.
-            from django.conf import settings
-
             if "allauth" in settings.INSTALLED_APPS:
                 from allauth.account.forms import default_token_generator
             else:

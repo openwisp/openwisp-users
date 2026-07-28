@@ -66,16 +66,7 @@ class ObtainAuthTokenView(ObtainAuthToken):
         request_body=ObtainTokenRequest, responses={200: ObtainTokenResponse}
     )
     def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
-        # A token should not be issued for an expired password, mirroring how
-        # PasswordExpirationMiddleware blocks REST requests before they
-        # reach the view.
-        if user.has_password_expired():
-            return Response(password_expired_response_payload(request), status=403)
-        token, _created = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key})
+        return super().post(request, *args, **kwargs)
 
 
 class PasswordResetView(BasePasswordResetView):

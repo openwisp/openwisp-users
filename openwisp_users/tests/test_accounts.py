@@ -4,15 +4,18 @@ from unittest.mock import patch
 from allauth.core.context import request_context
 from allauth.socialaccount.helpers import complete_social_login
 from allauth.socialaccount.models import SocialAccount, SocialLogin
-from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, modify_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from .. import settings as app_settings
+from ..api.authentication import get_one_time_auth_token_for_user
 from ..auth import EXTERNAL, PASSWORD, SESSION_KEY
 from .utils import TestOrganizationMixin
 
@@ -43,7 +46,7 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         with request_context(request):
             complete_social_login(request, sociallogin)
         request.session.save()
-        self.client.cookies["sessionid"] = request.session.session_key
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = request.session.session_key
 
     def test_password_login_marks_session_as_password(self):
         self._create_org_user()
@@ -64,6 +67,30 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         # PasswordExpirationMiddleware must not block a session marked EXTERNAL
         # logged in using social login, even if the user's local password has expired.
         self._complete_social_login(user)
+        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+        response = self.client.get(reverse("admin:index"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response, "Your password has expired, please update your password."
+        )
+
+    @modify_settings(AUTHENTICATION_BACKENDS={"append": "sesame.backends.ModelBackend"})
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
+    def test_sesame_login_marks_session_as_external(self):
+        user = self._create_administrator(organizations=[self._get_org()])
+        User.objects.update(password_updated=now() - timedelta(days=60))
+        user.refresh_from_db()
+        self.assertEqual(user.has_password_expired(), True)
+        token = get_one_time_auth_token_for_user(user)
+        request = RequestFactory().get("/")
+        request.session = self.client.session
+        request.user = AnonymousUser()
+        request._messages = FallbackStorage(request)
+        authenticated_user = authenticate(request, sesame=token)
+        self.assertIsNotNone(authenticated_user)
+        auth_login(request, authenticated_user)
+        request.session.save()
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = request.session.session_key
         self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
         response = self.client.get(reverse("admin:index"))
         self.assertEqual(response.status_code, 200)

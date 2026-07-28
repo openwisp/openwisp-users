@@ -38,6 +38,8 @@ class PasswordExpirationMiddleware:
         "account_reset_password_from_key_done",
         "change_password",
         API_PASSWORD_CHANGE_URL_NAME,
+        "users:rest_password_reset",
+        "users:rest_password_reset_confirm",
     ]
     admin_login_path = reverse_lazy("admin:login")
     admin_index_path = reverse_lazy("admin:index")
@@ -71,7 +73,7 @@ class PasswordExpirationMiddleware:
 
     def _blocked_response(self, request):
         try:
-            resolver_match = resolve(request.path)
+            resolver_match = resolve(request.path_info)
         except Resolver404:
             return None
         if (

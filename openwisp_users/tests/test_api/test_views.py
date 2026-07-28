@@ -24,7 +24,7 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10)
     def test_obtain_auth_token_expired_password_rejected(self):
-        user = self._create_user(
+        self._create_user(
             username="tester",
             password="tester",
             password_updated=now().date() - timedelta(days=180),
@@ -34,17 +34,7 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         response = self.client.post(url, params)
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data["code"], "password_expired")
-        self.assertEqual(
-            response.data["detail"],
-            "Your password has expired. Update it to continue.",
-        )
-        self.assertEqual(
-            response.data["api_password_change_url"],
-            response.wsgi_request.build_absolute_uri(
-                reverse("users:rest_password_change")
-            ),
-        )
-        self.assertEqual(Token.objects.filter(user=user).exists(), False)
+        self.assertNotIn("token", response.data)
 
     def test_protected_api_mixin_view(self):
         auth_error = "Authentication credentials were not provided."

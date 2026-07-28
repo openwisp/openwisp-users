@@ -17,6 +17,9 @@ from openwisp_users.tests.test_api.test_authentication import (
     AuthenticationTests as BaseAuthenticationTests,
 )
 from openwisp_users.tests.test_api.test_password_reset import (
+    TestPasswordChangeAPI as BaseTestPasswordChangeAPI,
+)
+from openwisp_users.tests.test_api.test_password_reset import (
     TestPasswordResetAPI as BaseTestPasswordResetAPI,
 )
 from openwisp_users.tests.test_api.test_throttling import (
@@ -155,6 +158,10 @@ class TestPasswordResetAPI(BaseTestPasswordResetAPI):
     pass
 
 
+class TestPasswordChangeAPI(BaseTestPasswordChangeAPI):
+    pass
+
+
 del BaseTestUsersAdmin
 del BaseTestUserPasswordExpiration
 del BaseTestBasicUsersIntegration
@@ -168,3 +175,4 @@ del BaseTestUsersApi
 del BaseTestAccountView
 del BaseTestPasswordExpirationMiddleware
 del BaseTestPasswordResetAPI
+del BaseTestPasswordChangeAPI

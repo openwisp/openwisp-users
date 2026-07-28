@@ -162,7 +162,11 @@ class OpenwispUsersConfig(AppConfig):
 
     @classmethod
     def handle_password_login(cls, request, **kwargs):
-        set_authentication_method(request, PASSWORD)
+        backend = getattr(kwargs.get("user"), "backend", "")
+        if backend == "sesame.backends.ModelBackend":
+            set_authentication_method(request, EXTERNAL)
+        else:
+            set_authentication_method(request, PASSWORD)
 
     @classmethod
     def handle_allauth_login(cls, request, sociallogin=None, **kwargs):

@@ -3,15 +3,25 @@ from html import unescape
 from urllib.parse import parse_qs, urlparse
 
 from django.core import mail
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse_lazy
 
+from openwisp_users.api.throttling import AuthRateThrottle
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 
 class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
     request_url = reverse_lazy("users:rest_password_reset")
     confirm_url = reverse_lazy("users:rest_password_reset_confirm")
+
+    def setUp(self):
+        cache.clear()
+        self._original_rate = AuthRateThrottle.rate
+        AuthRateThrottle.rate = None
+
+    def tearDown(self):
+        AuthRateThrottle.rate = self._original_rate
 
     def _get_reset_url_from_outbox(self):
         email = mail.outbox.pop()
@@ -25,6 +35,10 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         user = self._create_user(username="tester", email="tester@example.com")
         response = self.client.post(self.request_url, {"input": "tester"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            {"detail": "Password reset e-mail has been sent."},
+        )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [user.email])
 
@@ -32,6 +46,10 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         user = self._create_user(username="tester", email="tester@example.com")
         response = self.client.post(self.request_url, {"input": user.email})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            {"detail": "Password reset e-mail has been sent."},
+        )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [user.email])
 
@@ -43,6 +61,10 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         )
         response = self.client.post(self.request_url, {"input": "+12025551234"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data,
+            {"detail": "Password reset e-mail has been sent."},
+        )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [user.email])
 
@@ -51,11 +73,11 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
             self.request_url, {"input": "does-not-exist"}
         )
         self.assertEqual(unknown_user_response.status_code, 200)
-        self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            unknown_user_response.status_code, unknown_user_response.status_code
+            unknown_user_response.data,
+            {"detail": "Password reset e-mail has been sent."},
         )
-        self.assertEqual(unknown_user_response.data, unknown_user_response.data)
+        self.assertEqual(len(mail.outbox), 0)
 
     def test_reset_request_email_has_plain_and_html_parts_with_matching_link(self):
         self._create_user(username="tester", email="tester@example.com")
