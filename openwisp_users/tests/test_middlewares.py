@@ -25,14 +25,14 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_queries_middleware_absent(self):
         admin = self._create_admin()
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             response = self.client.post(
                 reverse("admin:login"),
                 data={"username": admin.username, "password": "tester"},
             )
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.url, "/admin/")
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(2):
             self.client.force_login(admin)
 
     @modify_settings(
@@ -43,7 +43,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_queries_middleware_present(self):
         admin = self._create_admin(password_updated=now().date() - timedelta(days=180))
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             response = self.client.post(
                 reverse("admin:login"),
                 data={"username": admin.username, "password": "tester"},
@@ -52,7 +52,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(response.url, "/accounts/password/change/?next=/admin/")
         self.assertEqual(self.client.session[SESSION_KEY], PASSWORD)
 
-        with self.assertNumQueries(1):
+        with self.assertNumQueries(2):
             self.client.force_login(admin)
 
     def _login_expired_admin(self):

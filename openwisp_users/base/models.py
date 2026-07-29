@@ -76,6 +76,17 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
+    last_login_method = models.CharField(
+        _("last login method"),
+        max_length=16,
+        blank=True,
+        default="",
+        help_text=_(
+            "Records whether the last login used a local password or an"
+            " external method (eg: SSO, SAML), so password expiration is"
+            " not enforced for logins that never used the password."
+        ),
+    )
     expiration_date = models.DateField(
         _("expiration date"),
         blank=True,
