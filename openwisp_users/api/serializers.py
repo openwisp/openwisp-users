@@ -5,7 +5,6 @@ from allauth.account.models import EmailAddress
 from dj_rest_auth.serializers import (
     PasswordResetSerializer as BasePasswordResetSerializer,
 )
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
@@ -508,7 +507,6 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
                 continue
             opts = {
                 "use_https": request.is_secure(),
-                "from_email": getattr(settings, "DEFAULT_FROM_EMAIL"),
                 "email_template_name": "custom_password_reset_email.html",
                 "text_template_name": "custom_password_reset_email.txt",
                 "request": request,

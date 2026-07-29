@@ -10,6 +10,10 @@ class RatelimitTests(APITestCase):
     def setUp(self):
         cache.clear()
         self._create_operator()
+        self._original_rate = AuthRateThrottle.rate
+
+    def tearDown(self):
+        AuthRateThrottle.rate = self._original_rate
 
     def test_auth_rate_throttle(self):
         AuthRateThrottle.rate = "1/day"

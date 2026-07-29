@@ -4,7 +4,6 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-from rest_framework.authtoken.models import Token
 
 from openwisp_users import settings as app_settings
 from openwisp_users.api.urls import get_api_urls
@@ -23,7 +22,7 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         self.assertIn("token", r.data)
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 10)
-    def test_obtain_auth_token_expired_password_rejected(self):
+    def test_obtain_auth_token_expired_password_success(self):
         self._create_user(
             username="tester",
             password="tester",
@@ -32,9 +31,8 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         params = {"username": "tester", "password": "tester"}
         url = reverse("users:user_auth_token")
         response = self.client.post(url, params)
-        self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data["code"], "password_expired")
-        self.assertNotIn("token", response.data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("token", response.data)
 
     def test_protected_api_mixin_view(self):
         auth_error = "Authentication credentials were not provided."

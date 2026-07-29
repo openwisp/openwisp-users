@@ -112,6 +112,11 @@ AUTHENTICATION_BACKENDS = [
     "openwisp_users.backends.UsersAuthenticationBackend",
 ]
 
+REST_AUTH = {
+    "OLD_PASSWORD_FIELD_ENABLED": True,
+    "PASSWORD_RESET_SERIALIZER": "openwisp_users.api.serializers.PasswordResetSerializer",
+}
+
 if not TESTING and SHELL:
     INSTALLED_APPS.remove("reversion")
     LOGGING = {

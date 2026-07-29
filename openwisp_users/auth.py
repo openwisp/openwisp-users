@@ -5,8 +5,8 @@ SESSION_KEY = "openwisp_auth_method"
 PASSWORD = "password"
 EXTERNAL = "external"
 
-# Shared by PasswordExpirationMiddleware and ObtainAuthTokenView so the two
-# enforcement points can't drift apart on where the change-password page lives.
+# Used by PasswordExpirationMiddleware to know where to redirect
+# when a user's password has expired.
 ACCOUNT_CHANGE_PASSWORD_PATH = reverse_lazy("account_change_password")
 # OpenWISP Users API can be disabled using the OPENWISP_USERS_AUTH_API setting.
 # We avoid using reverse_lazy here because it would raise an exception if the API is
@@ -41,6 +41,9 @@ def password_expired_response_payload(request):
     payload = {
         "detail": _("Your password has expired. Update it to continue."),
         "code": "password_expired",
+        "web_password_change_url": request.build_absolute_uri(
+            str(ACCOUNT_CHANGE_PASSWORD_PATH)
+        ),
     }
     try:
         api_password_change_url = reverse(API_PASSWORD_CHANGE_URL_NAME)
@@ -49,5 +52,13 @@ def password_expired_response_payload(request):
     else:
         payload["api_password_change_url"] = request.build_absolute_uri(
             api_password_change_url
+        )
+    try:
+        api_password_reset_url = reverse("users:rest_password_reset")
+    except NoReverseMatch:
+        pass
+    else:
+        payload["api_password_reset_url"] = request.build_absolute_uri(
+            api_password_reset_url
         )
     return payload

@@ -1,14 +1,13 @@
-from unittest.mock import patch
-
 from django.contrib.sessions.backends.db import SessionStore
 from django.test import RequestFactory, TestCase
-from django.urls import NoReverseMatch
 
 from ..auth import (
+    EXTERNAL,
     PASSWORD,
+    SESSION_KEY,
     get_authentication_method,
     is_password_authenticated,
-    password_expired_response_payload,
+    set_authentication_method,
 )
 
 
@@ -22,13 +21,14 @@ class TestAuthenticationMethodTracking(TestCase):
         self.assertEqual(get_authentication_method(request), PASSWORD)
         self.assertEqual(is_password_authenticated(request), True)
 
-    def test_payload_omits_url_when_reverse_fails(self):
-        # When OPENWISP_USERS_AUTH_API is disabled, "users:rest_password_change"
-        # is not part of the urlconf and reverse() raises NoReverseMatch.
-        # Blocking still has to work in that case, so the payload builder
-        # must degrade to omitting the key instead of propagating the error.
+    def test_set_authentication_method_with_external_login(self):
+        """
+        The public helper set_authentication_method should work for any
+        external login method (e.g. SAML).
+        """
         request = RequestFactory().get("/")
-        with patch("openwisp_users.auth.reverse", side_effect=NoReverseMatch):
-            payload = password_expired_response_payload(request)
-        self.assertNotIn("api_password_change_url", payload)
-        self.assertEqual(payload["code"], "password_expired")
+        request.session = SessionStore()
+        set_authentication_method(request, EXTERNAL)
+        self.assertEqual(request.session[SESSION_KEY], EXTERNAL)
+        self.assertEqual(get_authentication_method(request), EXTERNAL)
+        self.assertFalse(is_password_authenticated(request))

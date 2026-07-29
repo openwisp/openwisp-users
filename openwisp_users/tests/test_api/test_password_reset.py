@@ -1,13 +1,16 @@
 import re
 from html import unescape
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from django.core import mail
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse_lazy
+from rest_framework import serializers
 
 from openwisp_users.api.throttling import AuthRateThrottle
+from openwisp_users.api.views import PasswordResetConfirmView
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 
@@ -131,6 +134,47 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         user.refresh_from_db()
         self.assertEqual(user.check_password("newpassword123"), False)
 
+    def test_reset_confirm_validate_user_hook_is_called_and_can_reject(self):
+        user = self._create_user(username="tester", email="tester@example.com")
+        self.client.post(self.request_url, {"input": "tester"})
+        reset_url = self._get_reset_url_from_outbox()
+        uid, token = self._uid_and_token(reset_url)
+        with patch.object(
+            PasswordResetConfirmView,
+            "validate_user",
+            side_effect=serializers.ValidationError("not allowed"),
+        ) as mocked:
+            response = self.client.post(
+                self.confirm_url,
+                {
+                    "uid": uid,
+                    "token": token,
+                    "new_password1": "newpassword123",
+                    "new_password2": "newpassword123",
+                },
+            )
+        mocked.assert_called_once()
+        self.assertEqual(mocked.call_args.args[0].pk, user.pk)
+        self.assertEqual(response.status_code, 400)
+        user.refresh_from_db()
+        self.assertEqual(user.check_password("newpassword123"), False)
+
+    def test_reset_request_inactive_user_does_not_receive_email(self):
+        user = self._create_user(username="tester", email="tester@example.com")
+        user.is_active = False
+        user.save()
+        response = self.client.post(self.request_url, {"input": "tester"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_request_user_with_unusable_password_does_not_receive_email(self):
+        user = self._create_user(username="tester", email="tester@example.com")
+        user.set_unusable_password()
+        user.save()
+        response = self.client.post(self.request_url, {"input": "tester"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
 
 class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
     change_url = reverse_lazy("users:rest_password_change")
@@ -138,12 +182,12 @@ class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
     def test_password_change_with_valid_current_password_succeeds(self):
         user = self._create_user(username="tester", password="tester")
         self.client.force_login(user)
-        response = self.client.put(
+        response = self.client.post(
             self.change_url,
             {
-                "current_password": "tester",
-                "new_password": "newpassword123",
-                "confirm_password": "newpassword123",
+                "old_password": "tester",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
             },
             content_type="application/json",
         )
@@ -154,12 +198,12 @@ class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
     def test_password_change_with_wrong_current_password_fails(self):
         user = self._create_user(username="tester", password="tester")
         self.client.force_login(user)
-        response = self.client.put(
+        response = self.client.post(
             self.change_url,
             {
-                "current_password": "wrong-password",
-                "new_password": "newpassword123",
-                "confirm_password": "newpassword123",
+                "old_password": "wrong-password",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
             },
             content_type="application/json",
         )

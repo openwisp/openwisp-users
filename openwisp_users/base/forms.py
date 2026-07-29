@@ -1,3 +1,4 @@
+from allauth.account.utils import user_pk_to_url_str
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm as BasePasswordResetForm
@@ -21,20 +22,18 @@ class PasswordResetForm(BasePasswordResetForm):
         This allows subclasses to more easily customize the default policies
         that prevent users with unusable passwords from resetting their password.
         """
-        users = User.objects.filter(email__iexact=email)
+        users = User.objects.filter(email__iexact=email, is_active=True)
         return [user for user in users if user.has_usable_password()]
 
     def save(
         self,
         domain_override=None,
         subject_template_name="registration/password_reset_subject.txt",
-        email_template_name="registration/password_reset_email.html",
+        email_template_name="registration/password_reset_email.txt",
         text_template_name=None,
         use_https=False,
         token_generator=None,
-        from_email=None,
         request=None,
-        html_email_template_name=None,
         extra_email_context=None,
         url_generator=None,
         **kwargs,
@@ -52,16 +51,15 @@ class PasswordResetForm(BasePasswordResetForm):
 
         if extra_email_context is None:
             extra_email_context = {}
+        if not domain_override:
+            domain_override = request.get_host() if request else "example.com"
+        site_name = domain_override.split(":")[0]
         for user in self.get_users(self.cleaned_data["email"]):
-            if not domain_override:
-                domain_override = request.get_host() if request else "example.com"
-            site_name = domain_override.split(":")[0]
             token = token_generator.make_token(user)
-            uid = user.pk
             context = {
                 "email": user.email,
                 "user": user,
-                "uid": uid,
+                "uid": user_pk_to_url_str(user),
                 "user_id": user.id,
                 "token": token,
                 "site_name": site_name,
@@ -75,10 +73,8 @@ class PasswordResetForm(BasePasswordResetForm):
                 subject_template_name,
                 email_template_name,
                 context,
-                from_email,
                 user.email,
                 text_template_name=text_template_name,
-                html_email_template_name=html_email_template_name,
             )
 
     def send_mail(
@@ -86,11 +82,16 @@ class PasswordResetForm(BasePasswordResetForm):
         subject_template_name,
         email_template_name,
         context,
-        from_email,
         to_email,
         text_template_name=None,
-        html_email_template_name=None,
     ):
+        """
+        Send the password reset email.
+
+        ``openwisp_utils.admin_theme.email.send_email`` always sends from
+        ``settings.DEFAULT_FROM_EMAIL`` and has no override hook, so this
+        form does not accept a ``from_email`` argument.
+        """
         subject = context.get("subject")
         if not subject:
             subject_text = loader.render_to_string(subject_template_name, context)

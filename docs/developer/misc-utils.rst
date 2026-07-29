@@ -163,6 +163,26 @@ You can also use the backend programmatically:
     backend = UsersAuthenticationBackend()
     backend.authenticate(request, identifier, password)
 
+``set_authentication_method()``
+-------------------------------
+
+**Full python path**: ``openwisp_users.auth.set_authentication_method``.
+
+Marks the current session as authenticated via a specific method. The
+``method`` argument is a string such as ``"password"``, ``"external"``, or
+any custom value used by your project.
+
+This is used internally by authentication flows (e.g. SAML, OAuth, RADIUS)
+to record how the user authenticated. Sessions marked as ``"external"``
+are exempt from password expiration enforcement.
+
+.. code-block:: python
+
+    from openwisp_users.auth import set_authentication_method
+
+    # After a successful SAML or OAuth login
+    set_authentication_method(request, "external")
+
 ``PasswordExpirationMiddleware``
 --------------------------------
 
@@ -174,6 +194,21 @@ When the password expiration feature is enabled (see
 :ref:`OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION`), this middleware
 restricts users to the *password change view* until they change their
 password.
+
+The middleware runs **before** the view: for browser (HTML) requests it
+redirects to the password-change page, while for DRF endpoints it returns
+a JSON ``403`` response with a ``password_expired`` error code and a link
+to the password-change API endpoint.
+
+Sessions authenticated via an external method (SAML, OAuth, RADIUS, etc.)
+are **exempt**: the middleware does not block them even if the user's
+local password has technically expired. Requests that carry a ``Bearer``
+token in the ``Authorization`` header are also skipped, because the client
+is authenticating through the API rather than through the session.
+
+Pre-upgrade sessions (created before this feature was deployed) are
+treated as password-authenticated sessions by default, so expiration
+enforcement continues to work for users who were already logged in.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and
 ``MessageMiddleware``:

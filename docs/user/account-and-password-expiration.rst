@@ -73,3 +73,30 @@ staff users:
 
 If either setting is set to ``0``, password expiration is disabled for
 that user type.
+
+OAuth / SAML logins and password expiration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sessions authenticated via an external method (SAML, OAuth, etc.) are
+**exempt** from password expiration enforcement. Even if the user's local
+password has expired, the user is not blocked as long as the session is
+marked as externally authenticated.
+
+REST API behavior
+~~~~~~~~~~~~~~~~~
+
+When a password-authenticated session has expired, REST API clients
+receive a machine-readable JSON ``403`` response instead of an HTTP
+redirect. The response body includes a ``password_expired`` error code and
+URLs pointing to the web and API password-change pages, as well as the API
+password-reset endpoint:
+
+.. code-block:: json
+
+    {
+        "detail": "Your password has expired. Update it to continue.",
+        "code": "password_expired",
+        "web_password_change_url": "https://example.org/accounts/password/change/",
+        "api_password_change_url": "https://example.org/api/v1/users/user/password/change/",
+        "api_password_reset_url": "https://example.org/api/v1/users/password/reset/"
+    }

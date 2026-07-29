@@ -73,7 +73,9 @@ Indicates whether the :doc:`rest-api` is enabled or not.
 ============ ===========
 
 Indicates the rate throttling for the :ref:`obtain_auth_token` API
-endpoint.
+endpoint, as well as the :ref:`rest_password_reset`,
+:ref:`rest_password_reset_confirm` and :ref:`rest_password_change`
+endpoints.
 
 Please note that the current rate throttler is very basic and will also
 count valid requests for rate limiting. For more information, check

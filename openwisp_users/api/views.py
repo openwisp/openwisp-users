@@ -1,12 +1,12 @@
 from allauth.account.models import EmailAddress
 from allauth.account.utils import user_pk_to_url_str
+from dj_rest_auth.views import PasswordChangeView as BasePasswordChangeView
 from dj_rest_auth.views import PasswordResetConfirmView as BasePasswordResetConfirmView
 from dj_rest_auth.views import PasswordResetView as BasePasswordResetView
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import (
     GenericAPIView,
@@ -21,7 +21,6 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
-from openwisp_users.auth import password_expired_response_payload
 from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
@@ -33,7 +32,6 @@ from .serializers import (
     GroupSerializer,
     OrganizationDetailSerializer,
     OrganizationSerializer,
-    PasswordResetSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
     UserDetailSerializer,
@@ -76,7 +74,6 @@ class PasswordResetView(BasePasswordResetView):
     local login.
     """
 
-    serializer_class = PasswordResetSerializer
     throttle_classes = [AuthRateThrottle]
 
     def get_users(self, identifier):
@@ -252,18 +249,15 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class PasswordChangeView(ChangePasswordView):
+class PasswordChangeView(BasePasswordChangeView):
     """
-    Self-service alias of ChangePasswordView: the caller doesn't need to
-    already know their own pk (a REST client that just received a
-    password_expired error may not know their own pk).
+    Self-service pasword change endpoint for authenticated users.
+
+    Uses dj-rest-auth's PasswordChangeSerializer which always
+    verifies the old password, regardless of the user's role.
     """
 
-    def get_object(self):
-        return self.request.user
-
-    def get_permissions(self):
-        return [IsAuthenticated()]
+    throttle_classes = [AuthRateThrottle]
 
 
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):

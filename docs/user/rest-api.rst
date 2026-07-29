@@ -121,12 +121,12 @@ Change Own Password
 
     /api/v1/users/user/password/change/
 
-This endpoint only accepts the ``PUT`` method and lets an authenticated
-user change their own password, given their ``current_password`` and a
-``new_password`` (confirmed via ``confirm_password``). Unlike the "Change
-User password" endpoint listed below, which requires the target user's
-``id``, this endpoint always operates on the requesting user, which is
-what a client that just received a ``password_expired`` error needs.
+This endpoint accepts the ``PUT`` and ``PATCH`` methods and lets an
+authenticated user change their own password, given their ``old_password``
+and a new one (``new_password1``, confirmed via ``new_password2``). Unlike
+the "Change User password" endpoint listed below, which requires the
+target user's ``id``, this endpoint always operates on the requesting
+user.
 
 Example usage:
 
@@ -134,30 +134,9 @@ Example usage:
 
     curl -i -X PUT http://localhost:8000/api/v1/users/user/password/change/ \
         -H "Authorization: Bearer $TOKEN" \
-        -d "current_password=oldpass123" \
-        -d "new_password=newpass123" \
-        -d "confirm_password=newpass123"
-
-.. _authenticating_rest_api:
-
-Authenticating with the User Token
-----------------------------------
-
-The authentication class
-``openwisp_users.api.authentication.BearerAuthentication`` is used across
-the different OpenWISP modules for authentication.
-
-To use it, first of all get the user token as described above in
-:ref:`obtain_auth_token`, then send the token in the ``Authorization``
-header:
-
-.. code-block:: shell
-
-    # Get the bearer token
-    TOKEN=$(curl -X POST http://localhost:8000/api/v1/users/token/ -d "username=openwisp" -d "password=1234" | jq -r .token)
-
-    # Get user list, send bearer token in authorization header
-    curl http://localhost:8000/api/v1/users/user/ -H "Authorization: Bearer $TOKEN"
+        -d "old_password=oldpass123" \
+        -d "new_password1=newpass123" \
+        -d "new_password2=newpass123"
 
 List of Endpoints
 -----------------
@@ -174,6 +153,28 @@ Change User password
 .. code-block:: text
 
     PUT /api/v1/users/user/{id}/password/
+
+Request Password Reset
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/password/reset/
+
+Confirm Password Reset
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/password/reset/confirm/
+
+Change Own Password
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/password/change/
+    PATCH /api/v1/users/user/password/change/
 
 List Groups
 ~~~~~~~~~~~

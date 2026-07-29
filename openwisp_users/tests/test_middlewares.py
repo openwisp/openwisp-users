@@ -4,13 +4,13 @@ from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user, get_user_model
 from django.core import mail
-from django.test import TestCase, modify_settings
-from django.urls import reverse
+from django.test import RequestFactory, TestCase, modify_settings
+from django.urls import NoReverseMatch, reverse
 from django.utils.timezone import now, timedelta
 from rest_framework.authtoken.models import Token
 
 from .. import settings as app_settings
-from ..auth import PASSWORD, SESSION_KEY
+from ..auth import PASSWORD, SESSION_KEY, password_expired_response_payload
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -104,12 +104,12 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_expired_password_session_can_use_rest_password_change(self):
         admin = self._login_expired_admin()
-        response = self.client.put(
+        response = self.client.post(
             reverse("users:rest_password_change"),
             data={
-                "current_password": "tester",
-                "new_password": "newpassword123",
-                "confirm_password": "newpassword123",
+                "old_password": "tester",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
             },
             content_type="application/json",
         )
@@ -170,3 +170,25 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         admin.refresh_from_db()
         self.assertEqual(admin.check_password("newpassword123"), True)
+
+    def test_payload_omits_url_when_reverse_fails(self):
+        # When OPENWISP_USERS_AUTH_API is disabled, "users:rest_password_change"
+        # is not part of the urlconf and reverse() raises NoReverseMatch.
+        request = RequestFactory().get("/")
+        with patch("openwisp_users.auth.reverse", side_effect=NoReverseMatch):
+            payload = password_expired_response_payload(request)
+        self.assertNotIn("api_password_change_url", payload)
+        self.assertNotIn("api_password_reset_url", payload)
+        self.assertEqual(payload["code"], "password_expired")
+
+    def test_payload_includes_web_and_reset_urls(self):
+        request = RequestFactory().get("/")
+        payload = password_expired_response_payload(request)
+        self.assertEqual(
+            payload["web_password_change_url"],
+            request.build_absolute_uri("/accounts/password/change/"),
+        )
+        self.assertEqual(
+            payload["api_password_reset_url"],
+            request.build_absolute_uri("/api/v1/users/password/reset/"),
+        )
