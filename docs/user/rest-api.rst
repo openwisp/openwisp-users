@@ -121,18 +121,17 @@ Change Own Password
 
     /api/v1/users/user/password/change/
 
-This endpoint accepts the ``PUT`` and ``PATCH`` methods and lets an
-authenticated user change their own password, given their ``old_password``
-and a new one (``new_password1``, confirmed via ``new_password2``). Unlike
-the "Change User password" endpoint listed below, which requires the
-target user's ``id``, this endpoint always operates on the requesting
-user.
+This endpoint only accepts the ``POST`` method and lets an authenticated
+user change their own password, given their ``old_password`` and a new one
+(``new_password1``, confirmed via ``new_password2``). Unlike the "Change
+User password" endpoint listed below, which requires the target user's
+``id``, this endpoint always operates on the requesting user.
 
 Example usage:
 
 .. code-block:: shell
 
-    curl -i -X PUT http://localhost:8000/api/v1/users/user/password/change/ \
+    curl -i -X POST http://localhost:8000/api/v1/users/user/password/change/ \
         -H "Authorization: Bearer $TOKEN" \
         -d "old_password=oldpass123" \
         -d "new_password1=newpass123" \

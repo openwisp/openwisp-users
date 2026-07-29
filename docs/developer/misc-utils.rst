@@ -202,13 +202,11 @@ to the password-change API endpoint.
 
 Sessions authenticated via an external method (SAML, OAuth, RADIUS, etc.)
 are **exempt**: the middleware does not block them even if the user's
-local password has technically expired. Requests that carry a ``Bearer``
-token in the ``Authorization`` header are also skipped, because the client
-is authenticating through the API rather than through the session.
+local password has technically expired.
 
-Pre-upgrade sessions (created before this feature was deployed) are
-treated as password-authenticated sessions by default, so expiration
-enforcement continues to work for users who were already logged in.
+The middleware only enforces expiration on requests with an authenticated
+Django session; a request authenticated purely via a ``Bearer`` token
+never establishes one, so it is unaffected.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and
 ``MessageMiddleware``:

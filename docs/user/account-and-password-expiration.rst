@@ -88,8 +88,10 @@ REST API behavior
 When a password-authenticated session has expired, REST API clients
 receive a machine-readable JSON ``403`` response instead of an HTTP
 redirect. The response body includes a ``password_expired`` error code and
-URLs pointing to the web and API password-change pages, as well as the API
-password-reset endpoint:
+a URL pointing to the web password-change page. The
+``api_password_change_url`` and ``api_password_reset_url`` fields are also
+included, but only when :ref:`OpenWISP Users' REST API is enabled
+<openwisp_users_auth_api>`:
 
 .. code-block:: json
 

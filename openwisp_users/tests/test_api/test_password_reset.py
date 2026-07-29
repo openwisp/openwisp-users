@@ -72,14 +72,17 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         self.assertEqual(mail.outbox[0].to, [user.email])
 
     def test_reset_request_with_unknown_identifier_is_indistinguishable(self):
+        self._create_user(username="tester", email="tester@example.com")
+        known_user_response = self.client.post(self.request_url, {"input": "tester"})
+        mail.outbox.clear()
+
         unknown_user_response = self.client.post(
             self.request_url, {"input": "does-not-exist"}
         )
-        self.assertEqual(unknown_user_response.status_code, 200)
         self.assertEqual(
-            unknown_user_response.data,
-            {"detail": "Password reset e-mail has been sent."},
+            unknown_user_response.status_code, known_user_response.status_code
         )
+        self.assertEqual(unknown_user_response.data, known_user_response.data)
         self.assertEqual(len(mail.outbox), 0)
 
     def test_reset_request_email_has_plain_and_html_parts_with_matching_link(self):
