@@ -76,6 +76,9 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
+    # A user can only have one Token at a time. Storing this flag on the user avoids
+    # introducing a companion model for Token, keeping the implementation simpler and
+    # eliminating additional queries to determine whether the token is password-based.
     password_based_token = models.BooleanField(
         _("password based token"),
         blank=True,
