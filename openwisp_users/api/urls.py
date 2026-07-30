@@ -67,3 +67,4 @@ def get_api_urls(api_views=None):
 
 
 urlpatterns = get_api_urls()
+app_name = "users"
