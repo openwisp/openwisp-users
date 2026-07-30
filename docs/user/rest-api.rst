@@ -68,6 +68,27 @@ Example usage:
 
     {"token": "7a2e1d3d008253c123c61d56741003db5a194256"}
 
+.. _authenticating_rest_api:
+
+Authenticating with the User Token
+----------------------------------
+
+The authentication class
+``openwisp_users.api.authentication.BearerAuthentication`` is used across
+the different OpenWISP modules for authentication.
+
+To use it, first of all get the user token as described above in
+:ref:`obtain_auth_token`, then send the token in the ``Authorization``
+header:
+
+.. code-block:: shell
+
+    # Get the bearer token
+    TOKEN=$(curl -X POST http://localhost:8000/api/v1/users/token/ -d "username=openwisp" -d "password=1234" | jq -r .token)
+
+    # Get user list, send bearer token in authorization header
+    curl http://localhost:8000/api/v1/users/user/ -H "Authorization: Bearer $TOKEN"
+
 .. _rest_password_reset:
 
 Request Password Reset
