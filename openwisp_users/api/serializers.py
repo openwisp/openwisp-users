@@ -3,6 +3,9 @@ from copy import deepcopy
 
 from allauth.account.models import EmailAddress
 from dj_rest_auth.serializers import (
+    PasswordChangeSerializer as BasePasswordChangeSerializer,
+)
+from dj_rest_auth.serializers import (
     PasswordResetSerializer as BasePasswordResetSerializer,
 )
 from django.contrib.auth import get_user_model
@@ -523,6 +526,20 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
             }
             opts.update(self.get_email_options())
             self.reset_form.save(**opts)
+
+
+class PasswordChangeSerializer(BasePasswordChangeSerializer):
+    """
+    Force the ``old_password`` field to be present and validated, regardless
+    of ``REST_AUTH["OLD_PASSWORD_FIELD_ENABLED"]``. This overrides the
+    dj-rest-auth default, which disables the field by default.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_password_field_enabled = True
+        if "old_password" not in self.fields:
+            self.fields["old_password"] = serializers.CharField(max_length=128)
 
 
 class EmailAddressSerializer(ValidatedModelSerializer):

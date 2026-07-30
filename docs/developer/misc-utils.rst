@@ -205,8 +205,13 @@ are **exempt**: the middleware does not block them even if the user's
 local password has technically expired.
 
 The middleware only enforces expiration on requests with an authenticated
-Django session; a request authenticated purely via a ``Bearer`` token
-never establishes one, so it is unaffected.
+Django session; a request authenticated purely via a ``Bearer`` token,
+with no session cookie at all, never establishes one and is therefore
+unaffected. If the request carries **both** an expired-password session
+cookie and a ``Bearer`` token, the session takes precedence and the
+request is still blocked, since the middleware runs before DRF
+authentication and has no way to know yet whether the token will
+authenticate the request.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and
 ``MessageMiddleware``:

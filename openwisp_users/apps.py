@@ -165,14 +165,14 @@ class OpenwispUsersConfig(AppConfig):
         user = kwargs.get("user")
         backend = getattr(user, "backend", "")
         if backend == "sesame.backends.ModelBackend":
-            set_authentication_method(request, EXTERNAL, user=user)
+            set_authentication_method(request, EXTERNAL)
         else:
-            set_authentication_method(request, PASSWORD, user=user)
+            set_authentication_method(request, PASSWORD)
 
     @classmethod
     def handle_allauth_login(cls, request, sociallogin=None, **kwargs):
         if sociallogin is not None:
-            set_authentication_method(request, EXTERNAL, user=kwargs.get("user"))
+            set_authentication_method(request, EXTERNAL)
 
     @classmethod
     def handle_org_is_active_change(cls, instance, **kwargs):

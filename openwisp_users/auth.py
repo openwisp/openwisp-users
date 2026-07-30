@@ -1,3 +1,4 @@
+from django.contrib.auth import SESSION_KEY as AUTH_SESSION_KEY
 from django.contrib.auth import get_user_model
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -18,7 +19,8 @@ API_PASSWORD_CHANGE_URL_NAME = "users:rest_password_change"
 def record_authentication_method(user, method):
     """
     Persist the method on the user, so stateless endpoints (eg: token-based
-    APIs) can recover it later without a session.
+    APIs) can recover how the *current token* was obtained, independently
+    of whatever session the same user may separately hold in a browser.
     """
     if user is None or not user.is_authenticated:
         return
@@ -26,21 +28,26 @@ def record_authentication_method(user, method):
     get_user_model().objects.filter(pk=user.pk).update(last_login_method=method)
 
 
-def set_authentication_method(request, method, user=None):
+def set_authentication_method(request, method):
+    """
+    Mark the session as authenticated with ``method``.
+    """
     request.session[SESSION_KEY] = method
-    record_authentication_method(user or getattr(request, "user", None), method)
 
 
 def get_authentication_method(request=None, user=None):
     """
-    Sessions without a marker predate this feature, or never had one to
-    begin with (eg: token-based APIs with no session). Fall back to the
-    user's persisted ``last_login_method``, and finally to PASSWORD, so
-    expiration keeps being enforced when the method is unknown.
+    Return the authentication method used for the current request.
+
+    For session-authenticated requests, returns value from the session marker
+    Missing session markers are treated as ``PASSWORD``.
+
+    Requests without a session (for example, Bearer token authentication)
+    fall back to ``user.last_login_method``.
     """
-    method = request.session.get(SESSION_KEY) if request is not None else None
-    if method is not None:
-        return method
+    session = getattr(request, "session", None)
+    if session is not None and AUTH_SESSION_KEY in session:
+        return session.get(SESSION_KEY) or PASSWORD
     user = user if user is not None else getattr(request, "user", None)
     return getattr(user, "last_login_method", "") or PASSWORD
 

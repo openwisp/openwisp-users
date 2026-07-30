@@ -1,6 +1,6 @@
 import re
 from unittest.mock import patch
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from django.contrib.auth import get_user, get_user_model
 from django.core import mail
@@ -25,14 +25,14 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_queries_middleware_absent(self):
         admin = self._create_admin()
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.post(
                 reverse("admin:login"),
                 data={"username": admin.username, "password": "tester"},
             )
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.url, "/admin/")
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             self.client.force_login(admin)
 
     @modify_settings(
@@ -43,7 +43,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_queries_middleware_present(self):
         admin = self._create_admin(password_updated=now().date() - timedelta(days=180))
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.post(
                 reverse("admin:login"),
                 data={"username": admin.username, "password": "tester"},
@@ -52,7 +52,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(response.url, "/accounts/password/change/?next=/admin/")
         self.assertEqual(self.client.session[SESSION_KEY], PASSWORD)
 
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(1):
             self.client.force_login(admin)
 
     def _login_expired_admin(self):
@@ -133,6 +133,19 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(response.status_code, 200)
 
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_obtain_auth_token(self):
+        # the final #511 decision allows token issuance even with an
+        # expired password, so a browser holding an expired-password
+        # session must still be able to reach the token endpoint.
+        self._login_expired_admin()
+        response = self.client.post(
+            reverse("users:user_auth_token"),
+            data={"username": "admin", "password": "tester"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("token", response.json())
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
     def test_expired_password_session_can_use_rest_password_reset(self):
         self._login_expired_admin()
         response = self.client.post(
@@ -153,10 +166,12 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         email = mail.outbox.pop()
-        reset_url = re.search(r"https?://[^\s?]+\?[^\s]+", email.body).group(0)
-        query = parse_qs(urlparse(reset_url).query)
-        uid = query["uid"][0]
-        token = query["token"][0]
+        reset_url = re.search(r"https?://\S+", email.body).group(0)
+        # the emailed CTA points at allauth's HTML key page, whose path
+        # ends in "<uidb36>-<key>/"; uidb36 is alnum-only so it stops at
+        # the first "-".
+        segment = urlparse(reset_url).path.rstrip("/").rsplit("/", 1)[-1]
+        uid, token = segment.split("-", 1)
         response = self.client.post(
             reverse("users:rest_password_reset_confirm"),
             data={

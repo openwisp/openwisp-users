@@ -1,7 +1,7 @@
 import re
 from html import unescape
 from unittest.mock import patch
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from django.core import mail
 from django.core.cache import cache
@@ -28,11 +28,12 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
 
     def _get_reset_url_from_outbox(self):
         email = mail.outbox.pop()
-        return re.search(r"https?://[^\s?]+\?[^\s]+", email.body).group(0)
+        return re.search(r"https?://\S+", email.body).group(0)
 
     def _uid_and_token(self, reset_url):
-        query = parse_qs(urlparse(reset_url).query)
-        return query["uid"][0], query["token"][0]
+        segment = urlparse(reset_url).path.rstrip("/").rsplit("/", 1)[-1]
+        uid, token = segment.split("-", 1)
+        return uid, token
 
     def test_reset_request_with_valid_username_sends_email(self):
         user = self._create_user(username="tester", email="tester@example.com")
@@ -90,7 +91,7 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         response = self.client.post(self.request_url, {"input": "tester"})
         self.assertEqual(response.status_code, 200)
         email = mail.outbox[0]
-        plain_url = re.search(r"https?://[^\s?]+\?[^\s]+", email.body).group(0)
+        plain_url = re.search(r"https?://\S+", email.body).group(0)
         plain_uid, plain_token = self._uid_and_token(plain_url)
         # Verify HTML email
         self.assertEqual(len(email.alternatives), 1)
@@ -100,6 +101,14 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         html_uid, html_token = self._uid_and_token(unescape(html_url))
         self.assertEqual(plain_uid, html_uid)
         self.assertEqual(plain_token, html_token)
+
+    def test_reset_email_cta_url_is_followable_with_get(self):
+        self._create_user(username="tester", email="tester@example.com")
+        self.client.post(self.request_url, {"input": "tester"})
+        reset_url = self._get_reset_url_from_outbox()
+        response = self.client.get(urlparse(reset_url).path, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Change Password")
 
     def test_reset_confirm_with_valid_uid_and_token_changes_password(self):
         user = self._create_user(username="tester", email="tester@example.com")
@@ -211,5 +220,21 @@ class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 400)
+        user.refresh_from_db()
+        self.assertEqual(user.check_password("tester"), True)
+
+    def test_password_change_without_old_password_fails(self):
+        user = self._create_user(username="tester", password="tester")
+        self.client.force_login(user)
+        response = self.client.post(
+            self.change_url,
+            {
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("old_password", response.data)
         user.refresh_from_db()
         self.assertEqual(user.check_password("tester"), True)

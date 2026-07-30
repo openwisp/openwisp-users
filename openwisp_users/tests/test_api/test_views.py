@@ -7,6 +7,7 @@ from django.utils.timezone import now, timedelta
 
 from openwisp_users import settings as app_settings
 from openwisp_users.api.urls import get_api_urls
+from openwisp_users.auth import EXTERNAL, PASSWORD, record_authentication_method
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 
@@ -33,6 +34,17 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
         response = self.client.post(url, params)
         self.assertEqual(response.status_code, 200)
         self.assertIn("token", response.data)
+
+    def test_obtain_auth_token_stamps_password_login_method(self):
+        user = self._create_user(username="tester", password="tester")
+        record_authentication_method(user, EXTERNAL)
+        user.refresh_from_db()
+        self.assertEqual(user.last_login_method, EXTERNAL)
+        url = reverse("users:user_auth_token")
+        response = self.client.post(url, {"username": "tester", "password": "tester"})
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.last_login_method, PASSWORD)
 
     def test_protected_api_mixin_view(self):
         auth_error = "Authentication credentials were not provided."

@@ -172,8 +172,7 @@ Change Own Password
 
 .. code-block:: text
 
-    PUT /api/v1/users/user/password/change/
-    PATCH /api/v1/users/user/password/change/
+    POST /api/v1/users/user/password/change/
 
 List Groups
 ~~~~~~~~~~~

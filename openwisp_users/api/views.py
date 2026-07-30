@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import (
     GenericAPIView,
@@ -21,6 +22,7 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_users.auth import PASSWORD, record_authentication_method
 from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
@@ -64,7 +66,20 @@ class ObtainAuthTokenView(ObtainAuthToken):
         request_body=ObtainTokenRequest, responses={200: ObtainTokenResponse}
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        """
+        Record the authentication method when issuing a token.
+
+        This endpoint is stateless, so there is no session marker to identify how
+        subsequent authenticated requests were established. Persisting the method
+        here ensures token-authenticated requests can distinguish password-issued
+        tokens from those obtained through external authentication.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        token, _created = Token.objects.get_or_create(user=user)
+        record_authentication_method(user, PASSWORD)
+        return Response({"token": token.key})
 
 
 class PasswordResetView(BasePasswordResetView):
@@ -81,15 +96,15 @@ class PasswordResetView(BasePasswordResetView):
 
     def get_password_reset_url(self, user, token):
         """
-        Points the emailed link at the REST confirm endpoint instead of
-        allauth's HTML page. Isolated here so a subclass (e.g.
-        openwisp-radius) can point it at a different frontend without
-        touching token generation or email sending.
+        Returns allauth's HTML password reset URL,
+        which is used in the e-mail sent to the user.
         """
-        uid = user_pk_to_url_str(user)
-        confirm_path = reverse("users:rest_password_reset_confirm")
-        url = self.request.build_absolute_uri(confirm_path)
-        return f"{url}?uid={uid}&token={token}"
+        uidb36 = user_pk_to_url_str(user)
+        key_path = reverse(
+            "account_reset_password_from_key",
+            kwargs={"uidb36": uidb36, "key": token},
+        )
+        return self.request.build_absolute_uri(key_path)
 
 
 class PasswordResetConfirmView(BasePasswordResetConfirmView):
@@ -251,10 +266,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
 
 class PasswordChangeView(BasePasswordChangeView):
     """
-    Self-service pasword change endpoint for authenticated users.
-
-    Uses dj-rest-auth's PasswordChangeSerializer which always
-    verifies the old password, regardless of the user's role.
+    Self-service password change endpoint for authenticated users.
     """
 
     throttle_classes = [AuthRateThrottle]
