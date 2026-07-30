@@ -16,7 +16,7 @@ from django.utils.timezone import now, timedelta
 
 from .. import settings as app_settings
 from ..api.authentication import get_one_time_auth_token_for_user
-from ..auth import EXTERNAL, PASSWORD, SESSION_KEY
+from ..auth import SESSION_KEY
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -48,15 +48,15 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         request.session.save()
         self.client.cookies[settings.SESSION_COOKIE_NAME] = request.session.session_key
 
-    def test_password_login_marks_session_as_password(self):
+    def test_password_login_marks_session_as_password_based(self):
         self._create_org_user()
         self._login_user()
-        self.assertEqual(self.client.session[SESSION_KEY], PASSWORD)
+        self.assertEqual(self.client.session[SESSION_KEY], True)
 
-    def test_social_login_marks_session_as_external(self):
+    def test_social_login_marks_session_as_not_password_based(self):
         user = self._create_org_user().user
         self._complete_social_login(user)
-        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+        self.assertEqual(self.client.session[SESSION_KEY], False)
 
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_external_session_bypasses_expired_password_check(self):
@@ -64,10 +64,9 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         User.objects.update(password_updated=now() - timedelta(days=60))
         user.refresh_from_db()
         self.assertEqual(user.has_password_expired(), True)
-        # PasswordExpirationMiddleware must not block a session marked EXTERNAL
-        # logged in using social login, even if the user's local password has expired.
+        # Password expiration is enforced only for password-based sessions.
         self._complete_social_login(user)
-        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+        self.assertEqual(self.client.session[SESSION_KEY], False)
         response = self.client.get(reverse("admin:index"))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(
@@ -76,7 +75,7 @@ class TestAccountView(TestOrganizationMixin, TestCase):
 
     @modify_settings(AUTHENTICATION_BACKENDS={"append": "sesame.backends.ModelBackend"})
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
-    def test_sesame_login_marks_session_as_external(self):
+    def test_sesame_login_marks_session_as_not_password_based(self):
         user = self._create_administrator(organizations=[self._get_org()])
         User.objects.update(password_updated=now() - timedelta(days=60))
         user.refresh_from_db()
@@ -91,7 +90,7 @@ class TestAccountView(TestOrganizationMixin, TestCase):
         auth_login(request, authenticated_user)
         request.session.save()
         self.client.cookies[settings.SESSION_COOKIE_NAME] = request.session.session_key
-        self.assertEqual(self.client.session[SESSION_KEY], EXTERNAL)
+        self.assertEqual(self.client.session[SESSION_KEY], False)
         response = self.client.get(reverse("admin:index"))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(

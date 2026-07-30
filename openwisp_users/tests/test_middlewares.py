@@ -10,7 +10,7 @@ from django.utils.timezone import now, timedelta
 from rest_framework.authtoken.models import Token
 
 from .. import settings as app_settings
-from ..auth import PASSWORD, SESSION_KEY, password_expired_response_payload
+from ..auth import SESSION_KEY, password_expired_response_payload
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -50,7 +50,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
             )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, "/accounts/password/change/?next=/admin/")
-        self.assertEqual(self.client.session[SESSION_KEY], PASSWORD)
+        self.assertEqual(self.client.session[SESSION_KEY], True)
 
         with self.assertNumQueries(1):
             self.client.force_login(admin)

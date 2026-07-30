@@ -22,7 +22,7 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
-from openwisp_users.auth import PASSWORD, record_authentication_method
+from openwisp_users.auth import record_password_based_token
 from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
@@ -70,15 +70,16 @@ class ObtainAuthTokenView(ObtainAuthToken):
         Record the authentication method when issuing a token.
 
         This endpoint is stateless, so there is no session marker to identify how
-        subsequent authenticated requests were established. Persisting the method
-        here ensures token-authenticated requests can distinguish password-issued
-        tokens from those obtained through external authentication.
+        subsequent authenticated requests were established. Persisting
+        ``password_based_token`` here ensures token-authenticated requests can
+        distinguish password-issued tokens from those obtained through external
+        authentication.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         token, _created = Token.objects.get_or_create(user=user)
-        record_authentication_method(user, PASSWORD)
+        record_password_based_token(user, True)
         return Response({"token": token.key})
 
 

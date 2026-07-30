@@ -15,7 +15,7 @@ from openwisp_utils import settings as utils_settings
 from openwisp_utils.admin_theme.menu import register_menu_group
 
 from . import settings as app_settings
-from .auth import EXTERNAL, PASSWORD, set_authentication_method
+from .auth import record_password_based_login
 
 logger = logging.getLogger(__name__)
 
@@ -140,15 +140,16 @@ class OpenwispUsersConfig(AppConfig):
             sender=OrganizationUser,
             dispatch_uid="make_first_org_user_org_owner",
         )
-        self.connect_authentication_method_signals()
+        self.connect_password_based_login_signals()
 
-    def connect_authentication_method_signals(self):
+    def connect_password_based_login_signals(self):
         """
-        Connect signal handlers that record the authentication method.
+        Connect signal handlers that record whether the session was
+        authenticated with the local password.
 
-        ``request.user.backend`` cannot distinguish different login methods.
-        The connected receivers use Django's
-        ``user_logged_in`` signal as the default, and
+        ``request.user.backend`` alone cannot distinguish a sesame
+        (passwordless) login from a regular one. The connected receivers use
+        Django's ``user_logged_in`` signal as the default, and
         ``allauth_user_logged_in`` signal to override it for social logins.
         """
         user_logged_in.connect(
@@ -165,14 +166,14 @@ class OpenwispUsersConfig(AppConfig):
         user = kwargs.get("user")
         backend = getattr(user, "backend", "")
         if backend == "sesame.backends.ModelBackend":
-            set_authentication_method(request, EXTERNAL)
+            record_password_based_login(request, False)
         else:
-            set_authentication_method(request, PASSWORD)
+            record_password_based_login(request, True)
 
     @classmethod
     def handle_allauth_login(cls, request, sociallogin=None, **kwargs):
         if sociallogin is not None:
-            set_authentication_method(request, EXTERNAL)
+            record_password_based_login(request, False)
 
     @classmethod
     def handle_org_is_active_change(cls, instance, **kwargs):

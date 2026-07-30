@@ -3,13 +3,10 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.test import RequestFactory, TestCase
 
 from ..auth import (
-    EXTERNAL,
-    PASSWORD,
     SESSION_KEY,
-    get_authentication_method,
-    is_password_authenticated,
-    record_authentication_method,
-    set_authentication_method,
+    is_password_based_login,
+    record_password_based_login,
+    record_password_based_token,
 )
 from .utils import TestOrganizationMixin
 
@@ -27,58 +24,53 @@ def _authenticated_session(user):
     return session
 
 
-class TestAuthenticationMethodTracking(TestOrganizationMixin, TestCase):
+class TestPasswordBasedLoginTracking(TestOrganizationMixin, TestCase):
     def test_missing_session_marker_defaults_to_password(self):
         # A session established before this feature existed (or that never
         # marked itself) has no marker; it must keep being treated as
-        # password-authenticated so expiration enforcement does not
-        # silently change for it.
+        # password-based so expiration enforcement does not silently change
+        # for it.
         user = self._get_user()
         request = RequestFactory().get("/")
         request.session = _authenticated_session(user)
-        self.assertEqual(get_authentication_method(request), PASSWORD)
-        self.assertEqual(is_password_authenticated(request), True)
+        self.assertEqual(is_password_based_login(request), True)
 
-    def test_stateless_caller_falls_back_to_persisted_method(self):
+    def test_stateless_caller_falls_back_to_persisted_token(self):
         # No request/session at all (eg: a Bearer-token endpoint): the
-        # only signal available is the persisted last_login_method.
+        # only signal available is the persisted password_based_token.
         user = self._get_user()
-        self.assertEqual(user.last_login_method, "")
-        self.assertEqual(get_authentication_method(user=user), PASSWORD)
-        self.assertEqual(is_password_authenticated(user=user), True)
+        self.assertEqual(user.password_based_token, None)
+        self.assertEqual(is_password_based_login(user=user), True)
 
-        record_authentication_method(user, EXTERNAL)
+        record_password_based_token(user, False)
         user.refresh_from_db()
-        self.assertEqual(get_authentication_method(user=user), EXTERNAL)
-        self.assertEqual(is_password_authenticated(user=user), False)
+        self.assertEqual(is_password_based_login(user=user), False)
 
-    def test_request_with_no_session_falls_back_to_persisted_method(self):
+    def test_request_with_no_session_falls_back_to_persisted_token(self):
         user = self._get_user()
-        record_authentication_method(user, EXTERNAL)
+        record_password_based_token(user, False)
         user.refresh_from_db()
         request = RequestFactory().get("/")
         request.user = user
-        self.assertEqual(get_authentication_method(request), EXTERNAL)
-        self.assertEqual(is_password_authenticated(request), False)
+        self.assertEqual(is_password_based_login(request), False)
 
-    def test_unmarked_session_ignores_other_sessions_persisted_method(self):
+    def test_unmarked_session_ignores_other_sessions_persisted_token(self):
         # Two independent sessions for the same user: session A is
         # session-authenticated but never set a marker of its own. A later
-        # external login in session B persists EXTERNAL on the user, but
-        # that must not change how session A is classified, or an SSO
-        # login elsewhere would silently unblock an unrelated
-        # expired-password session.
+        # non-password login in session B persists False on the user, but
+        # that must not change how session A is classified, or an SSO login
+        # elsewhere would silently unblock an unrelated expired-password
+        # session.
         user = self._get_user()
         session_a = RequestFactory().get("/")
         session_a.session = _authenticated_session(user)
         session_b = RequestFactory().get("/")
         session_b.session = _authenticated_session(user)
-        set_authentication_method(session_b, EXTERNAL)
-        record_authentication_method(user, EXTERNAL)
+        record_password_based_login(session_b, False)
+        record_password_based_token(user, False)
         user.refresh_from_db()
-        self.assertEqual(user.last_login_method, EXTERNAL)
-        self.assertEqual(get_authentication_method(session_a), PASSWORD)
-        self.assertEqual(is_password_authenticated(session_a), True)
+        self.assertEqual(user.password_based_token, False)
+        self.assertEqual(is_password_based_login(session_a), True)
 
     def test_unmarked_session_ignores_other_sessions_password_login(self):
         # The converse: a later password login in session B must not
@@ -86,29 +78,27 @@ class TestAuthenticationMethodTracking(TestOrganizationMixin, TestCase):
         user = self._get_user()
         session_a = RequestFactory().get("/")
         session_a.session = _authenticated_session(user)
-        session_a.session[SESSION_KEY] = EXTERNAL
+        session_a.session[SESSION_KEY] = False
         session_b = RequestFactory().get("/")
         session_b.session = _authenticated_session(user)
         session_b.user = user
-        set_authentication_method(session_b, PASSWORD)
-        record_authentication_method(user, PASSWORD)
+        record_password_based_login(session_b, True)
+        record_password_based_token(user, True)
         user.refresh_from_db()
-        self.assertEqual(user.last_login_method, PASSWORD)
-        self.assertEqual(get_authentication_method(session_a), EXTERNAL)
-        self.assertEqual(is_password_authenticated(session_a), False)
+        self.assertEqual(user.password_based_token, True)
+        self.assertEqual(is_password_based_login(session_a), False)
 
-    def test_set_authentication_method_with_external_login(self):
+    def test_record_password_based_login_with_external_login(self):
         """
-        The public helper set_authentication_method should work for any
-        external login method (e.g. SAML).
+        The public helper record_password_based_login should work for any
+        non-password login (e.g. SAML).
         """
         user = self._get_user()
         request = RequestFactory().get("/")
         request.session = _authenticated_session(user)
         request.user = user
-        set_authentication_method(request, EXTERNAL)
-        self.assertEqual(request.session[SESSION_KEY], EXTERNAL)
-        self.assertEqual(get_authentication_method(request), EXTERNAL)
-        self.assertEqual(is_password_authenticated(request), False)
+        record_password_based_login(request, False)
+        self.assertEqual(request.session[SESSION_KEY], False)
+        self.assertEqual(is_password_based_login(request), False)
         request.user.refresh_from_db()
-        self.assertEqual(request.user.last_login_method, "")
+        self.assertEqual(request.user.password_based_token, None)

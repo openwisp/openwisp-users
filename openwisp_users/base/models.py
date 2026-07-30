@@ -76,15 +76,17 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
-    last_login_method = models.CharField(
-        _("last login method"),
-        max_length=16,
+    password_based_token = models.BooleanField(
+        _("password based token"),
         blank=True,
-        default="",
+        null=True,
+        default=None,
         help_text=_(
-            "Records whether the last login used a local password or an"
-            " external method (eg: SSO, SAML), so password expiration is"
-            " not enforced for logins that never used the password."
+            "Indicates whether the last authentication token was obtained"
+            " using the local password. When false, the token came from an"
+            " external method (eg: SSO, SAML) and password expiration is"
+            " not enforced for it. None means no token has been issued for"
+            " this user since this feature was introduced."
         ),
     )
     expiration_date = models.DateField(

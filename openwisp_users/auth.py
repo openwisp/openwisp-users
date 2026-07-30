@@ -3,9 +3,7 @@ from django.contrib.auth import get_user_model
 from django.urls import NoReverseMatch, reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
-SESSION_KEY = "openwisp_auth_method"
-PASSWORD = "password"
-EXTERNAL = "external"
+SESSION_KEY = "openwisp_password_based_login"
 
 # Used by PasswordExpirationMiddleware to know where to redirect
 # when a user's password has expired.
@@ -16,44 +14,46 @@ ACCOUNT_CHANGE_PASSWORD_PATH = reverse_lazy("account_change_password")
 API_PASSWORD_CHANGE_URL_NAME = "users:rest_password_change"
 
 
-def record_authentication_method(user, method):
+def record_password_based_token(user, password_based):
     """
-    Persist the method on the user, so stateless endpoints (eg: token-based
-    APIs) can recover how the *current token* was obtained, independently
-    of whatever session the same user may separately hold in a browser.
+    Persist on the user whether the token just issued was obtained with the
+    local password, so stateless endpoints (eg: token-based APIs) can
+    recover how the *current token* was obtained, independently of whatever
+    session the same user may separately hold in a browser.
     """
     if user is None or not user.is_authenticated:
         return
-    user.last_login_method = method
-    get_user_model().objects.filter(pk=user.pk).update(last_login_method=method)
+    user.password_based_token = password_based
+    get_user_model().objects.filter(pk=user.pk).update(
+        password_based_token=password_based
+    )
 
 
-def set_authentication_method(request, method):
+def record_password_based_login(request, password_based):
     """
-    Mark the session as authenticated with ``method``.
+    Record on the session whether the user logged in with the local password.
     """
-    request.session[SESSION_KEY] = method
+    request.session[SESSION_KEY] = password_based
 
 
-def get_authentication_method(request=None, user=None):
+def is_password_based_login(request=None, user=None):
     """
-    Return the authentication method used for the current request.
+    Return whether the local password was used to authenticate.
 
-    For session-authenticated requests, returns value from the session marker
-    Missing session markers are treated as ``PASSWORD``.
+    Session-authenticated requests are answered from the session marker; a
+    missing marker means password-based, so expiration enforcement does not
+    silently change for sessions established before this feature existed.
 
     Requests without a session (for example, Bearer token authentication)
-    fall back to ``user.last_login_method``.
+    fall back to the persisted ``user.password_based_token``, where ``None``
+    (no token issued since this feature was introduced) also means
+    password-based.
     """
     session = getattr(request, "session", None)
     if session is not None and AUTH_SESSION_KEY in session:
-        return session.get(SESSION_KEY) or PASSWORD
+        return session.get(SESSION_KEY) is not False
     user = user if user is not None else getattr(request, "user", None)
-    return getattr(user, "last_login_method", "") or PASSWORD
-
-
-def is_password_authenticated(request=None, user=None):
-    return get_authentication_method(request, user=user) != EXTERNAL
+    return getattr(user, "password_based_token", None) is not False
 
 
 def password_expired_response_payload(request):

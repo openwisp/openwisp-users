@@ -77,10 +77,10 @@ that user type.
 OAuth / SAML logins and password expiration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sessions authenticated via an external method (SAML, OAuth, etc.) are
-**exempt** from password expiration enforcement. Even if the user's local
-password has expired, the user is not blocked as long as the session is
-marked as externally authenticated.
+Sessions that did not log in with the local password (SAML, OAuth, etc.)
+are **exempt** from password expiration enforcement. Even if the user's
+local password has expired, the user is not blocked as long as the session
+was not marked as password-based.
 
 REST API behavior
 ~~~~~~~~~~~~~~~~~

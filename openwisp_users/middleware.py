@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from .auth import (
     ACCOUNT_CHANGE_PASSWORD_PATH,
     API_PASSWORD_CHANGE_URL_NAME,
-    is_password_authenticated,
+    is_password_based_login,
     password_expired_response_payload,
 )
 
@@ -24,7 +24,7 @@ class PasswordExpirationMiddleware:
     returning a JSON 403 for DRF requests instead.
 
     Only sessions authenticated with a local password are enforced
-    (``is_password_authenticated``): SSO/SAML/OAuth sessions are exempt even if
+    (``is_password_based_login``): SSO/SAML/OAuth sessions are exempt even if
     the local password has technically expired.
     """
 
@@ -68,7 +68,7 @@ class PasswordExpirationMiddleware:
         return (
             request.user.is_authenticated
             and request.user.has_password_expired()
-            and is_password_authenticated(request)
+            and is_password_based_login(request)
         )
 
     def _blocked_response(self, request):
