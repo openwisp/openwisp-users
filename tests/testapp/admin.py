@@ -7,7 +7,7 @@ from openwisp_users.multitenancy import (
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Book, Library, Shelf, Tag, Template
+from .models import Book, Config, Library, Shelf, Tag, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -73,8 +73,16 @@ class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
     multitenant_parent = "book"
 
 
+class ConfigAdmin(BaseAdmin):
+    # Dedicated admin used to test the disabled_organization_write_protection
+    # opt-out through the admin URLs
+    disabled_organization_write_protection = False
+    fields = ["name", "organization", "template"]
+
+
 admin.site.register(Shelf, ShelfAdmin)
 admin.site.register(Book, BookAdmin)
 admin.site.register(Template, TemplateAdmin)
 admin.site.register(Library, LibraryParentAdmin)
 admin.site.register(Tag, TagAdmin)
+admin.site.register(Config, ConfigAdmin)

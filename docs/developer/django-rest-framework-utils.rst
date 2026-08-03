@@ -141,6 +141,13 @@ This object-level permission class blocks updating an object that belongs
 to a :ref:`disabled organization <disabling_an_organization>`. Read (safe
 methods) and ``DELETE`` remain allowed.
 
+The object's organization is located through the view's
+``organization_field`` attribute (default ``"organization"``). If that
+traversal fails, for example because ``organization_field`` is misspelled
+or points to a relation that does not exist, the class **fails closed**
+and denies the write. A view whose objects are genuinely
+not tied to an organization must therefore opt out explicitly.
+
 .. important::
 
     ``DisabledOrgReadOnly`` guards **updates only**. It implements

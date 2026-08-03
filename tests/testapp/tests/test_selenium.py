@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.db.models import Q
@@ -15,6 +16,7 @@ from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 from .mixins import TestMultitenancyMixin
 
 Organization = load_model("openwisp_users", "Organization")
+User = get_user_model()
 
 
 @tag("selenium_tests")
@@ -152,4 +154,15 @@ class TestOrganizationAutocompleteField(
             org_select = Select(self.find_element(By.CSS_SELECTOR, "#id_organization"))
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
+        self.logout()
+
+    def test_user_add_form_does_not_hang(self):
+        path = reverse(f"admin:{User._meta.app_label}_user_add")
+        self.login(username=self.admin_username, password=self.admin_password)
+        self.open(path)
+        WebDriverWait(self.web_driver, 5).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "select[id$='-organization'] + span.select2")
+            )
+        )
         self.logout()

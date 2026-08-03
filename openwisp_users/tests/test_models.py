@@ -442,8 +442,9 @@ class TestUsers(TestOrganizationMixin, TestCase):
             ):
                 org_user.full_clean()
             # deleting the row must still work
+            pk = org_user.pk
             org_user.delete()
-            self.assertEqual(OrganizationUser.objects.filter(pk=org_user.pk).count(), 0)
+            self.assertEqual(OrganizationUser.objects.filter(pk=pk).count(), 0)
 
         with self.subTest("move an existing membership to a disabled organization"):
             active_org = self._create_org(name="active-org")
@@ -455,6 +456,21 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 ValidationError,
                 "Memberships of a disabled organization cannot be modified.",
             ):
+                org_user.full_clean()
+
+        with self.subTest("move a disabled-org membership to an active organization"):
+            org = self._create_org(name="test-org-move-out")
+            active_org = self._create_org(name="active-org-move-target")
+            user = self._create_user(username="user8", email="user8@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.organization = active_org
                 org_user.full_clean()
 
         with self.subTest("unchanged membership of a disabled organization passes"):
@@ -505,10 +521,26 @@ class TestUsers(TestOrganizationMixin, TestCase):
             )
             org.is_active = False
             org.save()
+            pk = org_owner.pk
             org_owner.delete()
-            self.assertEqual(
-                OrganizationOwner.objects.filter(pk=org_owner.pk).count(), 0
+            self.assertEqual(OrganizationOwner.objects.filter(pk=pk).count(), 0)
+
+        with self.subTest("move a disabled-org owner to an active organization"):
+            org = self._create_org(name="test-org-owner-move-out")
+            active_org = self._create_org(name="active-org-owner-target")
+            user = self._create_user(username="user9", email="user9@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
             )
+            org.is_active = False
+            org.save()
+            org_owner.refresh_from_db()
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot assign an owner to a disabled organization."
+            ):
+                org_owner.organization = active_org
+                org_owner.full_clean()
 
         with self.subTest("unchanged owner of a disabled organization passes"):
             org = self._create_org(name="test-org-owner-noop")

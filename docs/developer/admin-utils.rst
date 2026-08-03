@@ -64,6 +64,12 @@ is an object that already belongs to a disabled organization on a
 ``ModelAdmin`` with the opt-out set: its own (disabled) organization stays
 selectable in the field so the existing value can still be saved.
 
+The organization admin extends this protection to its **inlines**: when an
+organization is disabled, every inline attached to the organization change
+page becomes read-only, while deletion of the inline rows stays available.
+An inline can opt out by setting ``disabled_organization_write_protection
+= False`` on its class.
+
 ``MultitenantOrgFilter``
 ------------------------
 
