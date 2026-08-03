@@ -115,8 +115,12 @@ class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
         try:
             organization = self.get_object_organization(view, obj)
         except AttributeError:
-            # object has no organization field, rule not applicable
-            return True
+            # A broken or misspelled organization_field must not fail open,
+            # so a misconfiguration cannot silently grant write access. Views
+            # that are genuinely not organization-bound opt out explicitly with
+            # allow_disabled_organization_writes = True instead of relying on
+            # this path.
+            return False
         return organization is None or organization.is_active
 
 

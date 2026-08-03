@@ -162,7 +162,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
             ):
                 org_user = org_owner.get("organization_user")
                 with transaction.atomic():
-                    org_owner = OrganizationOwner.objects.create(
+                    org_owner = OrganizationOwner(
                         organization=instance, organization_user=org_user
                     )
                     _full_clean_or_raise(org_owner)
@@ -179,7 +179,7 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                     org_user = org_owner.get("organization_user")
                     with transaction.atomic():
                         existing_owner.first().delete()
-                        org_owner = OrganizationOwner.objects.create(
+                        org_owner = OrganizationOwner(
                             organization=instance, organization_user=org_user
                         )
                         _full_clean_or_raise(org_owner)
@@ -335,7 +335,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         with transaction.atomic():
             instance = self.instance or self.Meta.model(**validated_data)
             instance.set_password(password)
-            instance.full_clean()
+            _full_clean_or_raise(instance)
             instance.save()
 
             if group_data:
@@ -417,12 +417,17 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             except OrganizationUser.DoesNotExist:
                 pass
             if org_user:
-                if org_user.is_admin != org_user_data.get("is_admin"):
-                    org_user.is_admin = org_user_data["is_admin"]
-                    _full_clean_or_raise(org_user)
-                    org_user.save()
-                else:
-                    org_user.delete()
+                # Explicit contract for an existing membership:
+                # - is_admin omitted: leave the membership unchanged
+                # - is_admin sent and changed: update it;
+                # - is_admin sent unchanged -> remove the membership
+                if "is_admin" in org_user_data:
+                    if org_user.is_admin != org_user_data["is_admin"]:
+                        org_user.is_admin = org_user_data["is_admin"]
+                        _full_clean_or_raise(org_user)
+                        org_user.save()
+                    else:
+                        org_user.delete()
             else:
                 org_user_data["user"] = instance
                 org_user_instance = OrganizationUser(**org_user_data)

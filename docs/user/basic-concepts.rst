@@ -161,7 +161,7 @@ organization).
 
 Disabling an organization does not delete anything: all of its data,
 including users, memberships, and related objects, remains fully
-**readable** and **deletable**. What changes is:
+**readable** and **deletable** for superusers. What changes is:
 
 - **No new object can be created for a disabled organization**, and
   **existing objects belonging to it cannot be modified**, superusers

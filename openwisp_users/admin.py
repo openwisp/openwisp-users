@@ -632,7 +632,9 @@ class OrganizationAdmin(
 
     def get_inline_instances(self, request, obj=None):
         """
-        Remove OrganizationOwnerInline from organization add form
+        Remove OrganizationOwnerInline from the organization add form, and,
+        when the organization is disabled, make every inline write-protected
+        (no add, no change) while keeping deletion available.
         """
         inlines = super().get_inline_instances(request, obj).copy()
         if not obj:
@@ -640,7 +642,20 @@ class OrganizationAdmin(
                 if isinstance(inline, OrganizationOwnerInline):
                     inlines.remove(inline)
                     break
+            return inlines
+        if not obj.is_active:
+            for inline in inlines:
+                if getattr(inline, "disabled_organization_write_protection", True):
+                    self._make_inline_disabled_org_readonly(inline)
         return inlines
+
+    @staticmethod
+    def _make_inline_disabled_org_readonly(inline):
+        # Deny add and change on this inline instance while leaving delete
+        # untouched, so a disabled organization's related objects can be
+        # removed but not created or modified.
+        inline.has_add_permission = lambda request, obj=None: False
+        inline.has_change_permission = lambda request, obj=None: False
 
     def has_change_permission(self, request, obj=None):
         """
