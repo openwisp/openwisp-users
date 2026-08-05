@@ -2037,8 +2037,10 @@ class TestUsersAdmin(
         request = RequestFactory().get("/")
         request.user = self._get_admin()
         inlines = list(org_admin.get_inline_instances(request, disabled_org))
-        for inline in self._get_disabled_org_test_excluded_inline():
-            inlines.pop(inline, None)
+        for inline in inlines:
+            for excluded_inlines in self._get_disabled_org_test_excluded_inline():
+                if isinstance(inline, excluded_inlines):
+                    inlines.remove(inline)
         self._test_disabled_org_admin_inline_readonly(
             org_admin, disabled_org, active_obj=active_org, inline_admins=inlines
         )
