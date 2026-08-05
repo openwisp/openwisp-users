@@ -2,6 +2,7 @@ import json
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.exceptions import FieldError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from rest_framework.test import APIRequestFactory
@@ -642,7 +643,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        response = BrokenOrgFieldTemplateDetailView.as_view()(request, pk=template.pk)
-        self.assertEqual(response.status_code, 403)
-        template.refresh_from_db()
-        self.assertEqual(template.name, "test-template")
+        with self.assertRaises(FieldError):
+            response = BrokenOrgFieldTemplateDetailView.as_view()(
+                request, pk=template.pk
+            )

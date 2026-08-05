@@ -23,6 +23,8 @@ DISABLED_ORGANIZATION_ERROR_MESSAGE = _(
 
 
 class OrgLookup:
+    select_related_organization = True
+
     @property
     def org_field(self):
         return getattr(self, "organization_field", "organization")
@@ -64,6 +66,8 @@ class FilterByOrganization(OrgLookup):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if getattr(self, "select_related_organization", True):
+            qs = qs.select_related(self.org_field)
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
@@ -118,6 +122,8 @@ class FilterByParent(OrgLookup):
         parent_queryset = self.get_parent_queryset()
         if not self.request.user.is_superuser:
             parent_queryset = self.get_organization_queryset(parent_queryset)
+        if getattr(self, "select_related_organization", True):
+            parent_queryset = parent_queryset.select_related(self.org_field)
         try:
             assert parent_queryset.exists()
         except (AssertionError, ValidationError):

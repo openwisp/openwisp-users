@@ -13,7 +13,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.template.defaultfilters import date
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, now, timedelta
 from freezegun import freeze_time
@@ -98,6 +98,9 @@ class TestUsersAdmin(
             if generate_token:
                 params.update({"auth_token-0-generate_token": "on"})
         return params
+
+    def _get_disabled_org_test_excluded_inline(self):
+        return []
 
     @property
     def add_user_inline_params(self):
@@ -2011,8 +2014,13 @@ class TestUsersAdmin(
         org_admin = OrganizationAdmin(Organization, django_admin.site)
         active_org = self._create_org(name="active-inline-org")
         disabled_org = self._create_org(name="disabled-inline-org", is_active=False)
+        request = RequestFactory().get("/")
+        request.user = self._get_admin()
+        inlines = list(org_admin.get_inline_instances(request, disabled_org))
+        for inline in self._get_disabled_org_test_excluded_inline():
+            inlines.pop(inline, None)
         self._test_disabled_org_admin_inline_readonly(
-            org_admin, disabled_org, active_obj=active_org
+            org_admin, disabled_org, active_obj=active_org, inline_admins=inlines
         )
 
     def test_organization_user_admin_disabled_organization(self):
