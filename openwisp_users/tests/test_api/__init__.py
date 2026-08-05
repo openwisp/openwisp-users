@@ -14,36 +14,6 @@ class AuthenticationMixin:
 
 
 class TestDisabledOrgApiMixin(TestDisabledOrgMixin):
-    """
-    Reusable assertions for the REST API's disabled-organization guard
-    (``DisabledOrgReadOnly`` plus the ``organization`` field filtering
-    performed by the ``FilterSerializerByOrganization`` subclasses), for
-    downstream OpenWISP modules to exercise against their own
-    org-scoped API views without re-implementing the request plumbing.
-
-    Must be composed alongside ``AuthenticationMixin`` (for
-    ``_obtain_auth_token``), which every existing composite in this
-    codebase using this mixin already includes.
-
-    Prerequisite (not enforced by this mixin): the serializer behind the
-    create payload must filter its ``organization`` field to active
-    organizations for the "create" assertion below to hold - one of
-    ``FilterSerializerByOrgManaged``/``Membership``/``Owned``, or an
-    equivalent explicit queryset, see
-    ``openwisp_users/api/mixins.py:FilterSerializerByOrganization``.
-
-    Note: the default expectations assume the view uses
-    ``IsOrganizationManager`` in its ``permission_classes``. Once an
-    organization is disabled, it drops out of every user's
-    ``organizations_managed`` (see ``organizations_dict``), so an
-    "org_admin" who managed only that organization has an empty
-    ``organizations_managed`` list. ``IsOrganizationManager.has_permission()``
-    blocks every request with 403 because the user no longer manages any
-    active organization. The superuser bypasses this check but is still
-    blocked by ``DisabledOrgReadOnly`` on update. This is why the two
-    roles have different default expectations below.
-    """
-
     disabled_org_api_default_expectations = {
         "superuser": {
             "list": {"status": 200, "object_present": True},
