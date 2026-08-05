@@ -397,6 +397,7 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         disabled_obj,
         active_obj=None,
         inline_models=None,
+        inline_admins=None,
         user=None,
     ):
         """
@@ -416,7 +417,9 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         request = RequestFactory().get("/")
         request.user = user or self._get_admin()
 
-        inlines = model_admin.get_inline_instances(request, disabled_obj)
+        inlines = inline_admins or model_admin.get_inline_instances(
+            request, disabled_obj
+        )
         if inline_models is not None:
             inlines = [i for i in inlines if isinstance(i, inline_models)]
         self.assertNotEqual(inlines, [])
