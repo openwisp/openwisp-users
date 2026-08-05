@@ -190,8 +190,19 @@ class FilterSerializerByOrganization(OrgLookup):
                 self.fields[field].queryset = queryset
                 continue
             if is_superuser_or_anonymous:
+                try:
+                    self.fields[field].queryset = self.fields[field].queryset.filter(
+                        Q(**{f"{self.org_field}__is_active": True}) | Q(**{f"{self.org_field}__isnull": True})
+                    )
+                except AttributeError:
+                    pass
                 continue
-            conditions = Q(**{self.organization_lookup: organization_filter})
+            conditions = Q(
+                **{
+                    self.organization_lookup: organization_filter,
+                    f"{self.org_field}__is_active": True,
+                }
+            )
             if self.include_shared:
                 conditions |= Q(organization__isnull=True)
             try:

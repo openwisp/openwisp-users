@@ -2,6 +2,7 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.test import RequestFactory
 from django.urls import reverse
 from swapper import load_model
 
@@ -170,7 +171,273 @@ class TestOrganizationMixin(object):
         return org_owner
 
 
-class TestMultitenantAdminMixin(TestOrganizationMixin):
+class TestDisabledOrgMixin(TestOrganizationMixin):
+    """
+    Shared helper for the disabled-organization admin and API test
+    mixins: creating the "superuser" / "org_admin" role users.
+    """
+
+    def _disabled_org_role_user(self, role, organization=None, **kwargs):
+        """
+        Returns the user impersonating ``role``:
+        "superuser" is a superuser (``_get_admin()``/``_create_admin()``
+        when ``kwargs`` is given, to avoid username collisions across
+        multiple calls in the same test); "org_admin" is a staff user in
+        the "Administrator" group who is (or, since ``organization`` is
+        disabled, *was*) its manager (``_create_administrator``, i.e. an
+        ``OrganizationUser`` with ``is_admin=True`` - this codebase's
+        existing meaning of "organization admin", not ``is_staff``).
+        """
+        if role == "superuser":
+            return self._create_admin(**kwargs) if kwargs else self._get_admin()
+        if role == "org_admin":
+            if organization is None:
+                raise ValueError('role "org_admin" requires organization=')
+            return self._create_administrator(organizations=[organization], **kwargs)
+        raise ValueError(f"Unknown role: {role!r}")
+
+
+class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
+    """
+    Reusable assertions for ``MultitenantAdminMixin``'s
+    disabled-organization write protection (``has_change_permission`` /
+    ``_edit_form``), for downstream OpenWISP modules to exercise against
+    their own org-scoped ``ModelAdmin`` classes without re-implementing
+    the request plumbing. ``obj`` must already belong to a disabled
+    organization (or be reachable through ``multitenant_parent`` from
+    one) before any of these are called; creating/disabling the
+    organization is left to the caller.
+
+    Note: once an organization is disabled, it drops out of every
+    user's ``organizations_managed`` (see ``organizations_dict``), so an
+    "org_admin" who managed it loses queryset visibility of its objects
+    entirely: admin views 404 rather than 403. This is why the two
+    roles have different default expectations below.
+    """
+
+    disabled_org_admin_default_expectations = {
+        "superuser": {
+            "view": {"status": 200},
+            "change": {"status": 403, "unchanged": True},
+            "delete": {"status": 200, "exists_after": False},
+        },
+        "org_admin": {
+            # the object is filtered out of get_queryset() before any
+            # permission check runs, so Django admin's own "doesn't
+            # exist" handling kicks in instead of DisabledOrgReadOnly's
+            # 403: a raw (unfollowed) GET redirects (302) to the admin
+            # index; a POST change/delete redirects the same way, which
+            # this mixin follows (matching how a successful change/
+            # delete is asserted for superuser), landing on a 200 admin
+            # index page in both cases - "unchanged"/"exists_after" is
+            # what actually proves nothing happened, not the status code
+            "view": {"status": 302},
+            "change": {"status": 200, "unchanged": True},
+            "delete": {"status": 200, "exists_after": True},
+        },
+    }
+
+    def _get_disabled_org_admin_urls(self, obj, admin_site="admin"):
+        """
+        Derives the "view"/"change"/"delete" admin URLs for ``obj`` from
+        ``obj._meta.app_label``/``model_name``, following Django's
+        standard ``{admin_site}:{app_label}_{model_name}_{change,delete}``
+        naming ("view" and "change" are the same URL, GET vs POST).
+        """
+        meta = obj._meta
+        change_url = reverse(
+            f"{admin_site}:{meta.app_label}_{meta.model_name}_change", args=[obj.pk]
+        )
+        delete_url = reverse(
+            f"{admin_site}:{meta.app_label}_{meta.model_name}_delete", args=[obj.pk]
+        )
+        return {"view": change_url, "change": change_url, "delete": delete_url}
+
+    def _test_disabled_org_admin_view(self, url, status=200):
+        """GETs ``url`` (the change view) and asserts the status code."""
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status)
+
+    def _test_disabled_org_admin_change(
+        self,
+        url,
+        change_data,
+        obj,
+        status=403,
+        unchanged=True,
+        unchanged_field="name",
+    ):
+        """
+        POSTs ``change_data`` to ``url`` (``follow=True``) and asserts
+        ``status``. When ``unchanged`` is True, also asserts ``obj``'s
+        ``unchanged_field`` still equals its pre-POST value after
+        ``obj.refresh_from_db()`` - i.e. the blocked write did not
+        silently apply.
+        """
+        if unchanged:
+            before = getattr(obj, unchanged_field)
+        response = self.client.post(url, change_data, follow=True)
+        self.assertEqual(response.status_code, status)
+        if unchanged:
+            obj.refresh_from_db()
+            self.assertEqual(getattr(obj, unchanged_field), before)
+
+    def _test_disabled_org_admin_delete(
+        self, url, model, pk, status=200, exists_after=False
+    ):
+        """
+        POSTs the delete confirmation and asserts ``status`` and whether
+        ``model.objects.filter(pk=pk).exists()`` equals ``exists_after``.
+        """
+        response = self.client.post(url, {"post": "yes"}, follow=True)
+        self.assertEqual(response.status_code, status)
+        self.assertEqual(model.objects.filter(pk=pk).exists(), exists_after)
+
+    def _test_disabled_org_admin_org_field_excludes_disabled(
+        self,
+        url,
+        disabled_org,
+        roles=("superuser",),
+        organization=None,
+        role_kwargs=None,
+    ):
+        """
+        For each role, GETs ``url`` (an add or change view) and asserts
+        ``disabled_org`` is never offered as an ``organization`` choice.
+        Testing the "org_admin" role requires ``organization=`` to be a
+        *different*, still-active organization the role manages (an
+        org_admin whose only organization is the disabled one loses
+        ``has_add_permission`` entirely, so there would be no form to
+        inspect).
+        """
+        role_kwargs = role_kwargs or {}
+        for role in roles:
+            with self.subTest(role=role):
+                user = self._disabled_org_role_user(
+                    role, organization=organization, **role_kwargs.get(role, {})
+                )
+                self.client.force_login(user)
+                response = self.client.get(url)
+                self.assertNotContains(response, f"{disabled_org.name}</option>")
+                self.client.logout()
+
+    def _test_disabled_org_admin_crud(
+        self,
+        obj,
+        change_data,
+        roles=("org_admin", "superuser"),
+        operations=("view", "change", "delete"),
+        organization=None,
+        org_admin_expected=None,
+        superuser_expected=None,
+        unchanged_field="name",
+    ):
+        """
+        Umbrella test: for each role in ``roles``, logs the role's user
+        in and runs each operation in ``operations`` against ``obj``,
+        asserting the outcome from ``disabled_org_admin_default_expectations``
+        (per-role, shallow-overridden by ``org_admin_expected``/
+        ``superuser_expected``). For anything this can't express (a
+        non-standard admin site/URL, extra ``_disabled_org_role_user``
+        kwargs, skipping a role/operation entirely), call
+        ``_test_disabled_org_admin_view``/``_change``/``_delete``
+        directly instead.
+
+        The default role order is "org_admin" before "superuser" because
+        with the default expectations only the superuser's "delete"
+        actually removes ``obj`` (the org_admin's is a no-op, the object
+        never being in their queryset); a custom ``roles=`` combination
+        where a different role's action genuinely mutates or removes
+        ``obj`` should put that role last for the same reason.
+
+        ``organization`` defaults to ``getattr(obj, "organization", None)``;
+        pass it explicitly for models reached through
+        ``multitenant_parent`` (it has no direct ``organization``
+        attribute).
+        """
+        organization = organization or getattr(obj, "organization", None)
+        urls = self._get_disabled_org_admin_urls(obj)
+        specs = {
+            "org_admin": {
+                **self.disabled_org_admin_default_expectations["org_admin"],
+                **(org_admin_expected or {}),
+            },
+            "superuser": {
+                **self.disabled_org_admin_default_expectations["superuser"],
+                **(superuser_expected or {}),
+            },
+        }
+        for role in roles:
+            user = self._disabled_org_role_user(role, organization=organization)
+            self.client.force_login(user)
+            for operation in operations:
+                spec = specs[role][operation]
+                with self.subTest(role=role, operation=operation):
+                    if operation == "view":
+                        self._test_disabled_org_admin_view(urls["view"], **spec)
+                    elif operation == "change":
+                        self._test_disabled_org_admin_change(
+                            urls["change"],
+                            change_data,
+                            obj,
+                            unchanged_field=unchanged_field,
+                            **spec,
+                        )
+                    elif operation == "delete":
+                        self._test_disabled_org_admin_delete(
+                            urls["delete"], type(obj), obj.pk, **spec
+                        )
+                    else:
+                        raise ValueError(f"Unknown operation: {operation!r}")
+            self.client.logout()
+
+    def _test_disabled_org_admin_inline_readonly(
+        self,
+        model_admin,
+        disabled_obj,
+        active_obj=None,
+        inline_models=None,
+        user=None,
+    ):
+        """
+        Generic proof that ``model_admin.get_inline_instances`` write-
+        protects every inline attached to ``disabled_obj`` (an instance
+        whose disabled organization is what triggers the guard - for
+        ``OrganizationAdmin`` that is the ``Organization`` itself; for a
+        downstream org-scoped ``ModelAdmin`` it is the parent object
+        belonging to the disabled org): add/change permission denied,
+        delete permission preserved. ``inline_models`` optionally
+        narrows the assertion to a subset of inline classes (matched via
+        ``isinstance``) when only some of a ``ModelAdmin``'s inlines are
+        expected to be write-protected. When ``active_obj`` is given,
+        also asserts its inlines stay fully writable, proving the guard
+        is specific to the disabled organization rather than blanket.
+        """
+        request = RequestFactory().get("/")
+        request.user = user or self._get_admin()
+
+        inlines = model_admin.get_inline_instances(request, disabled_obj)
+        if inline_models is not None:
+            inlines = [i for i in inlines if isinstance(i, inline_models)]
+        self.assertNotEqual(inlines, [])
+        for inline in inlines:
+            self.assertEqual(inline.has_add_permission(request, disabled_obj), False)
+            self.assertEqual(inline.has_change_permission(request, disabled_obj), False)
+            self.assertEqual(inline.has_delete_permission(request, disabled_obj), True)
+
+        if active_obj is not None:
+            active_inlines = model_admin.get_inline_instances(request, active_obj)
+            if inline_models is not None:
+                active_inlines = [
+                    i for i in active_inlines if isinstance(i, inline_models)
+                ]
+            for inline in active_inlines:
+                self.assertEqual(
+                    inline.has_change_permission(request, active_obj), True
+                )
+
+
+class TestMultitenantAdminMixin(TestDisabledOrgAdminMixin):
     def setUp(self):
         admin = self._create_admin(password="tester")
         admin.organizations_dict  # force caching

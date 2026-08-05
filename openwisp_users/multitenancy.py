@@ -67,6 +67,8 @@ class MultitenantAdminMixin(object):
         ``multitenant_parent`` for models whose organization is reached
         through a parent (e.g. a Book through its Shelf).
         """
+        if self.model.__name__ == "Organization":
+            return obj
         organization = getattr(obj, "organization", None)
         if organization is None and self.multitenant_parent:
             parent = obj
@@ -89,6 +91,24 @@ class MultitenantAdminMixin(object):
             if organization is not None and not organization.is_active:
                 return False
         return super().has_change_permission(request, obj)
+
+    def get_inline_instances(self, request, obj=None):
+        """
+        When the edited object belongs to a disabled organization, make
+        every inline write-protected (no add, no change) while keeping
+        deletion available.
+        """
+        inlines = super().get_inline_instances(request, obj)
+        if obj is None or not self.disabled_organization_write_protection:
+            return inlines
+        organization = self._get_object_organization(obj)
+        if organization is None or organization.is_active:
+            return inlines
+        for inline in inlines:
+            if getattr(inline, "disabled_organization_write_protection", True):
+                inline.has_add_permission = lambda request, obj=None: False
+                inline.has_change_permission = lambda request, obj=None: False
+        return inlines
 
     def has_add_permission(self, request, *args, **kwargs):
         """

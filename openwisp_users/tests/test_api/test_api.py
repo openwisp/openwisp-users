@@ -1,3 +1,5 @@
+from unittest import mock
+
 import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
@@ -11,7 +13,10 @@ from swapper import load_model
 
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
-from ...api.serializers import OrganizationUserSerializer
+from ...api.serializers import (
+    OrganizationUserSerializer,
+    OrgUserCustomPrimarykeyRelatedField,
+)
 from ..utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -182,7 +187,9 @@ class TestUsersApi(
         org1_user1 = self._create_org_user(user=user1, organization=org1)
         path = reverse("users:organization_detail", args=(org1.pk,))
         data = {"owner": {"organization_user": org1_user1.pk}}
-        with self.assertNumQueries(18):
+        # building the owner and saving it once (instead of objects.create()
+        # followed by a redundant save()) removed two queries here
+        with self.assertNumQueries(16):
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["owner"]["organization_user"], org1_user1.pk)
@@ -282,7 +289,9 @@ class TestUsersApi(
         self.assertEqual(org1.owner.organization_user.id, org1_user1.id)
         path = reverse("users:organization_detail", args=(org1.pk,))
         data = {"owner": {"organization_user": org1_user2.id}}
-        with self.assertNumQueries(27):
+        # building the new owner and saving it once (instead of objects.create()
+        # followed by a redundant save()) removed two queries here
+        with self.assertNumQueries(25):
             r = self.client.patch(path, data, content_type="application/json")
         org1.refresh_from_db()
         self.assertEqual(org1.owner.organization_user.id, org1_user2.id)
@@ -806,6 +815,19 @@ class TestUsersApi(
             OrganizationUser.objects.filter(user=user1, organization=org1).count(), 1
         )
 
+    def test_patch_user_org_membership_without_is_admin_preserves_it_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        path = reverse("users:user_detail", args=(user1.pk,))
+        # omitting is_admin must leave the membership unchanged instead of
+        # raising a KeyError (500) or deleting it implicitly
+        data = {"organization_users": [{"organization": org1.pk}]}
+        r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        org_user = OrganizationUser.objects.get(user=user1, organization=org1)
+        self.assertEqual(org_user.is_admin, True)
+
     def test_assign_user_to_groups_api(self):
         user = self._get_user()
         self.assertEqual(user.groups.count(), 0)
@@ -963,9 +985,13 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
         self.client.force_login(self._get_admin())
 
     def test_create_user_organization_users_disabled_org_api(self):
-        # A membership validation failure (here, the disabled-organization
-        # guard) after the user row is written must roll the user back
-        # instead of leaving a half-created account behind.
+        # A membership validation failure after the user row is written must
+        # roll the user back instead of leaving a half-created account behind.
+        # The membership field only accepts active organizations, so field
+        # validation would normally reject a disabled org before the user is
+        # ever created; patch its queryset to let field validation pass, so the
+        # model's clean() is what fails, inside the atomic block, after the
+        # user row has been written. This exercises the transaction rollback.
         path = reverse("users:user_list")
         org1 = self._create_org(name="disabled-org", is_active=False)
         data = {
@@ -974,7 +1000,16 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
             "password": "password",
             "organization_users": {"is_admin": False, "organization": org1.pk},
         }
-        r = self.client.post(path, data, content_type="application/json")
+
+        # a real function (not a MagicMock) so DRF can still introspect
+        # get_queryset via its __func__ attribute
+        def get_all_orgs(self):
+            return Organization.objects.all()
+
+        with mock.patch.object(
+            OrgUserCustomPrimarykeyRelatedField, "get_queryset", get_all_orgs
+        ):
+            r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
         self.assertEqual(User.objects.filter(username="tester").count(), 0)
         self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
