@@ -51,12 +51,7 @@
       },
       success: function (data) {
         if (data.results.length === 1) {
-            var option = new Option(
-              data.results[0].text,
-              data.results[0].id,
-              true,
-              true,
-            );
+          var option = new Option(data.results[0].text, data.results[0].id, true, true);
           orgField.append(option).trigger("change");
           // manually trigger the `select2:select` event
           orgField.trigger({

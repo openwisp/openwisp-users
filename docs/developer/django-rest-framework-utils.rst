@@ -145,8 +145,8 @@ The object's organization is located through the view's
 ``organization_field`` attribute (default ``"organization"``). If that
 traversal fails, for example because ``organization_field`` is misspelled
 or points to a relation that does not exist, the class **fails closed**
-and denies the write. A view whose objects are genuinely
-not tied to an organization must therefore opt out explicitly.
+and denies the write. A view whose objects are genuinely not tied to an
+organization must therefore opt out explicitly.
 
 .. important::
 

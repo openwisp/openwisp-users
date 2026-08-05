@@ -14,12 +14,22 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
     pass
 
 
+class BookInline(admin.TabularInline):
+    # Used to prove MultitenantAdminMixin.get_inline_instances write-protects
+    # inlines of a disabled organization even though this inline itself does
+    # not use MultitenantAdminMixin.
+    model = Book
+    fields = ["name", "author"]
+    extra = 0
+
+
 class ShelfAdmin(BaseAdmin):
     list_display = ["name", "organization"]
     list_filter = [MultitenantOrgFilter]
     fields = ["name", "organization", "tags", "created", "modified"]
     search_fields = ["name"]
     multitenant_shared_relations = ["tags"]
+    inlines = [BookInline]
 
 
 class ShelfFilter(MultitenantRelatedOrgFilter):

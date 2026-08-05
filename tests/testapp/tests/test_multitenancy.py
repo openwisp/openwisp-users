@@ -6,8 +6,8 @@ from django.urls import reverse
 
 from openwisp_users.multitenancy import MultitenantAdminMixin
 
-from ..admin import LibraryParentAdmin, ShelfAdmin
-from ..models import Book, Library, Shelf
+from ..admin import BookInline, LibraryParentAdmin, ShelfAdmin
+from ..models import Book, Config, Library, Shelf
 from .mixins import TestMultitenancyMixin
 
 User = get_user_model()
@@ -19,11 +19,14 @@ class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin)
     # behaviour stays covered by the other tests in this file
     disabled_organization_write_protection = False
     fields = ["name", "organization"]
+    inlines = [BookInline]
 
 
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
     book_model = Book
     shelf_model = Shelf
+    library_model = Library
+    config_model = Config
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name="org1")
@@ -87,30 +90,71 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
     def test_shelf_disabled_organization_admin_guard(self):
         org = self._get_org()
         shelf = self._create_shelf(name="disable-guard-shelf", organization=org)
-        self.client.force_login(self._get_admin())
         org.is_active = False
         org.save()
-        change_path = reverse("admin:testapp_shelf_change", args=[shelf.pk])
-        delete_path = reverse("admin:testapp_shelf_delete", args=[shelf.pk])
+        self._test_disabled_org_admin_crud(
+            shelf,
+            change_data={"name": "renamed-shelf", "organization": str(org.pk)},
+            roles=("superuser",),
+        )
 
-        with self.subTest("change blocked for superuser"):
-            # has_view_permission is untouched, so the read-only form
-            # still renders with a 200; has_change_permission is checked
-            # before form validation on POST, so it 403s regardless of
-            # what other field values are (or aren't) submitted
-            r = self.client.get(change_path)
-            self.assertEqual(r.status_code, 200)
-            r = self.client.post(
-                change_path, {"name": "renamed-shelf", "organization": str(org.pk)}
+    def test_disabled_org_admin_crud_org_admin_loses_access(self):
+        org = self._create_org(name="admin-mixin-org-oa")
+        shelf = self._create_shelf(name="admin-mixin-shelf-oa", organization=org)
+        org.is_active = False
+        org.save()
+        self._test_disabled_org_admin_crud(
+            shelf,
+            change_data={"name": "renamed", "organization": str(org.pk)},
+            roles=("org_admin",),
+        )
+
+    def test_disabled_org_admin_crud_both_roles(self):
+        org = self._create_org(name="admin-mixin-org-both")
+        shelf = self._create_shelf(name="admin-mixin-shelf-both", organization=org)
+        org.is_active = False
+        org.save()
+        self._test_disabled_org_admin_crud(
+            shelf,
+            change_data={"name": "renamed", "organization": str(org.pk)},
+        )
+
+    def test_disabled_org_admin_crud_operations_subset(self):
+        org = self._create_org(name="admin-mixin-org-subset")
+        shelf = self._create_shelf(name="admin-mixin-shelf-subset", organization=org)
+        org.is_active = False
+        org.save()
+        self._test_disabled_org_admin_crud(
+            shelf,
+            change_data={"name": "renamed", "organization": str(org.pk)},
+            roles=("superuser",),
+            operations=("view",),
+        )
+        self.assertEqual(self.shelf_model.objects.filter(pk=shelf.pk).exists(), True)
+
+    def test_shelf_disabled_org_admin_inline_readonly(self):
+        data = self._create_multitenancy_test_env()
+        shelf_admin = ShelfAdmin(Shelf, admin.site)
+        self._test_disabled_org_admin_inline_readonly(
+            shelf_admin, data["s3_inactive"], active_obj=data["s1"]
+        )
+
+    def test_shelf_disabled_org_admin_inline_readonly_opt_out(self):
+        # BookInline stays fully writable when the parent admin opts out of
+        # disabled_organization_write_protection
+        data = self._create_multitenancy_test_env()
+        shelf_admin = ShelfDisabledOrgWriteAllowedAdmin(Shelf, admin.site)
+        request = RequestFactory().get("/")
+        request.user = self._get_admin()
+
+        inlines = shelf_admin.get_inline_instances(request, data["s3_inactive"])
+        for inline in inlines:
+            self.assertEqual(
+                inline.has_add_permission(request, data["s3_inactive"]), True
             )
-            self.assertEqual(r.status_code, 403)
-            shelf.refresh_from_db()
-            self.assertEqual(shelf.name, "disable-guard-shelf")
-
-        with self.subTest("delete still allowed"):
-            r = self.client.post(delete_path, {"post": "yes"}, follow=True)
-            self.assertEqual(r.status_code, 200)
-            self.assertEqual(self.shelf_model.objects.filter(pk=shelf.pk).count(), 0)
+            self.assertEqual(
+                inline.has_change_permission(request, data["s3_inactive"]), True
+            )
 
     def test_multitenant_parent_disabled_organization_guard(self):
         data = self._create_multitenancy_test_env()
@@ -138,6 +182,27 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             self.assertEqual(
                 library_admin.has_delete_permission(request, disabled_library), True
             )
+
+    def test_multitenant_parent_disabled_organization_guard_http(self):
+        org = self._create_org(name="admin-mixin-org-parent")
+        book = self._create_book(name="parent-book", organization=org)
+        library = self._create_library(name="parent-library", book=book)
+        org.is_active = False
+        org.save()
+        self._test_disabled_org_admin_crud(
+            library,
+            change_data={
+                "name": "renamed",
+                "address": "",
+                "book": str(book.pk),
+            },
+            organization=org,
+            org_admin_expected={
+                "view": {"status": 403},
+                "change": {"status": 403, "unchanged": True},
+                "delete": {"status": 403, "exists_after": True},
+            },
+        )
 
     def test_add_permission_hidden_without_active_managed_org(self):
         disabled_org = self._create_org(name="operator-disabled-org", is_active=False)
@@ -185,3 +250,34 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             form.save()
             shelf.refresh_from_db()
             self.assertEqual(shelf.organization_id, org.pk)
+
+    def test_disabled_org_admin_crud_opt_out_override(self):
+        org = self._create_org(name="admin-mixin-org-optout")
+        config = self._create_config(name="optout-config", organization=org)
+        org.is_active = False
+        org.save()
+        self._test_disabled_org_admin_crud(
+            config,
+            change_data={
+                "name": "renamed-config",
+                "organization": str(org.pk),
+            },
+            roles=("superuser",),
+            operations=("change",),
+            superuser_expected={"change": {"status": 200, "unchanged": False}},
+        )
+        config.refresh_from_db()
+        self.assertEqual(config.name, "renamed-config")
+
+    def test_disabled_org_admin_org_field_excludes_disabled(self):
+        active_org = self._create_org(name="admin-mixin-active-org")
+        disabled_org = self._create_org(
+            name="admin-mixin-disabled-org", is_active=False
+        )
+        add_url = reverse("admin:testapp_shelf_add")
+        self._test_disabled_org_admin_org_field_excludes_disabled(
+            add_url,
+            disabled_org,
+            roles=("superuser", "org_admin"),
+            organization=active_org,
+        )

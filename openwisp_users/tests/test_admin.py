@@ -13,7 +13,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db import DEFAULT_DB_ALIAS
 from django.template.defaultfilters import date
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, now, timedelta
 from freezegun import freeze_time
@@ -29,6 +29,7 @@ from ..auth import SESSION_KEY
 from ..multitenancy import MultitenantAdminMixin
 from ..widgets import OrganizationAutocompleteSelect
 from .utils import (
+    TestDisabledOrgAdminMixin,
     TestMultitenantAdminMixin,
     TestOrganizationMixin,
     TestUserAdditionalFieldsMixin,
@@ -43,7 +44,7 @@ Group = load_model("openwisp_users", "Group")
 
 class TestUsersAdmin(
     AdminActionPermTestMixin,
-    TestOrganizationMixin,
+    TestDisabledOrgAdminMixin,
     TestUserAdditionalFieldsMixin,
     TestCase,
 ):
@@ -2028,34 +2029,12 @@ class TestUsersAdmin(
         # OrganizationAdmin write-protects every inline attached to it when the
         # organization is disabled, so downstream inlines inherit the guard without
         # re-implementing it.
-        admin = self._get_admin()
-        request = RequestFactory().get("/")
-        request.user = admin
         org_admin = OrganizationAdmin(Organization, django_admin.site)
         active_org = self._create_org(name="active-inline-org")
         disabled_org = self._create_org(name="disabled-inline-org", is_active=False)
-
-        with self.subTest("active organization keeps inlines writable"):
-            for inline in org_admin.get_inline_instances(request, active_org):
-                self.assertEqual(
-                    inline.has_change_permission(request, active_org), True
-                )
-
-        with self.subTest("disabled organization write-protects inlines"):
-            inlines = org_admin.get_inline_instances(request, disabled_org)
-            self.assertNotEqual(inlines, [])
-            for inline in inlines:
-                self.assertEqual(
-                    inline.has_add_permission(request, disabled_org), False
-                )
-                self.assertEqual(
-                    inline.has_change_permission(request, disabled_org), False
-                )
-                # deletion of the disabled organization's related rows stays
-                # possible
-                self.assertEqual(
-                    inline.has_delete_permission(request, disabled_org), True
-                )
+        self._test_disabled_org_admin_inline_readonly(
+            org_admin, disabled_org, active_obj=active_org
+        )
 
     def test_organization_user_admin_disabled_organization(self):
         admin = self._get_admin()
