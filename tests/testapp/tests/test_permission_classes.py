@@ -644,6 +644,4 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
         with self.assertRaises(FieldError):
-            response = BrokenOrgFieldTemplateDetailView.as_view()(
-                request, pk=template.pk
-            )
+            BrokenOrgFieldTemplateDetailView.as_view()(request, pk=template.pk)
