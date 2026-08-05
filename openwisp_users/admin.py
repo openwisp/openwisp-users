@@ -181,9 +181,9 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
                 _("Account expiration"),
                 {"classes": ("wide",), "fields": ("expiration_date",)},
             ),
-            ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
+            (_("Personal Info"), {"classes": ("wide",), "fields": personal_fields}),
             (
-                "Permissions",
+                _("Permissions"),
                 {"classes": ("wide",), "fields": ["is_active", "is_staff", "groups"]},
             ),
         )
@@ -193,9 +193,9 @@ class UserCreationForm(UserFormMixin, BaseUserCreationForm):
                 _("Account expiration"),
                 {"classes": ("wide",), "fields": ("expiration_date",)},
             ),
-            ("Personal Info", {"classes": ("wide",), "fields": personal_fields}),
+            (_("Personal Info"), {"classes": ("wide",), "fields": personal_fields}),
             (
-                "Permissions",
+                _("Permissions"),
                 {
                     "classes": ("wide",),
                     "fields": ["is_active", "is_staff", "is_superuser", "groups"],
@@ -274,10 +274,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         if count:
             self.message_user(
                 request,
-                _(
-                    f"Successfully made {count} "
-                    f"{model_ngettext(self.opts, count)} inactive."
-                ),
+                _("Successfully made %(count)d %(model_name)s inactive.")
+                % {
+                    "count": count,
+                    "model_name": model_ngettext(self.opts, count),
+                },
                 messages.SUCCESS,
             )
 
@@ -413,11 +414,11 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 self.message_user(
                     request,
                     ngettext(
-                        f"Can't delete %d organization owner: {owners}",
-                        f"Can't delete %d organization owners: {owners}",
+                        "Can't delete %(count)d organization owner: %(owners)s",
+                        "Can't delete %(count)d organization owners: %(owners)s",
                         count,
                     )
-                    % count,
+                    % {"count": count, "owners": owners},
                     messages.ERROR,
                 )
             # if trying to delete only owners, stop here
@@ -495,16 +496,17 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             except OwnershipRequired:
                 not_deleted += 1
         if not_deleted:
-            single_msg = (
-                f"Can't delete {not_deleted} organization user because it "
-                "belongs to an organization owner."
-            )
-            multiple_msg = (
-                f"Can't delete {not_deleted} organization users because they "
-                "belong to some organization owners."
-            )
             self.message_user(
-                request, ngettext(single_msg, multiple_msg, not_deleted), messages.ERROR
+                request,
+                ngettext(
+                    "Can't delete %(count)d organization user because it "
+                    "belongs to an organization owner.",
+                    "Can't delete %(count)d organization users because they "
+                    "belong to some organization owners.",
+                    not_deleted,
+                )
+                % {"count": not_deleted},
+                messages.ERROR,
             )
         for instance in instances:
             instance.save()
@@ -661,16 +663,17 @@ class OrganizationUserAdmin(
         # if some org owners' org users were selected
         if count and count != queryset.count():
             queryset = queryset.exclude(pk__in=pks)
-            single_msg = (
-                f"Can't delete {count} organization user because it "
-                "belongs to an organization owner."
-            )
-            multiple_msg = (
-                f"Can't delete {count} organization users because they "
-                "belong to some organization owners."
-            )
             self.message_user(
-                request, ngettext(single_msg, multiple_msg, count), messages.ERROR
+                request,
+                ngettext(
+                    "Can't delete %(count)d organization user because it "
+                    "belongs to an organization owner.",
+                    "Can't delete %(count)d organization users because they "
+                    "belong to some organization owners.",
+                    count,
+                )
+                % {"count": count},
+                messages.ERROR,
             )
         # otherwise proceed but remove org users from the delete queryset
         return delete_selected(self, request, queryset)

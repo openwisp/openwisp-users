@@ -6,23 +6,16 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-11-11 21:36-0500\n"
+"POT-Creation-Date: 2026-07-02 17:08+0200\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: accounts/templates/account/email/email_confirmation_message.html:5
-#, python-format
-msgid ""
-"\n"
-"You're receiving this e-mail because user <b>%(user_display)s</b> registered "
-"this e-mail address to create an account on <b>%(site_name)s</b>.\n"
-msgstr ""
-"\n"
-"Sie bekommen diese E-Mail, weil diese E-Mail-Adresse von einem Benutzer "
-"<b>%(user_display)s</b> auf <b>%(site_name)s</b> registriert wurde.\n"
+#: accounts/adapter.py:23 accounts/templates/account/email_confirm.html:21
+msgid "Confirm"
+msgstr "Bestätigen"
 
 #: accounts/templates/account/email/account_expiration_reminder_message.html:5
 #, python-format
@@ -49,56 +42,90 @@ msgstr ""
 #: accounts/templates/account/email/account_expiration_reminder_message.txt:4
 #, python-format
 msgid ""
-"We inform you that your account %(username)s will expire in %(days)s day on "
-"%(expiry_date)s."
+"We inform you that your account \"%(username)s\" will expire in %(days)s day "
+"on %(expiry_date)s."
 msgid_plural ""
-"We inform you that your account %(username)s will expire in %(days)s days on "
-"%(expiry_date)s."
+"We inform you that your account \"%(username)s\" will expire in %(days)s "
+"days on %(expiry_date)s."
 msgstr[0] ""
-"Wir informieren Sie, dass Ihr Konto %(username)s in %(days)s Tag am "
+"Wir informieren Sie, dass Ihr Konto \"%(username)s\" in %(days)s Tag am "
 "%(expiry_date)s abläuft."
 msgstr[1] ""
-"Wir informieren Sie, dass Ihr Konto %(username)s in %(days)s Tagen am "
+"Wir informieren Sie, dass Ihr Konto \"%(username)s\" in %(days)s Tagen am "
 "%(expiry_date)s abläuft."
 
 #: accounts/templates/account/email/account_expired_message.html:5
-#: accounts/templates/account/email/account_expired_message.txt:4
 #, python-format
 msgid ""
-"We inform you that your account %(username)s has been deactivated because it "
-"expired on %(expiry_date)s."
+"We inform you that your account <strong>%(username)s</strong> has been "
+"deactivated because it expired on %(expiry_date)s."
 msgstr ""
-"Wir informieren Sie, dass Ihr Konto %(username)s deaktiviert wurde, weil es "
-"am %(expiry_date)s abgelaufen ist."
+"Wir informieren Sie, dass Ihr Konto <strong>%(username)s</strong> "
+"deaktiviert wurde, weil es am %(expiry_date)s abgelaufen ist."
 
 #: accounts/templates/account/email/account_expired_message.html:11
 #: accounts/templates/account/email/account_expired_message.txt:8
 msgid ""
 "Please contact your administrator if you need to reactivate your account."
 msgstr ""
-"Bitte kontaktieren Sie Ihren Administrator, wenn Sie Ihr Konto "
-"reaktivieren möchten."
+"Bitte kontaktieren Sie Ihren Administrator, wenn Sie Ihr Konto reaktivieren "
+"möchten."
 
+#: accounts/templates/account/email/account_expired_message.txt:4
+#, python-format
+msgid ""
+"We inform you that your account \"%(username)s\" has been deactivated "
+"because it expired on %(expiry_date)s."
+msgstr ""
+"Wir informieren Sie, dass Ihr Konto \"%(username)s\" deaktiviert wurde, weil "
+"es am %(expiry_date)s abgelaufen ist."
+
+#: accounts/templates/account/email/base_message.txt:1
+#, python-format
+msgid "Welcome to %(site_name)s!"
+msgstr "Willkommen bei %(site_name)s!"
+
+#: accounts/templates/account/email/base_message.txt:5
+#, python-format
+msgid ""
+"Thank you for using %(site_name)s!\n"
+"%(site_domain)s"
+msgstr ""
+"Danke, dass Sie %(site_name)s nutzen!\n"
+"%(site_domain)s"
+
+#: accounts/templates/account/email/email_confirmation_message.html:5
+#, python-format
+msgid ""
+"\n"
+"You're receiving this e-mail because user <b>%(user_display)s</b> registered "
+"this e-mail address to create an account on <b>%(site_name)s</b>.\n"
+msgstr ""
+"\n"
+"Sie bekommen diese E-Mail, weil diese E-Mail-Adresse von einem Benutzer "
+"<b>%(user_display)s</b> auf <b>%(site_name)s</b> registriert wurde.\n"
 
 #: accounts/templates/account/email/email_confirmation_message.html:9
 msgid "To confirm this is correct, please click on the button below."
-msgstr "Um zu bestätigen, dass dies korrekt ist, klicken Sie bitte auf die Schaltfläche unten."
+msgstr ""
+"Um zu bestätigen, dass dies korrekt ist, klicken Sie bitte auf die "
+"Schaltfläche unten."
 
-#: accounts/templates/account/email_verification_success.html:18
-msgid "Your email has been verified successfully."
-msgstr "E-Mail-Adresse bestätigt."
+#: accounts/templates/account/email/email_confirmation_message.txt:5
+#, python-format
+msgid ""
+"You're receiving this e-mail because user %(user_display)s registered this e-"
+"mail address to create an account on %(site_domain)s.\n"
+"\n"
+"To confirm this is correct, go to %(activate_url)s"
+msgstr ""
+"Sie erhalten diese E-Mail, weil der Benutzer %(user_display)s diese E-Mail-"
+"Adresse zur Erstellung eines Kontos auf %(site_domain)s registriert hat.\n"
+"\n"
+"Um dies zu bestätigen, gehen Sie zu %(activate_url)s"
 
-#: accounts/templates/account/email_verification_success.html:19
-#: accounts/templates/account/logout_success.html:19
-msgid "This web page can be closed."
-msgstr "Die Seite kann geschlossen werden."
-
-#: accounts/templates/account/logout_success.html:18
-msgid "Logout successful."
-msgstr "Sie wurden erfolgreich abgemeldet."
-
-#: accounts/templates/account/email/password_expiration_message.html:3
-#: accounts/templates/account/email/password_expiration_message.txt:3
+#: accounts/templates/account/email/password_expiration_message.html:4
+#: accounts/templates/account/email/password_expiration_message.txt:4
 #, python-format
 msgid ""
 "We inform you that the password for your account %(username)s will expire in "
@@ -107,10 +134,80 @@ msgstr ""
 "Wir informieren Sie darüber, dass das Passwort für Ihr Konto %(username)s in "
 "7 Tagen abläuft, genau am %(expiry_date)s."
 
-#: accounts/templates/account/email/password_expiration_message.html:5
-#: accounts/templates/account/email/password_expiration_message.txt:5
+#: accounts/templates/account/email/password_expiration_message.html:6
+#: accounts/templates/account/email/password_expiration_message.txt:6
 msgid ""
 "Kindly proceed with updating your password by clicking on the button below."
 msgstr ""
 "Bitte aktualisieren Sie Ihr Passwort, indem Sie auf die Schaltfläche unten "
 "klicken."
+
+#: accounts/templates/account/email_confirm.html:6
+#: accounts/templates/account/email_confirm.html:11
+msgid "Confirm E-mail Address"
+msgstr "E-Mail-Adresse bestätigen"
+
+#: accounts/templates/account/email_confirm.html:17
+#, python-format
+msgid ""
+"Please confirm that <a href=\"mailto:%(email)s\">%(email)s</a> is an e-mail "
+"address for user %(user_display)s."
+msgstr ""
+"Bitte bestätigen Sie, dass <a href=\"mailto:%(email)s\">%(email)s</a> eine E-"
+"Mail-Adresse für den Benutzer %(user_display)s ist."
+
+#: accounts/templates/account/email_confirm.html:26
+msgid "This e-mail confirmation link expired or is invalid."
+msgstr "Dieser Bestätigungslink ist abgelaufen oder ungültig."
+
+#: accounts/templates/account/email_verification_success.html:18
+msgid "Your email has been verified successfully."
+msgstr "E-Mail-Adresse bestätigt."
+
+#: accounts/templates/account/email_verification_success.html:19
+#: accounts/templates/account/logout_success.html:19
+#: accounts/templates/account/password_change_success.html:19
+#: accounts/templates/account/password_not_required.html:20
+msgid "This web page can be closed."
+msgstr "Die Seite kann geschlossen werden."
+
+#: accounts/templates/account/login.html:4
+#: accounts/templates/account/login.html:19
+#: accounts/templates/account/login.html:27
+msgid "Sign In"
+msgstr "Anmelden"
+
+#: accounts/templates/account/login.html:28
+#: accounts/templates/account/password_change.html:49
+msgid "Forgot Password?"
+msgstr "Passwort vergessen?"
+
+#: accounts/templates/account/logout_success.html:18
+msgid "Logout successful."
+msgstr "Sie wurden erfolgreich abgemeldet."
+
+#: accounts/templates/account/password_change.html:6
+#: accounts/templates/account/password_change.html:14
+msgid "Change Password"
+msgstr "Passwort ändern"
+
+#: accounts/templates/account/password_change.html:48
+msgid "Change password"
+msgstr "Passwort ändern"
+
+#: accounts/templates/account/password_change_success.html:18
+msgid "Your password has been changed successfully."
+msgstr "Ihr Passwort wurde erfolgreich geändert."
+
+#: accounts/templates/account/password_not_required.html:18
+msgid ""
+"You cannot change your password from this application because your account "
+"is linked to a third-party authentication provider."
+msgstr ""
+"Sie können Ihr Passwort nicht über diese Anwendung ändern, da Ihr Konto mit "
+"einem Drittanbieter für die Authentifizierung verknüpft ist."
+
+#: accounts/templates/account/password_not_required.html:19
+msgid "Please visit the provider's website to manage your password."
+msgstr ""
+"Bitte besuchen Sie die Website des Anbieters, um Ihr Passwort zu verwalten."
