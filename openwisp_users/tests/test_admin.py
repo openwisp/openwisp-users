@@ -1401,8 +1401,7 @@ class TestUsersAdmin(
                 self.assertEqual(user.is_active, True)
                 if expected_expiration_date is None:
                     expected_message = (
-                        "Successfully activated 1 user and cleared 1 expiration"
-                        " date."
+                        "Successfully activated 1 user and cleared 1 expiration date."
                     )
                 else:
                     expected_message = "Successfully activated 1 user."

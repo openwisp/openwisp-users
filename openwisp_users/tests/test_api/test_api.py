@@ -189,7 +189,7 @@ class TestUsersApi(
         data = {"owner": {"organization_user": org1_user1.pk}}
         # building the owner and saving it once (instead of objects.create()
         # followed by a redundant save()) removed two queries here
-        with self.assertNumQueries(16):
+        with self.assertNumQueries(17):
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["owner"]["organization_user"], org1_user1.pk)
@@ -291,7 +291,7 @@ class TestUsersApi(
         data = {"owner": {"organization_user": org1_user2.id}}
         # building the new owner and saving it once (instead of objects.create()
         # followed by a redundant save()) removed two queries here
-        with self.assertNumQueries(25):
+        with self.assertNumQueries(26):
             r = self.client.patch(path, data, content_type="application/json")
         org1.refresh_from_db()
         self.assertEqual(org1.owner.organization_user.id, org1_user2.id)

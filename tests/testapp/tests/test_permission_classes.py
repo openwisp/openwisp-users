@@ -4,18 +4,16 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from rest_framework.test import APIRequestFactory
 from swapper import load_model
 
 from openwisp_users.api.permissions import DisabledOrgReadOnly
 from openwisp_users.api.throttling import AuthRateThrottle
 
-from ..models import Template
+from ..models import Shelf, Template
+from ..serializers import BookManagerSerializer
 from ..views import TemplateDetailView
 from .mixins import TestMultitenancyMixin
-from rest_framework.test import APIRequestFactory
-
-        from ..models import Shelf
-        from ..serializers import BookManagerSerializer
 
 User = get_user_model()
 Group = load_model("openwisp_users", "Group")

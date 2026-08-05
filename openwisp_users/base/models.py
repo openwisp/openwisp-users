@@ -491,27 +491,39 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
-        if self.organization_id and not self.organization.is_active:
-            if self._state.adding:
-                raise ValidationError(
-                    {"organization": _("Cannot add users to a disabled organization.")}
-                )
-            # Only block real modifications: Django re-runs full_clean() on
-            # untouched inline rows, so a no-op save of a user who belongs to a
-            # disabled organization must not fail.
-            db_values = (
-                self._meta.model.objects.filter(pk=self.pk)
-                .values("organization_id", "is_admin", "user_id")
+        original = None
+        if not self._state.adding:
+            original = (
+                self.__class__.objects.select_related("organization")
+                .filter(pk=self.pk)
                 .first()
             )
-            if db_values is None or (
-                db_values["organization_id"] != self.organization_id
-                or db_values["is_admin"] != self.is_admin
-                or db_values["user_id"] != self.user_id
+
+        changed = (
+            original is None
+            or original.organization_id != self.organization_id
+            or original.user_id != self.user_id
+            or original.is_admin != self.is_admin
+        )
+
+        if changed and self.organization_id is not None:
+            if not self.organization.is_active:
+                if self._state.adding:
+                    raise ValidationError(
+                        _("Cannot add users to a disabled organization.")
+                    )
+                raise ValidationError(
+                    _("Memberships of a disabled organization cannot be modified.")
+                )
+            if (
+                original
+                and original.organization_id != self.organization_id
+                and not original.organization.is_active
             ):
                 raise ValidationError(
                     _("Memberships of a disabled organization cannot be modified.")
                 )
+
         if (
             not self._state.adding
             and self.user.is_owner(self.organization_id)
@@ -542,23 +554,30 @@ class BaseOrganizationOwner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def clean(self):
-        if self.organization_id and not self.organization.is_active:
-            # Only block assigning or changing an owner: an untouched owner row
-            # is re-validated when its organization is disabled, and that must
-            # not prevent disabling the organization.
-            db_values = (
-                self._meta.model.objects.filter(pk=self.pk)
-                .values("organization_id", "organization_user_id")
+        original = None
+        if self.pk:
+            original = (
+                self.__class__.objects.select_related("organization")
+                .filter(pk=self.pk)
                 .first()
             )
-            if db_values is None or (
-                db_values["organization_id"] != self.organization_id
-                or db_values["organization_user_id"] != self.organization_user_id
-            ):
-                raise ValidationError(
-                    _("Cannot assign an owner to a disabled organization.")
-                )
-        if self.organization_user.organization.pk != self.organization.pk:
+        changed = (
+            original is None
+            or original.organization_id != self.organization_id
+            or original.organization_user_id != self.organization_user_id
+        )
+        if changed and (
+            not self.organization.is_active
+            or (
+                original
+                and original.organization_id != self.organization_id
+                and not original.organization.is_active
+            )
+        ):
+            raise ValidationError(
+                _("Cannot assign an owner to a disabled organization.")
+            )
+        if self.organization_user.organization_id != self.organization_id:
             raise ValidationError(
                 {
                     "organization_user": _(

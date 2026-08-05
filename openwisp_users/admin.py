@@ -644,10 +644,15 @@ class OrganizationAdmin(
 
     def has_change_permission(self, request, obj=None):
         """
-        Allow only managers and superuser to change organization
+        Allow only managers and superuser to change organization.
+        Disabled organizations can still be changed so superusers can
+        re-enable them; ``get_readonly_fields`` ensures only
+        ``is_active`` is editable.
         """
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False
+        if obj and not obj.is_active:
+            return True
         return super().has_change_permission(request, obj)
 
     def get_readonly_fields(self, request, obj=None):
