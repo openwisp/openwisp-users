@@ -58,6 +58,8 @@ If instructions conflict, repository config and CI workflows win first, official
 
 - Authentication flows integrate with `django-allauth`; API auth includes token auth and request throttling in `openwisp_users/api/`.
 - Be careful with cache invalidation, permissions, organization membership, authentication backends, and tenant isolation.
+- A model permission does not permit access to another organization's data. Begin organization-owned, parent, and related-object lookups with objects managed by the requester; filters may only narrow that queryset, and writes must reject cross-organization relations.
+- Cached lookups must check permission and organization scope on every request. Changed endpoints need cross-organization regression tests.
 - If you change swapped-model behavior, tenant isolation, auth flows, or admin/API permissions, cover both package-level and integration tests.
 - Changes to HTTP REST API endpoints or Django REST Framework serializers must include tests for permissions, input validation, filtering or pagination when supported, and organization or tenant boundaries where applicable.
 
