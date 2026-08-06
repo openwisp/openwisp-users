@@ -162,6 +162,12 @@ class MultitenantAdminMixin(object):
             if keep_disabled_org_pk is not None:
                 allowed |= Q(pk=keep_disabled_org_pk)
             org_field.queryset = org_field.queryset.filter(allowed)
+        active_or_shared = Q(organization__is_active=True) | Q(organization=None)
+        for field_name in self.multitenant_shared_relations:
+            if field_name not in fields:
+                continue
+            field = fields[field_name]
+            field.queryset = field.queryset.filter(active_or_shared)
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
@@ -175,11 +181,8 @@ class MultitenantAdminMixin(object):
                 org_field.queryset = org_field.queryset.filter(managed)
                 org_field.empty_label = None
                 org_field.required = True
-            # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:
-                # each relation may be readonly
-                # and not present in field list
                 if field_name not in fields:
                     continue
                 field = fields[field_name]

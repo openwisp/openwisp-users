@@ -400,20 +400,6 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         inline_admins=None,
         user=None,
     ):
-        """
-        Generic proof that ``model_admin.get_inline_instances`` write-
-        protects every inline attached to ``disabled_obj`` (an instance
-        whose disabled organization is what triggers the guard - for
-        ``OrganizationAdmin`` that is the ``Organization`` itself; for a
-        downstream org-scoped ``ModelAdmin`` it is the parent object
-        belonging to the disabled org): add/change permission denied,
-        delete permission preserved. ``inline_models`` optionally
-        narrows the assertion to a subset of inline classes (matched via
-        ``isinstance``) when only some of a ``ModelAdmin``'s inlines are
-        expected to be write-protected. When ``active_obj`` is given,
-        also asserts its inlines stay fully writable, proving the guard
-        is specific to the disabled organization rather than blanket.
-        """
         request = RequestFactory().get("/")
         request.user = user or self._get_admin()
 
@@ -452,15 +438,24 @@ class TestMultitenantAdminMixin(TestDisabledOrgAdminMixin):
         self.client.logout()
 
     def _test_multitenant_admin(
-        self, url, visible, hidden, select_widget=False, administrator=False
+        self,
+        url,
+        visible,
+        hidden,
+        select_widget=False,
+        administrator=False,
+        superuser_hidden=None,
     ):
         """
         reusable test function that ensures different users
         can see the right objects.
         an operator with limited permissions will not be able
         to see the elements contained in ``hidden``, while
-        a superuser can see everything.
+        a superuser can see everything, except the elements in
+        ``superuser_hidden`` (e.g. objects belonging to a disabled
+        organization, which relation pickers exclude for everyone).
         """
+        superuser_hidden = superuser_hidden or []
         if administrator:
             self._login(username="administrator", password="tester")
         else:
@@ -492,11 +487,15 @@ class TestMultitenantAdminMixin(TestDisabledOrgAdminMixin):
         self._logout()
         self._login(username="admin", password="tester")
         response = self.client.get(url)
-        # ensure all elements are visible to superuser
-        all_elements = visible + hidden
+        # ensure all elements are visible to superuser, except superuser_hidden
+        all_elements = [el for el in visible + hidden if el not in superuser_hidden]
         for el in all_elements:
             self.assertContains(
                 response, _f(el, select_widget), msg_prefix="[superuser contains]"
+            )
+        for el in superuser_hidden:
+            self.assertNotContains(
+                response, _f(el, select_widget), msg_prefix="[superuser not-contains]"
             )
 
     def _test_recoverlist_operator_403(self, app_label, model_label):

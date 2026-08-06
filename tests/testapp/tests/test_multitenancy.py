@@ -85,6 +85,9 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             hidden=[data["s2"].name, data["s3_inactive"].name],
             select_widget=True,
             administrator=True,
+            # a disabled organization's shelf is excluded from the FK
+            # picker for everyone, superusers included
+            superuser_hidden=[data["s3_inactive"].name],
         )
 
     def test_shelf_disabled_organization_admin_guard(self):
