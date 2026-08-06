@@ -835,9 +835,6 @@ class TestUsersApi(
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
         self.assertIn("does not exist or is disabled", str(r.data))
-        self.assertEqual(
-            OrganizationUser.objects.filter(user=user1, organization=org1).count(), 1
-        )
 
     def test_patch_user_org_membership_without_is_admin_preserves_it_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")

@@ -1,5 +1,5 @@
 import swapper
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db.models import ForeignKey, ManyToManyField, Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
@@ -66,11 +66,30 @@ class FilterByOrganization(OrgLookup):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        if getattr(self, "select_related_organization", True):
+        if getattr(
+            self, "select_related_organization", True
+        ) and self._organization_relation_is_valid(qs.model):
             qs = qs.select_related(self.org_field)
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
+
+    def _organization_relation_is_valid(self, model):
+        """
+        ``select_related()`` does not validate its field argument until the
+        queryset is evaluated, so a misspelled ``organization_field`` would
+        otherwise crash later (e.g. inside ``get_object()``).
+        """
+        for part in self.org_field.split("__"):
+            try:
+                field = model._meta.get_field(part)
+            except FieldDoesNotExist:
+                return False
+            related_model = getattr(field, "related_model", None)
+            if related_model is None:
+                return False
+            model = related_model
+        return True
 
     def get_organization_queryset(self, qs):
         if self.request.user.is_anonymous:

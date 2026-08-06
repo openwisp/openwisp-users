@@ -2074,6 +2074,7 @@ class TestUsersAdmin(
                 },
                 follow=True,
             )
+            self.assertEqual(response.status_code, 403)
             org_user.refresh_from_db()
             self.assertFalse(org_user.is_admin)
 

@@ -2,7 +2,6 @@ import json
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.core.exceptions import FieldError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from rest_framework.test import APIRequestFactory
@@ -636,7 +635,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             organization_field = "nonexistent_field"
 
         org = self._get_org()
-        template = self._create_template(organization=org)
+        template = self._create_template(organization=org, name="original-name")
         admin = self._get_admin()
         token = self._obtain_auth_token(username=admin)
         request = RequestFactory().put(
@@ -645,5 +644,19 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        with self.assertRaises(FieldError):
-            BrokenOrgFieldTemplateDetailView.as_view()(request, pk=template.pk)
+        response = BrokenOrgFieldTemplateDetailView.as_view()(request, pk=template.pk)
+        response.render()
+        self.assertEqual(response.status_code, 403)
+        template.refresh_from_db()
+        self.assertEqual(template.name, "original-name")
+
+    def test_disabled_org_read_only_select_related_valid_field(self):
+        org = self._get_org()
+        self._create_template(organization=org)
+        admin = self._get_admin()
+        request = APIRequestFactory().get("/")
+        request.user = admin
+        view = TemplateDetailView()
+        view.request = request
+        queryset = view.get_queryset()
+        self.assertIn("organization", queryset.query.select_related)
