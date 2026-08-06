@@ -182,6 +182,29 @@ class TestUsersApi(
         org1.refresh_from_db()
         self.assertTrue(org1.is_active)
 
+    def test_reenable_disabled_organization_with_existing_owner_via_put_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._get_org()
+        org1_user1 = self._create_org_user(user=user1, organization=org1)
+        self._create_org_owner(organization_user=org1_user1, organization=org1)
+        org1.is_active = False
+        org1.save()
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {
+            "name": org1.name,
+            "is_active": True,
+            "slug": org1.slug,
+            "description": org1.description,
+            "email": org1.email,
+            "url": org1.url,
+            "owner": {"organization_user": org1_user1.pk},
+        }
+        response = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)
+        org1.refresh_from_db()
+        self.assertTrue(org1.is_active)
+        self.assertEqual(org1.owner.organization_user_id, org1_user1.pk)
+
     def test_create_organization_owner_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")
@@ -820,17 +843,16 @@ class TestUsersApi(
             OrganizationUser.objects.get(user=user1, organization=org1).is_admin
         )
 
-    def test_patch_resend_disabled_org_membership_preserves_it_api(self):
+    def test_patch_resend_disabled_org_membership_deletes_it_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")
         self._create_org_user(user=user1, organization=org1, is_admin=False)
         org1.is_active = False
         org1.save()
         path = reverse("users:user_detail", args=(user1.pk,))
-        # Re-sending an unchanged membership of a disabled organization must
-        # not silently delete it. The membership field only accepts active
-        # organizations, so the request is rejected (400) before the toggle
-        # delete path can run, and the membership is preserved.
+        # Re-sending an unchanged membership of a disabled organization is
+        # the only REST path to remove it: the "is_admin" toggle-delete
+        # contract still applies once the field resolves.
         data = {"organization_users": [{"is_admin": False, "organization": org1.pk}]}
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
