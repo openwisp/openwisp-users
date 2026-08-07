@@ -156,7 +156,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
             self.permission_classes = [IsAuthenticated]
         else:
             self.permission_classes = [IsAuthenticated, DjangoModelPermissions]
-        return super(self.__class__, self).get_permissions()
+        return super().get_permissions()
 
     def get_object(self):
         if getattr(self, "swagger_fake_view", False):
