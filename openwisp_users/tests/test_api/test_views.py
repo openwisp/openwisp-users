@@ -1,10 +1,8 @@
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase, override_settings
-from django.urls import include, path, reverse
-from django.urls.exceptions import NoReverseMatch
+from django.test import TestCase
+from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from openwisp_users import settings as app_settings
@@ -71,9 +69,9 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
             "/api/v1/users/user/not-a-uuid/email/1/",
         )
 
-        for path in invalid_uuid_paths:
-            with self.subTest(path=path):
-                response = self.client.get(path)
+        for url_path in invalid_uuid_paths:
+            with self.subTest(path=url_path):
+                response = self.client.get(url_path)
                 self.assertEqual(response.status_code, 404)
 
 
@@ -98,7 +96,7 @@ class TestGetApiUrls(TestCase):
         )
 
     def test_password_views_define_own_serializers(self):
-        """Protects Users recovery flows from deployment-specific REST_AUTH serializers."""
+        """Protects recovery flows from deployment-specific REST_AUTH serializers."""
         serializers_by_view = (
             (PasswordResetView, PasswordResetSerializer),
             (PasswordChangeView, PasswordChangeSerializer),

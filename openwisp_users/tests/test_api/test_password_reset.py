@@ -36,16 +36,40 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         uid, token = segment.split("-", 1)
         return uid, token
 
-    def test_reset_request_with_valid_username_sends_email(self):
-        user = self._create_user(username="tester", email="tester@example.com")
-        response = self.client.post(self.request_url, {"input": "tester"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.data,
-            {"detail": "Password reset e-mail has been sent."},
+    def test_reset_request_with_valid_identifier_sends_email(self):
+        cases = (
+            (
+                "username",
+                {"username": "username", "email": "username@example.com"},
+                "username",
+            ),
+            (
+                "email",
+                {"username": "email", "email": "email@example.com"},
+                "email@example.com",
+            ),
+            (
+                "phone number",
+                {
+                    "username": "phone",
+                    "email": "phone@example.com",
+                    "phone_number": "+12025551234",
+                },
+                "+12025551234",
+            ),
         )
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].to, [user.email])
+        for identifier_type, user_data, identifier in cases:
+            with self.subTest(identifier_type=identifier_type):
+                user = self._create_user(**user_data)
+                response = self.client.post(self.request_url, {"input": identifier})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.data,
+                    {"detail": "Password reset e-mail has been sent."},
+                )
+                self.assertEqual(len(mail.outbox), 1)
+                self.assertEqual(mail.outbox[0].to, [user.email])
+                mail.outbox.clear()
 
     def test_reset_request_with_valid_email_sends_email(self):
         user = self._create_user(username="tester", email="tester@example.com")
@@ -72,6 +96,11 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [user.email])
+
+    def test_reset_request_without_input_fails(self):
+        response = self.client.post(self.request_url, {})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("input", response.data)
 
     def test_reset_request_with_unknown_identifier_is_indistinguishable(self):
         self._create_user(username="tester", email="tester@example.com")
@@ -207,6 +236,18 @@ class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         user.refresh_from_db()
         self.assertEqual(user.check_password("newpassword123"), True)
+
+    def test_password_change_without_authentication_fails(self):
+        response = self.client.post(
+            self.change_url,
+            {
+                "old_password": "tester",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 401)
 
     def test_password_change_with_bearer_token_succeeds(self):
         user = self._create_user(username="tester", password="tester")
