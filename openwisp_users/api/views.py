@@ -34,6 +34,8 @@ from .serializers import (
     GroupSerializer,
     OrganizationDetailSerializer,
     OrganizationSerializer,
+    PasswordChangeSerializer,
+    PasswordResetSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
     UserDetailSerializer,
@@ -90,6 +92,7 @@ class PasswordResetView(BasePasswordResetView):
     local login.
     """
 
+    serializer_class = PasswordResetSerializer
     throttle_classes = [AuthRateThrottle]
 
     def get_users(self, identifier):
@@ -275,6 +278,7 @@ class PasswordChangeView(ProtectedAPIMixin, BasePasswordChangeView):
     # here need to check only that the user is authenticated and nothing
     # else, but authentication_classes are reused.
     permission_classes = (IsAuthenticated,)
+    serializer_class = PasswordChangeSerializer
 
 
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):

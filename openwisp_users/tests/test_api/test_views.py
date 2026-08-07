@@ -1,12 +1,19 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase
-from django.urls import reverse
+from django.test import TestCase, override_settings
+from django.urls import include, path, reverse
+from django.urls.exceptions import NoReverseMatch
 from django.utils.timezone import now, timedelta
 
 from openwisp_users import settings as app_settings
+from openwisp_users.api.serializers import (
+    PasswordChangeSerializer,
+    PasswordResetSerializer,
+)
 from openwisp_users.api.urls import get_api_urls
+from openwisp_users.api.views import PasswordChangeView, PasswordResetView
 from openwisp_users.auth import record_password_based_token
 from openwisp_users.tests.utils import TestOrganizationMixin
 
@@ -89,3 +96,13 @@ class TestGetApiUrls(TestCase):
             ),
             True,
         )
+
+    def test_password_views_define_own_serializers(self):
+        """Protects Users recovery flows from deployment-specific REST_AUTH serializers."""
+        serializers_by_view = (
+            (PasswordResetView, PasswordResetSerializer),
+            (PasswordChangeView, PasswordChangeSerializer),
+        )
+        for view, serializer in serializers_by_view:
+            with self.subTest(view=view.__name__):
+                self.assertIs(view.__dict__.get("serializer_class"), serializer)

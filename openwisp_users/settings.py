@@ -59,19 +59,6 @@ EXPORT_USERS_COMMAND_CONFIG = getattr(
         "prefetch_related": [f"{_OPENWISP_USERS_APP_LABEL}_organizationuser"],
     },
 )
-_rest_auth = getattr(settings, "REST_AUTH", {})
-_rest_auth_defaults = {
-    "PASSWORD_RESET_SERIALIZER": (
-        "openwisp_users.api.serializers.PasswordResetSerializer"
-    ),
-    "PASSWORD_CHANGE_SERIALIZER": (
-        "openwisp_users.api.serializers.PasswordChangeSerializer"
-    ),
-}
-for _key, _default in _rest_auth_defaults.items():
-    _rest_auth.setdefault(_key, _default)
-setattr(settings, "REST_AUTH", _rest_auth)
-
 USER_PASSWORD_EXPIRATION = getattr(
     settings, "OPENWISP_USERS_USER_PASSWORD_EXPIRATION", 0
 )
