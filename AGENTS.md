@@ -56,6 +56,11 @@ If instructions conflict, repository config and CI workflows win first, official
 - Prefer in-process tests so coverage tools can measure changed code.
 - Keep helpers and classes used by only one test method inside that method. Promote them to class or module scope only when genuinely reused.
 
+## Django Notes
+
+- Build internal URLs with named URL patterns and `reverse()` or `reverse_lazy()`, including in tests. Use the appropriate namespace and URL arguments.
+- In the main behavior test for non-trivial, frequently called views, include `assertNumQueries()` with representative data to enforce an intentional query budget and catch N+1 queries. Use `AssertNumQueriesSubTestMixin` from `openwisp_utils.tests` where available: it records the query-count check as a subtest, so subsequent assertions in the method still run. Change the expected count only when the extra queries are necessary and understood.
+
 ## Security and Auth Notes
 
 - Authentication flows integrate with `django-allauth`; API auth includes token auth and request throttling in `openwisp_users/api/`.
