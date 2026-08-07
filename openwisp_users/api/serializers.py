@@ -82,7 +82,17 @@ class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
             queryset = OrganizationUser.objects.filter(
                 Q(organization__in=user.organizations_managed)
             )
-        return queryset.filter(organization__is_active=True).select_related()
+        allowed = Q(organization__is_active=True)
+        organization = getattr(self.root, "instance", None)
+        if organization is not None and not organization.is_active:
+            current_org_user_id = (
+                OrganizationOwner.objects.filter(organization=organization)
+                .values_list("organization_user_id", flat=True)
+                .first()
+            )
+            if current_org_user_id is not None:
+                allowed |= Q(pk=current_org_user_id)
+        return queryset.filter(allowed).select_related()
 
 
 class OrganizationOwnerSerializer(serializers.ModelSerializer):
@@ -120,25 +130,29 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
                 owner_present and owner_data.get("organization_user") is None
             )
             reenabling = data.get("is_active") is True
-            # A key whose submitted value matches the value already stored is
-            # not a change, so a read-modify-write PUT that resends every
-            # field unchanged except is_active must not be rejected just
-            # because e.g. "name" is present in the payload.
+            # Compare values, not submitted keys, so unchanged PUT fields do
+            # not block re-enabling.
             changed_keys = {
                 key
                 for key in data
                 if key != "owner" and getattr(self.instance, key) != data[key]
             }
+            owner_changed = False
             if owner_present:
-                changed_keys.add("owner")
-            # While disabled, only re-enabling (Is active) and/or unassigning
-            # the owner are allowed, and neither can be combined with any other
-            # change (editing a field or assigning an owner). This matches the
-            # admin interface, which locks every field except Is active, so the
-            # admin, the API and the docs tell the same story.
+                existing_owner = OrganizationOwner.objects.filter(
+                    organization=self.instance
+                ).first()
+                existing_org_user = (
+                    existing_owner.organization_user if existing_owner else None
+                )
+                # Unchanged owners must not block read-modify-write PUTs.
+                owner_changed = owner_data.get("organization_user") != existing_org_user
+                if owner_changed:
+                    changed_keys.add("owner")
+            # Match the admin: while disabled, only re-enable or unassign the owner.
             allowed = (
                 changed_keys <= {"is_active", "owner"}
-                and (not owner_present or is_owner_unassignment)
+                and (not owner_changed or is_owner_unassignment)
                 and (reenabling or is_owner_unassignment)
             )
             if not allowed:
@@ -236,10 +250,19 @@ class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
     def get_queryset(self):
         user = self.context["request"].user
         if user.is_superuser:
-            queryset = Organization.active.all()
+            queryset = Organization.objects.all()
         else:
-            queryset = Organization.active.filter(pk__in=user.organizations_managed)
-        return queryset
+            queryset = Organization.objects.filter(pk__in=user.organizations_managed)
+        allowed = Q(is_active=True)
+        # Existing disabled memberships must resolve so the deletion path works.
+        target_user = getattr(self.root, "instance", None)
+        if target_user is not None:
+            # Keep this as a subquery to avoid an extra round trip.
+            existing_disabled_orgs = OrganizationUser.objects.filter(
+                user=target_user, organization__is_active=False
+            ).values("organization_id")
+            allowed |= Q(pk__in=existing_disabled_orgs)
+        return queryset.filter(allowed)
 
 
 class OrganizationUserSerializer(serializers.ModelSerializer):
@@ -329,9 +352,7 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         password = validated_data.pop("password")
         email_verified = validated_data.pop("email_verified", False)
 
-        # Keep user and membership creation in a single transaction so a
-        # membership validation failure does not leave a half-created user
-        # behind while _full_clean_or_raise returns a 400.
+        # Roll back the user if membership validation fails.
         with transaction.atomic():
             instance = self.instance or self.Meta.model(**validated_data)
             instance.set_password(password)

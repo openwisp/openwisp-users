@@ -36,12 +36,9 @@ Disabled Organization Write Protection
 
 ``MultitenantAdminMixin`` also blocks changes to any object belonging to a
 :ref:`disabled organization <disabling_an_organization>`, while still
-allowing that object to be viewed and deleted. This applies to superusers
-too: there is no per-user bypass (the only way to opt out is the
-class-level attribute described below). For models whose organization is
-reached through a parent (via ``multitenant_parent``), the mixin traverses
-the parent to find the organization, so those child objects are protected
-as well.
+allowing it to be viewed and deleted. This also applies to superusers. For
+models whose organization is reached through a parent, the mixin follows
+``multitenant_parent`` to protect those objects too.
 
 This is controlled by the ``disabled_organization_write_protection`` class
 attribute, which defaults to ``True``. Set it to ``False`` on a specific
@@ -57,18 +54,15 @@ attribute, which defaults to ``True``. Set it to ``False`` on a specific
         disabled_organization_write_protection = False
         # other attributes
 
-The ``organization`` form field's queryset also excludes disabled
-organizations for everyone, superusers included, so a disabled
-organization can never be *selected* for a new object. The one exception
-is an object that already belongs to a disabled organization on a
-``ModelAdmin`` with the opt-out set: its own (disabled) organization stays
-selectable in the field so the existing value can still be saved.
+The ``organization`` form field excludes disabled organizations for
+everyone, including superusers. An opted-out admin keeps the object's
+current disabled organization selectable so it can be saved.
 
-The organization admin extends this protection to its **inlines**: when an
-organization is disabled, every inline attached to the organization change
-page becomes read-only, while deletion of the inline rows stays available.
-An inline can opt out by setting ``disabled_organization_write_protection
-= False`` on its class.
+The same protection applies to **inlines** attached to a disabled object.
+The parent admin denies adding and changing inline rows but keeps deletion
+available, even when an inline does not use the mixin. Set
+``disabled_organization_write_protection = False`` on the parent admin or
+on an individual inline to opt out.
 
 ``MultitenantOrgFilter``
 ------------------------

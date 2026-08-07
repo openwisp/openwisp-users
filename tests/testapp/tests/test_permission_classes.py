@@ -369,11 +369,6 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         )
 
     def test_bare_protected_api_mixin_view_blocks_disabled_org_write(self):
-        """
-        ProtectedTemplateDetailView declares no permission_classes of its
-        own; it relies entirely on inheriting ProtectedAPIMixin. Proves the
-        guard applies without a downstream app having to re-declare it.
-        """
         org = self._get_org()
         template = self._create_template(organization=org)
         org.is_active = False
@@ -628,8 +623,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
 
     def test_disabled_org_read_only_denies_on_misconfigured_field(self):
         class BrokenOrgFieldTemplateDetailView(TemplateDetailView):
-            # a misspelled organization_field must make the disabled-organization
-            # guard fail closed instead of silently granting write access
+            # A bad relation path must fail closed to avoid granting write access.
             organization_field = "nonexistent_field"
 
         org = self._get_org()

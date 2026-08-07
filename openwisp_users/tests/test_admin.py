@@ -1910,7 +1910,7 @@ class TestUsersAdmin(
         params = {
             "name": org.name,
             "slug": org.slug,
-            # unchecking Is active must be allowed even when an owner exists
+            # An owner must not prevent disabling the organization.
             "is_active": "",
             "owner-TOTAL_FORMS": "1",
             "owner-INITIAL_FORMS": "1",
@@ -2008,9 +2008,7 @@ class TestUsersAdmin(
             )
 
     def test_disabled_org_inlines_centrally_write_protected(self):
-        # OrganizationAdmin write-protects every inline attached to it when the
-        # organization is disabled, so downstream inlines inherit the guard without
-        # re-implementing it.
+        # The parent admin protects inlines that do not use the mixin themselves.
         org_admin = OrganizationAdmin(Organization, django_admin.site)
         active_org = self._create_org(name="active-inline-org")
         disabled_org = self._create_org(name="disabled-inline-org", is_active=False)
@@ -2040,9 +2038,7 @@ class TestUsersAdmin(
         )
 
         with self.subTest("Change blocked for superuser"):
-            # has_view_permission is untouched, so the read-only form
-            # still renders with a 200, POSTing a change is what must
-            # be rejected
+            # View access remains; only the write is rejected.
             response = self.client.get(change_path)
             self.assertEqual(response.status_code, 200)
             response = self.client.post(
@@ -2091,8 +2087,7 @@ class TestUsersAdmin(
         self.assertEqual(User.objects.filter(username="disableduserinline").count(), 0)
 
     def test_user_inline_org_picker_excludes_disabled(self):
-        # the membership organization picker must go through the ow-auto-filter
-        # endpoint with exclude_disabled=true, so disabled orgs are not offered
+        # The autocomplete endpoint must exclude disabled organizations.
         admin = self._get_admin()
         self.client.force_login(admin)
         response = self.client.get(reverse(f"admin:{self.app_label}_user_add"))
@@ -2137,7 +2132,7 @@ class TestUsersAdmin(
         with self.subTest("editing an unrelated field saves without error"):
             params = _base_params()
             params["first_name"] = "Changed"
-            # the disabled inline fields are not submitted by a real browser
+            # Disabled fields are omitted from browser submissions.
             params.update(
                 {
                     f"{inline_prefix}-TOTAL_FORMS": 1,
@@ -2152,7 +2147,7 @@ class TestUsersAdmin(
             self.assertNotContains(response, "Select a valid choice")
             user.refresh_from_db()
             self.assertEqual(user.first_name, "Changed")
-            # the membership must still exist and be unchanged
+            # Preserve the disabled membership when another user field changes.
             org_user.refresh_from_db()
             self.assertEqual(org_user.organization_id, org.pk)
             self.assertEqual(org_user.is_admin, True)

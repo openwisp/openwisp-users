@@ -76,9 +76,8 @@ class FilterByOrganization(OrgLookup):
 
     def _organization_relation_is_valid(self, model):
         """
-        ``select_related()`` does not validate its field argument until the
-        queryset is evaluated, so a misspelled ``organization_field`` would
-        otherwise crash later (e.g. inside ``get_object()``).
+        Check the relation before queryset evaluation can surface an invalid
+        ``select_related`` path.
         """
         for part in self.org_field.split("__"):
             try:
@@ -192,51 +191,44 @@ class FilterSerializerByOrganization(OrgLookup):
         raise NotImplementedError()
 
     def filter_fields(self):
+        """
+        Restrict the querysets of writable relational fields so users can
+        only select active organizations they manage, and related objects
+        belonging to those organizations (including shared objects when
+        ``include_shared`` is set).
+        """
         user = self.context["request"].user
-        # superuser can see everything, except disabled organizations
-        # The anonymouse use case exist so we don't run into errors with swagger
-        is_superuser_or_anonymous = user.is_superuser or user.is_anonymous
-        if not is_superuser_or_anonymous:
-            # non superusers can see only items of organizations
-            # they're related to
+        organization_filter = None
+        if not user.is_superuser and not user.is_anonymous:
             organization_filter = getattr(user, self._user_attr)
-        for field in self.fields:
-            if field == "organization" and not self.fields[field].read_only:
-                # queryset attribute will not be present if set to read_only
-                # disabled organizations are excluded for everyone, superusers
-                # included, since they can only be re-enabled, not written to
-                queryset = self.fields[field].queryset.filter(is_active=True)
-                self.fields[field].error_messages[
-                    "does_not_exist"
-                ] = DISABLED_ORGANIZATION_ERROR_MESSAGE
-                if not is_superuser_or_anonymous:
-                    self.fields[field].allow_null = False
-                    queryset = queryset.filter(pk__in=organization_filter)
-                self.fields[field].queryset = queryset
-                continue
-            if is_superuser_or_anonymous:
-                try:
-                    self.fields[field].queryset = self.fields[field].queryset.filter(
-                        Q(**{f"{self.org_field}__is_active": True})
-                        | Q(**{f"{self.org_field}__isnull": True})
-                    )
-                except AttributeError:
-                    pass
-                continue
-            conditions = Q(
-                **{
-                    self.organization_lookup: organization_filter,
-                    f"{self.org_field}__is_active": True,
-                }
-            )
+        for name, field in self.fields.items():
+            if name == "organization" and not field.read_only:
+                self._filter_organization_field(field, organization_filter)
+            else:
+                self._filter_related_field(field, organization_filter)
+
+    def _filter_organization_field(self, field, organization_filter):
+        # Keep disabled organizations out of writable relation fields.
+        queryset = field.queryset.filter(is_active=True)
+        field.error_messages["does_not_exist"] = DISABLED_ORGANIZATION_ERROR_MESSAGE
+        if organization_filter is not None:
+            field.allow_null = False
+            queryset = queryset.filter(pk__in=organization_filter)
+        field.queryset = queryset
+
+    def _filter_related_field(self, field, organization_filter):
+        queryset = getattr(field, "queryset", None)
+        # Read-only and non-relational fields do not expose a queryset.
+        if queryset is None:
+            return
+        conditions = Q(**{f"{self.org_field}__is_active": True})
+        if organization_filter is None:
+            conditions |= Q(**{f"{self.org_field}__isnull": True})
+        else:
+            conditions &= Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
                 conditions |= Q(organization__isnull=True)
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    conditions
-                )
-            except AttributeError:
-                pass
+        field.queryset = queryset.filter(conditions)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

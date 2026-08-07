@@ -84,8 +84,7 @@ class TestAutocompleteJsonView(TestMultitenantAdminMixin, TestCase):
             self.assertIn(str(org2.pk), ids)
 
         with self.subTest("exclude_disabled=false keeps disabled org"):
-            # only the literal "true" enables the filter, otherwise a value
-            # like "false" would wrongly exclude disabled organizations
+            # Treat only "true" as opt-in; "false" must leave results unchanged.
             response = self.client.get(path + "&exclude_disabled=false")
             ids = [option["id"] for option in response.json()["results"]]
             self.assertIn(str(org1.pk), ids)

@@ -441,7 +441,6 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 "Memberships of a disabled organization cannot be modified.",
             ):
                 org_user.full_clean()
-            # deleting the row must still work
             pk = org_user.pk
             org_user.delete()
             self.assertEqual(OrganizationUser.objects.filter(pk=pk).count(), 0)
@@ -480,8 +479,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
             org.is_active = False
             org.save()
             org_user.refresh_from_db()
-            # a no-op full_clean() (nothing changed) must not raise, otherwise
-            # Django admin cannot save a user who has a disabled-org membership
+            # Existing disabled memberships must remain valid on no-op saves.
             org_user.full_clean()
 
         with self.subTest("reassign the user of a disabled organization membership"):
@@ -552,18 +550,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
             org.is_active = False
             org.save()
             org_owner.refresh_from_db()
-            # disabling an organization that already has an owner must not fail
-            # when the untouched owner row is re-validated
+            # Revalidating an unchanged owner must remain valid.
             org_owner.full_clean()
 
     def test_create_organization_owner_signal_defends_bypassed_validation(self):
-        # Django never runs full_clean() automatically on save(), so this
-        # models a write that bypasses validation (migration, fixture,
-        # shell); the signal must not crash.
+        # ``save()`` skips ``full_clean()``, so signals must tolerate legacy writes.
         org = self._create_org(name="disabled-org-signal", is_active=False)
         user = self._create_user()
-        # Bypassing validation by creating an OrganizationUser directly,
-        # without calling full_clean() to test signal receiver.
+        # Bypass ``full_clean()`` to exercise the signal directly.
         OrganizationUser.objects.create(organization=org, user=user, is_admin=True)
         self.assertEqual(
             OrganizationOwner.objects.filter(organization=org).exists(), False

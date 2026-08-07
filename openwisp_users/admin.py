@@ -115,10 +115,7 @@ class OrganizationOwnerInline(admin.StackedInline):
 
 class OrganizationUserInlineFormSet(RequiredInlineFormSet):
     """
-    Renders existing memberships of a disabled organization as read-only so
-    the row survives a no-op save (the disabled organization is not part of
-    the field queryset otherwise) and its select widget shows the disabled
-    organization instead of rendering empty. Deleting the row stays possible.
+    Keep disabled memberships valid on no-op saves while allowing deletion.
     """
 
     def add_fields(self, form, index):
@@ -148,16 +145,12 @@ class OrganizationUserInline(admin.StackedInline):
     autocomplete_fields = ("organization",)
 
     def get_queryset(self, request):
-        # OrganizationUserInlineFormSet.add_fields() reads
-        # instance.organization.is_active for every row; select_related
-        # folds that per-row query into this one.
+        # Avoid a query per inline row when checking the organization status.
         return super().get_queryset(request).select_related("organization")
 
     def get_formset(self, request, obj=None, **kwargs):
         """
-        In form dropdowns, display only active organizations;
-        non-superusers additionally only see organizations
-        in which they are `is_admin`.
+        Limit membership choices to active organizations the user can manage.
         """
         formset = super().get_formset(request, obj=obj, **kwargs)
         org_field = formset.form.base_fields["organization"]
@@ -171,12 +164,8 @@ class OrganizationUserInline(admin.StackedInline):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """
-        Route the organization picker through the ``ow-auto-filter`` endpoint
-        so disabled organizations are excluded from the dropdown for everyone,
-        superusers included (the stock ``admin:autocomplete`` endpoint does not
-        filter them). Only replaces the widget when the field is actually an
-        autocomplete field, so that disabling ``autocomplete_fields`` keeps
-        rendering a plain select.
+        Use the filtered endpoint because the stock autocomplete includes
+        disabled organizations.
         """
         if db_field.name == "organization" and db_field.name in (
             self.get_autocomplete_fields(request)
@@ -187,8 +176,7 @@ class OrganizationUserInline(admin.StackedInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def has_add_permission(self, request, obj=None):
-        # an operator who manages no active organization cannot pick one, so
-        # the add row would be unusable: hide it
+        # Without an active managed organization, the add form cannot be used.
         if not request.user.is_superuser and not request.user.organizations_managed:
             return False
         return super().has_add_permission(request, obj)
@@ -632,7 +620,7 @@ class OrganizationAdmin(
 
     def get_inline_instances(self, request, obj=None):
         """
-        Remove OrganizationOwnerInline from the organization add form.
+        Owners require an existing organization, so omit this inline on add.
         """
         inlines = super().get_inline_instances(request, obj).copy()
         if not obj:
@@ -644,10 +632,8 @@ class OrganizationAdmin(
 
     def has_change_permission(self, request, obj=None):
         """
-        Allow only managers and superuser to change organization.
-        Disabled organizations can still be changed so superusers can
-        re-enable them; ``get_readonly_fields`` ensures only
-        ``is_active`` is editable.
+        Keep disabled organizations accessible so superusers can re-enable them;
+        read-only fields enforce the remaining restrictions.
         """
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False
@@ -657,9 +643,8 @@ class OrganizationAdmin(
 
     def get_readonly_fields(self, request, obj=None):
         """
-        A disabled organization can only be re-enabled: every other
-        field becomes readonly (owner unassignment is still possible
-        via the inline's delete action, which does not go through here).
+        Lock every field except ``is_active`` while disabled; owner removal uses
+        the inline delete action.
         """
         fields = super().get_readonly_fields(request, obj)
         if obj and not obj.is_active:
@@ -672,8 +657,7 @@ class OrganizationAdmin(
         return fields
 
     def get_prepopulated_fields(self, request, obj=None):
-        # prepopulated_fields cannot reference a field that is also
-        # readonly, which is the case for "slug" on a disabled organization
+        # Django rejects prepopulated fields that are read-only.
         if obj and not obj.is_active:
             return {}
         return super().get_prepopulated_fields(request, obj)
