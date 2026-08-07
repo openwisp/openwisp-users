@@ -197,7 +197,7 @@ class OpenwispUsersConfig(AppConfig):
 
     @classmethod
     def create_organization_owner(cls, instance, created, **kwargs):
-        if not created or not instance.is_admin:
+        if not created or not instance.is_admin or not instance.organization.is_active:
             return
         OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
         org_owner_exist = OrganizationOwner.objects.filter(

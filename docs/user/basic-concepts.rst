@@ -149,6 +149,49 @@ instance of the platform.
     `django-organizations
     <https://github.com/bennylope/django-organizations>`_ third-party app.
 
+.. _disabling_an_organization:
+
+Disabling an Organization
+-------------------------
+
+Superusers and managers of the organization can disable it by unchecking
+its **Is active** flag on the "Change organization" page or via the REST
+API (subject to the usual permission requirements for editing an
+organization).
+
+Disabling an organization does not delete its users, memberships, or
+related objects. Superusers can still read and delete that data, but:
+
+- **No new object can be created for a disabled organization**, and
+  **existing objects belonging to it cannot be modified**. For the
+  organization itself, only **Is active** can be changed and its owner can
+  be unassigned while it is disabled.
+- Deleting objects, including the organization itself, remains allowed.
+- The organization is hidden from **organization selection widgets** but
+  remains available in admin **list filters**.
+- Re-enabling a disabled organization is allowed **only for superusers**.
+  Once an organization is disabled, its managers lose access to it (a
+  disabled organization is no longer part of the organizations they
+  manage), so they can no longer edit it, including re-enabling it. A
+  superuser must re-enable the organization before its managers regain
+  access.
+
+.. note::
+
+    In the REST API, an update to an object in a disabled organization
+    returns HTTP 400 or 403, depending on the endpoint, with an error
+    message.
+
+.. note::
+
+    Re-enabling an organization and editing its other fields must be done
+    in **two separate steps**, matching the admin interface (which locks
+    every field except **Is active** while the organization is disabled).
+    First re-enable the organization (change only **Is active**), then
+    edit its other fields or assign an owner. A single request that both
+    re-enables the organization and changes another field (or assigns an
+    owner) is rejected.
+
 Organization Membership and Roles
 ---------------------------------
 
