@@ -30,13 +30,13 @@ class PasswordResetForm(BasePasswordResetForm):
         domain_override=None,
         subject_template_name="registration/password_reset_subject.txt",
         email_template_name="registration/password_reset_email.txt",
-        text_template_name=None,
         use_https=False,
         token_generator=None,
+        from_email=None,
         request=None,
+        html_email_template_name=None,
         extra_email_context=None,
         url_generator=None,
-        **kwargs,
     ):
         if token_generator is None:
             # Must match the token generator dj-rest-auth's
@@ -73,8 +73,9 @@ class PasswordResetForm(BasePasswordResetForm):
                 subject_template_name,
                 email_template_name,
                 context,
+                from_email,
                 user.email,
-                text_template_name=text_template_name,
+                html_email_template_name,
             )
 
     def send_mail(
@@ -82,28 +83,25 @@ class PasswordResetForm(BasePasswordResetForm):
         subject_template_name,
         email_template_name,
         context,
+        from_email,
         to_email,
-        text_template_name=None,
+        html_email_template_name=None,
     ):
         """
         Send the password reset email.
 
         ``openwisp_utils.admin_theme.email.send_email`` always sends from
-        ``settings.DEFAULT_FROM_EMAIL`` and has no override hook, so this
-        form does not accept a ``from_email`` argument.
+        ``settings.DEFAULT_FROM_EMAIL``. Keep the standard ``from_email``
+        argument so subclasses can continue to override this method.
         """
         subject = context.get("subject")
         if not subject:
             subject_text = loader.render_to_string(subject_template_name, context)
             subject = "".join(subject_text.splitlines())
-        body_html = loader.render_to_string(email_template_name, context)
-        # strip_tags() only parses entity-like "&word" sequences when the
-        # value contains angle brackets: rendering a tag-free plain-text
-        # template keeps URLs with query strings (e.g. "&token=...") intact,
-        # instead of being mangled into "&token;=..." by strip_tags().
-        body_text = (
-            loader.render_to_string(text_template_name, context)
-            if text_template_name
-            else body_html
+        body_text = loader.render_to_string(email_template_name, context)
+        body_html = (
+            loader.render_to_string(html_email_template_name, context)
+            if html_email_template_name
+            else None
         )
         send_email(subject, body_text, body_html, [to_email], context)
