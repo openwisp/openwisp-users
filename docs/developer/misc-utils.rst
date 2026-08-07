@@ -163,6 +163,76 @@ You can also use the backend programmatically:
     backend = UsersAuthenticationBackend()
     backend.authenticate(request, identifier, password)
 
+``record_password_based_login()``
+---------------------------------
+
+**Full python path**: ``openwisp_users.auth.record_password_based_login``.
+
+Records on the current session, whether the user logged in using the local
+password. The ``password_based`` argument is a boolean: ``True`` if the
+local password was used, ``False`` for any other authentication method
+(SAML, OAuth, etc.).
+
+This is used internally by authentication flows to record how the session
+was authenticated. Sessions marked as not password-based are exempt from
+password expiration enforcement.
+
+.. code-block:: python
+
+    from openwisp_users.auth import record_password_based_login
+
+    # After a successful SAML or OAuth login
+    record_password_based_login(request, False)
+
+``record_password_based_token()``
+---------------------------------
+
+**Full python path**: ``openwisp_users.auth.record_password_based_token``.
+
+Records whether a newly issued authentication token was obtained using the
+user's local password by updating the ``User.password_based_token`` field.
+
+Unlike ``record_password_based_login()``, which records this on the
+session, this helper is intended for stateless authentication flows (such
+as token-based APIs), where no session exists to persist that information
+across requests.
+
+``password_based_token`` is:
+
+- ``True`` if the token was obtained using the local password.
+- ``False`` if it was obtained through an external authentication method
+  (SAML, OAuth, etc.).
+- ``None`` if no token has been issued for the user since this feature was
+  introduced.
+
+.. code-block:: python
+
+    from openwisp_users.auth import record_password_based_token
+
+    # After issuing a token from a stateless external login flow
+    record_password_based_token(user, False)
+
+``is_password_based_login()``
+-----------------------------
+
+**Full python path**: ``openwisp_users.auth.is_password_based_login``.
+
+Returns whether the local password was used to authenticate, reading from
+whichever source applies: the session marker set by
+``record_password_based_login()`` for session-authenticated requests, or
+the ``User.password_based_token`` field set by
+``record_password_based_token()`` for stateless requests (eg: Bearer token
+authentication). A missing session marker, or a ``None`` token, is treated
+as password-based, so expiration enforcement never silently changes for
+sessions or tokens that predate this feature.
+
+.. code-block:: python
+
+    from openwisp_users.auth import is_password_based_login
+
+    is_password_based_login(request)
+    is_password_based_login(user=user)
+
 ``PasswordExpirationMiddleware``
 --------------------------------
 
@@ -174,6 +244,19 @@ When the password expiration feature is enabled (see
 :ref:`OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION`), this middleware
 restricts users to the *password change view* until they change their
 password.
+
+The middleware runs **before** the view: for browser (HTML) requests it
+redirects to the password-change page, while for DRF endpoints it returns
+a JSON ``403`` response with a ``password_expired`` error code and a link
+to the password-change API endpoint.
+
+Sessions that did not log in with the local password (SAML, OAuth, RADIUS,
+etc.) are **exempt**: the middleware does not block them even if the
+user's local password has technically expired.
+
+Requests carrying a ``Bearer`` token to a DRF view that supports Bearer
+authentication are not blocked by password expiration, even if they also
+carry an expired-password session cookie. DRF still validates the token.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and
 ``MessageMiddleware``:

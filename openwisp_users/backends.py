@@ -21,7 +21,7 @@ class UsersAuthenticationBackend(ModelBackend):
                 return user
 
     def get_users(self, identifier):
-        conditions = Q(email=identifier) | Q(username=identifier)
+        conditions = Q(email__iexact=identifier) | Q(username=identifier)
         # if the identifier is a phone number, use the phone number as primary condition
         for phone_number in self._get_phone_numbers(identifier):
             conditions = Q(phone_number=phone_number) | conditions

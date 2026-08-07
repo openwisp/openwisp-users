@@ -2,8 +2,16 @@ import logging
 from copy import deepcopy
 
 from allauth.account.models import EmailAddress
+from dj_rest_auth.serializers import (
+    PasswordChangeSerializer as BasePasswordChangeSerializer,
+)
+from dj_rest_auth.serializers import (
+    PasswordResetSerializer as BasePasswordResetSerializer,
+)
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.sites.shortcuts import get_current_site
 from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -11,6 +19,8 @@ from rest_framework import serializers
 from swapper import load_model
 
 from openwisp_utils.api.serializers import ValidatedModelSerializer
+
+from ..base.forms import PasswordResetForm
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -469,6 +479,71 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context["user"]
         user.set_password(password)
         user.save()
+
+
+class PasswordResetSerializer(BasePasswordResetSerializer):
+    """
+    Password reset serializer that accepts the same login identifier as the
+    authentication endpoint (username, e-mail, or phone).
+
+    The identifier is resolved by the view's ``get_users()`` method during
+    validation and cached on the serializer for use in ``save()``. If no users
+    match, ``get_users()`` returns an empty queryset, causing ``save()`` to
+    perform no work without raising an error. This preserves the password reset
+    endpoint's anti-enumeration behaviour by returning the same response whether
+    or not the supplied identifier exists.
+    """
+
+    # Remove dj-rest-auth's inherited required email field in favor of
+    # `input`, which accepts a username, e-mail address, or phone number.
+    email = None
+    input = serializers.CharField()
+    password_reset_form_class = PasswordResetForm
+
+    def validate_input(self, value):
+        self.users = self.context["view"].get_users(value)
+        return value
+
+    def save(self):
+        request = self.context["request"]
+        view = self.context["view"]
+        for user in self.users:
+            self.reset_form = self.password_reset_form_class(data={"email": user.email})
+            if not self.reset_form.is_valid():
+                continue
+            opts = {
+                "use_https": request.is_secure(),
+                "from_email": getattr(settings, "DEFAULT_FROM_EMAIL"),
+                "email_template_name": "custom_password_reset_email.txt",
+                "html_email_template_name": "custom_password_reset_email.html",
+                "request": request,
+                "url_generator": (
+                    lambda request, user, token: view.get_password_reset_url(
+                        user, token
+                    )
+                ),
+                "extra_email_context": {
+                    "subject": _("Password reset on %s")
+                    % (get_current_site(request).name),
+                    "call_to_action_text": _("Reset password"),
+                },
+            }
+            opts.update(self.get_email_options())
+            self.reset_form.save(**opts)
+
+
+class PasswordChangeSerializer(BasePasswordChangeSerializer):
+    """
+    Force the ``old_password`` field to be present and validated, regardless
+    of ``REST_AUTH["OLD_PASSWORD_FIELD_ENABLED"]``. This overrides the
+    dj-rest-auth default, which disables the field by default.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.old_password_field_enabled = True
+        if "old_password" not in self.fields:
+            self.fields["old_password"] = serializers.CharField(max_length=128)
 
 
 class EmailAddressSerializer(ValidatedModelSerializer):

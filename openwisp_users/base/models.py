@@ -76,6 +76,22 @@ class AbstractUser(BaseUser):
         default=settings.LANGUAGE_CODE,
     )
     password_updated = models.DateField(_("password updated"), blank=True, null=True)
+    # A user can only have one Token at a time. Storing this flag on the user avoids
+    # introducing a companion model for Token, keeping the implementation simpler and
+    # eliminating additional queries to determine whether the token is password-based.
+    password_based_token = models.BooleanField(
+        _("password based token"),
+        blank=True,
+        null=True,
+        default=None,
+        help_text=_(
+            "Indicates whether the last authentication token was obtained"
+            " using the local password. When false, the token came from an"
+            " external method (eg: SSO, SAML) and password expiration is"
+            " not enforced for it. None means no token has been issued for"
+            " this user since this feature was introduced."
+        ),
+    )
     expiration_date = models.DateField(
         _("expiration date"),
         blank=True,
