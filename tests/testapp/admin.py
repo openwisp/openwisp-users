@@ -15,9 +15,7 @@ class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
 
 
 class BookInline(admin.TabularInline):
-    # Used to prove MultitenantAdminMixin.get_inline_instances write-protects
-    # inlines of a disabled organization even though this inline itself does
-    # not use MultitenantAdminMixin.
+    # Verify the parent mixin protects inlines that do not use it.
     model = Book
     fields = ["name", "author"]
     extra = 0
@@ -79,13 +77,12 @@ class TagAdmin(BaseAdmin):
 
 
 class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-    # Library has no organization field; it is reached through its Book parent
+    # Resolve the organization through Book for parent traversal coverage.
     multitenant_parent = "book"
 
 
 class ConfigAdmin(BaseAdmin):
-    # Dedicated admin used to test the disabled_organization_write_protection
-    # opt-out through the admin URLs
+    # Exercise the write-protection opt-out through the admin endpoints.
     disabled_organization_write_protection = False
     fields = ["name", "organization", "template"]
 

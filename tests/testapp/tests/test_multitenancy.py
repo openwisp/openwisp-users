@@ -14,9 +14,7 @@ User = get_user_model()
 
 
 class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-    # dedicated admin used only to test the disabled_organization_write_protection
-    # opt-out; kept separate from ShelfAdmin so its default (protected)
-    # behaviour stays covered by the other tests in this file
+    # Test the opt-out separately so ShelfAdmin's default remains covered.
     disabled_organization_write_protection = False
     fields = ["name", "organization"]
     inlines = [BookInline]
@@ -85,8 +83,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             hidden=[data["s2"].name, data["s3_inactive"].name],
             select_widget=True,
             administrator=True,
-            # a disabled organization's shelf is excluded from the FK
-            # picker for everyone, superusers included
+            # Keep disabled organizations hidden even for superusers.
             superuser_hidden=[data["s3_inactive"].name],
         )
 
@@ -143,8 +140,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         )
 
     def test_shelf_disabled_org_admin_inline_readonly_opt_out(self):
-        # BookInline stays fully writable when the parent admin opts out of
-        # disabled_organization_write_protection
+        # The parent opt-out keeps BookInline writable.
         data = self._create_multitenancy_test_env()
         shelf_admin = ShelfDisabledOrgWriteAllowedAdmin(Shelf, admin.site)
         request = RequestFactory().get("/")
@@ -175,8 +171,6 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             )
 
         with self.subTest("change blocked for object of disabled parent org"):
-            # applies to superusers too: the object is reached through
-            # multitenant_parent, so the guard must traverse it
             self.assertEqual(
                 library_admin.has_change_permission(request, disabled_library), False
             )

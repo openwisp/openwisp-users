@@ -236,11 +236,7 @@ class TemplateDisabledOrgWriteAllowedDetailView(TemplateDetailView):
 class ProtectedTemplateDetailView(
     ProtectedAPIMixin, FilterByOrganizationManaged, RetrieveUpdateDestroyAPIView
 ):
-    """
-    Uses ProtectedAPIMixin directly, with no permission_classes/
-    authentication_classes override, to prove the disabled-organization
-    guard is inherited automatically rather than manually re-declared.
-    """
+    """Use the mixin defaults to cover inherited disabled-org protection."""
 
     serializer_class = TemplateSerializer
     queryset = Template.objects.all()

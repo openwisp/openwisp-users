@@ -20,8 +20,7 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
-    # opt-out hook: set to False on subclasses that should allow writes
-    # to objects belonging to a disabled organization
+    # Set False on subclasses that allow writes to disabled-organization objects.
     disabled_organization_write_protection = True
 
     def __init__(self, *args, **kwargs):
@@ -63,9 +62,8 @@ class MultitenantAdminMixin(object):
 
     def _get_object_organization(self, obj):
         """
-        Returns the organization an object belongs to, traversing
-        ``multitenant_parent`` for models whose organization is reached
-        through a parent (e.g. a Book through its Shelf).
+        Resolve an object's organization, including through
+        ``multitenant_parent``.
         """
         if self.model.__name__ == "Organization":
             return obj
@@ -81,10 +79,7 @@ class MultitenantAdminMixin(object):
 
     def has_change_permission(self, request, obj=None):
         """
-        Objects belonging to a disabled organization stay readable and
-        deletable, but cannot be changed, regardless of the user being a
-        superuser. Subclasses can opt out with
-        ``disabled_organization_write_protection = False``.
+        Block changes to disabled organizations unless the admin opts out.
         """
         if self.disabled_organization_write_protection and obj is not None:
             organization = self._get_object_organization(obj)
@@ -94,9 +89,7 @@ class MultitenantAdminMixin(object):
 
     def get_inline_instances(self, request, obj=None):
         """
-        When the edited object belongs to a disabled organization, make
-        every inline write-protected (no add, no change) while keeping
-        deletion available.
+        Disable add/change for inlines on objects from disabled organizations while keeping delete.
         """
         inlines = super().get_inline_instances(request, obj)
         if obj is None or not self.disabled_organization_write_protection:
@@ -112,42 +105,24 @@ class MultitenantAdminMixin(object):
 
     def has_add_permission(self, request, *args, **kwargs):
         """
-        Hide the Add button from admins who manage no active organization:
-        the organization dropdown would be empty and the form could never be
-        submitted. Does not apply to the user admin or to models without an
-        organization (directly or through ``multitenant_parent``).
-
-        ``*args`` keeps this compatible with both ``ModelAdmin``
-        (``request``) and ``InlineModelAdmin`` (``request, obj``), since this
-        mixin is used on inlines too.
+        Hide unusable add forms when no active organization is managed.
         """
         if (
             not request.user.is_superuser
             and self.model != User
             and not request.user.organizations_managed
         ):
-            # Any model with an organization field (directly, or reached
-            # through multitenant_parent) is blocked: _edit_form() makes the
-            # field required for non-superusers, so the form could not be
-            # submitted without an active organization to pick anyway.
+            # The form requires an organization, so it cannot work without one.
             if hasattr(self.model, "organization") or self.multitenant_parent:
                 return False
         return super().has_add_permission(request, *args, **kwargs)
 
     def _edit_form(self, request, form, obj=None):
         """
-        Modifies the form querysets as follows;
-        if current user is not superuser:
-            * show only relevant organizations
-            * show only relations associated to relevant organizations
-              or shared relations
-            * do not allow organization field to be empty (shared org)
-        else show everything
-        Organization choices always exclude disabled organizations,
-        superusers included, except an admin that opted out of write
-        protection (``disabled_organization_write_protection = False``)
-        keeps the edited object's own disabled organization selectable,
-        or the form could never be saved.
+        Filter form fields by organization and exclude disabled choices.
+
+        An opted-out admin keeps the object's current disabled organization
+        selectable so the existing object can still be saved.
         """
         fields = form.base_fields
         user = request.user

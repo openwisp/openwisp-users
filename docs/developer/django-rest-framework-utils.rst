@@ -137,29 +137,25 @@ Standard users will not be able to view or list shared objects.
 **Full python path**:
 ``openwisp_users.api.permissions.DisabledOrgReadOnly``.
 
-This object-level permission class blocks updating an object that belongs
-to a :ref:`disabled organization <disabling_an_organization>`. Read (safe
-methods) and ``DELETE`` remain allowed.
+This object-level permission class blocks updates to objects belonging to
+a :ref:`disabled organization <disabling_an_organization>`. ``GET``,
+``HEAD``, ``OPTIONS`` and ``DELETE`` remain allowed.
 
-The object's organization is located through the view's
-``organization_field`` attribute (default ``"organization"``). If that
-traversal fails, for example because ``organization_field`` is misspelled
-or points to a relation that does not exist, the class **fails closed**
-and denies the write. A view whose objects are genuinely not tied to an
-organization must therefore opt out explicitly.
+The object's organization is resolved through the view's
+``organization_field`` attribute, which defaults to ``"organization"``. An
+invalid relation path denies the write instead of failing open. Views that
+are not organization-scoped must opt out explicitly.
 
 .. important::
 
     ``DisabledOrgReadOnly`` guards **updates only**. It implements
     ``has_object_permission``, which DRF does not call on ``POST``, so it
-    does **not** block *creating* a new object for a disabled
-    organization. Create protection instead relies on the organization
-    field excluding disabled organizations: use one of the
-    ``FilterSerializerByOrganization`` mixins (or a related field backed
-    by ``Organization.active``) on the serializer. A plain
-    ``ModelSerializer`` whose organization field defaults to
-    ``Organization.objects`` will happily create objects for a disabled
-    organization even under ``ProtectedAPIMixin``.
+    does **not** block creation for a disabled organization. The
+    serializer must exclude disabled organizations from its
+    ``organization`` field, for example by using a
+    ``FilterSerializerByOrganization`` mixin or ``Organization.active``. A
+    plain ``ModelSerializer`` can still create an object for a disabled
+    organization.
 
 A view can opt out of this guard by setting
 ``allow_disabled_organization_writes = True``:
@@ -173,7 +169,6 @@ A view can opt out of this guard by setting
     class SubnetView(RetrieveUpdateDestroyAPIView):
         permission_classes = (DisabledOrgReadOnly,)
         allow_disabled_organization_writes = True
-        # other attributes
 
 ``DisabledOrgReadOnly`` is already included in ``ProtectedAPIMixin``'s
 default ``permission_classes`` (see below), so views that use
@@ -320,12 +315,10 @@ These serializers do not allow non-superusers to create shared objects.
 
 .. _multi_tenant_serializers_disabled_org:
 
-The ``organization`` field's queryset also excludes :ref:`disabled
-organizations <disabling_an_organization>`, for everyone, superusers
-included, so a disabled organization can never be selected when creating
-or updating an object. Submitting the primary key of a disabled
-organization returns a validation error explaining that the organization
-does not exist or is disabled.
+These serializers also exclude :ref:`disabled organizations
+<disabling_an_organization>` from the ``organization`` field for all
+users, including superusers. Submitting a disabled organization's primary
+key returns a validation error.
 
 Usage example:
 

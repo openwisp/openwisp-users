@@ -97,9 +97,8 @@ class IsOrganizationOwner(BaseOrganizationPermission):
 
 class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
     """
-    Blocks update of objects belonging to a disabled organization.
-    Read and delete remain allowed. Applies to superusers as well.
-    Views can opt out with `allow_disabled_organization_writes = True`.
+    Keep disabled-organization objects read-only while allowing reads and
+    deletion. Views can opt out with ``allow_disabled_organization_writes``.
     """
 
     message = _(
@@ -115,11 +114,7 @@ class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
         try:
             organization = self.get_object_organization(view, obj)
         except AttributeError:
-            # A broken or misspelled organization_field must not fail open,
-            # so a misconfiguration cannot silently grant write access. Views
-            # that are genuinely not organization-bound opt out explicitly with
-            # allow_disabled_organization_writes = True instead of relying on
-            # this path.
+            # Do not fail open on a bad relation path; unrelated views opt out.
             return False
         return organization is None or organization.is_active
 

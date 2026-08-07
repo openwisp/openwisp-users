@@ -143,17 +143,10 @@ class TestUsersApi(
         self.assertTrue(org1.is_active)
 
     def test_reenable_disabled_organization_with_field_edit_api(self):
-        """
-        Re-enabling (is_active) and editing another field in the same
-        request is rejected: re-enabling and editing must be two separate
-        requests, matching the admin and the docs.
-        """
         org1 = self._get_org()
         org1.is_active = False
         org1.save()
         path = reverse("users:organization_detail", args=(org1.pk,))
-        # re-enabling and editing another field in one request is rejected,
-        # the two-step matches the admin and the docs
         data = {"is_active": True, "name": "renamed while disabled"}
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
@@ -166,9 +159,7 @@ class TestUsersApi(
         org1.is_active = False
         org1.save()
         path = reverse("users:organization_detail", args=(org1.pk,))
-        # a PUT always resends every required field, "name" included; since
-        # its value is unchanged it must not count as an edit and block the
-        # re-enable, the way a read-modify-write client would use PUT
+        # PUT resends unchanged fields, so they must not block re-enabling.
         data = {
             "name": org1.name,
             "is_active": True,
@@ -211,8 +202,6 @@ class TestUsersApi(
         org1_user1 = self._create_org_user(user=user1, organization=org1)
         path = reverse("users:organization_detail", args=(org1.pk,))
         data = {"owner": {"organization_user": org1_user1.pk}}
-        # building the owner and saving it once (instead of objects.create()
-        # followed by a redundant save()) removed two queries here
         with self.assertNumQueries(17):
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
@@ -313,8 +302,6 @@ class TestUsersApi(
         self.assertEqual(org1.owner.organization_user.id, org1_user1.id)
         path = reverse("users:organization_detail", args=(org1.pk,))
         data = {"owner": {"organization_user": org1_user2.id}}
-        # building the new owner and saving it once (instead of objects.create()
-        # followed by a redundant save()) removed two queries here
         with self.assertNumQueries(26):
             r = self.client.patch(path, data, content_type="application/json")
         org1.refresh_from_db()
@@ -850,9 +837,7 @@ class TestUsersApi(
         org1.is_active = False
         org1.save()
         path = reverse("users:user_detail", args=(user1.pk,))
-        # Re-sending an unchanged membership of a disabled organization is
-        # the only REST path to remove it: the "is_admin" toggle-delete
-        # contract still applies once the field resolves.
+        # Resending an unchanged membership exercises the toggle-delete contract.
         data = {"organization_users": [{"is_admin": False, "organization": org1.pk}]}
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
@@ -863,8 +848,7 @@ class TestUsersApi(
         org1 = self._create_org(name="org1")
         self._create_org_user(user=user1, organization=org1, is_admin=True)
         path = reverse("users:user_detail", args=(user1.pk,))
-        # omitting is_admin must leave the membership unchanged instead of
-        # raising a KeyError (500) or deleting it implicitly
+        # Omitting ``is_admin`` must preserve the membership.
         data = {"organization_users": [{"organization": org1.pk}]}
         r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
@@ -1028,13 +1012,8 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
         self.client.force_login(self._get_admin())
 
     def test_create_user_organization_users_disabled_org_api(self):
-        # A membership validation failure after the user row is written must
-        # roll the user back instead of leaving a half-created account behind.
-        # The membership field only accepts active organizations, so field
-        # validation would normally reject a disabled org before the user is
-        # ever created; patch its queryset to let field validation pass, so the
-        # model's clean() is what fails, inside the atomic block, after the
-        # user row has been written. This exercises the transaction rollback.
+        # Bypass field validation so model validation fails after the user is
+        # saved, proving the transaction rolls both rows back.
         path = reverse("users:user_list")
         org1 = self._create_org(name="disabled-org", is_active=False)
         data = {
@@ -1044,8 +1023,7 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
             "organization_users": {"is_admin": False, "organization": org1.pk},
         }
 
-        # a real function (not a MagicMock) so DRF can still introspect
-        # get_queryset via its __func__ attribute
+        # Keep a real function so DRF can inspect ``__func__``.
         def get_all_orgs(self):
             return Organization.objects.all()
 
