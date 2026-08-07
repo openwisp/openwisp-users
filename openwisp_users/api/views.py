@@ -265,12 +265,16 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
-class PasswordChangeView(BasePasswordChangeView):
+class PasswordChangeView(ProtectedAPIMixin, BasePasswordChangeView):
     """
     Self-service password change endpoint for authenticated users.
     """
 
     throttle_classes = [AuthRateThrottle]
+    # Intentional difference from ``ProtectedAPIMixin``: permission_classes
+    # here need to check only that the user is authenticated and nothing
+    # else, but authentication_classes are reused.
+    permission_classes = (IsAuthenticated,)
 
 
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):

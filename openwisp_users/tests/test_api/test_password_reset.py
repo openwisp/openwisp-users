@@ -8,6 +8,7 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse_lazy
 from rest_framework import serializers
+from rest_framework.authtoken.models import Token
 
 from openwisp_users.api.throttling import AuthRateThrottle
 from openwisp_users.api.views import PasswordResetConfirmView
@@ -202,6 +203,23 @@ class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
                 "new_password2": "newpassword123",
             },
             content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.check_password("newpassword123"), True)
+
+    def test_password_change_with_bearer_token_succeeds(self):
+        user = self._create_user(username="tester", password="tester")
+        token = Token.objects.create(user=user)
+        response = self.client.post(
+            self.change_url,
+            {
+                "old_password": "tester",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token.key}",
         )
         self.assertEqual(response.status_code, 200)
         user.refresh_from_db()
