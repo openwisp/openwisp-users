@@ -150,7 +150,7 @@ Change Own Password
 Lets an authenticated user change their own password, given their
 ``old_password`` and a new one (``new_password1``, confirmed via
 ``new_password2``). Unlike :ref:`Change User Password
-<change_user_password>` above, this endpoint always operates on the
+<change_user_password>` below, this endpoint always operates on the
 requesting user.
 
 Example usage:
