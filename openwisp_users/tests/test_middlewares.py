@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from django.contrib.auth import get_user, get_user_model
 from django.core import mail
 from django.test import RequestFactory, TestCase, modify_settings
-from django.urls import NoReverseMatch, reverse
+from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from rest_framework.authtoken.models import Token
 
@@ -186,12 +186,10 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         admin.refresh_from_db()
         self.assertEqual(admin.check_password("newpassword123"), True)
 
-    def test_payload_omits_url_when_reverse_fails(self):
-        # When OPENWISP_USERS_AUTH_API is disabled, "users:user_password_change"
-        # is not part of the urlconf and reverse() raises NoReverseMatch.
+    @patch.object(app_settings, "USERS_AUTH_API", False)
+    def test_payload_omits_api_urls_when_api_is_disabled(self):
         request = RequestFactory().get("/")
-        with patch("openwisp_users.auth.reverse", side_effect=NoReverseMatch):
-            payload = password_expired_response_payload(request)
+        payload = password_expired_response_payload(request)
         self.assertNotIn("api_password_change_url", payload)
         self.assertNotIn("api_password_reset_url", payload)
         self.assertEqual(payload["code"], "password_expired")

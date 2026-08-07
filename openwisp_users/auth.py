@@ -1,7 +1,9 @@
 from django.contrib.auth import SESSION_KEY as AUTH_SESSION_KEY
 from django.contrib.auth import get_user_model
-from django.urls import NoReverseMatch, reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
+
+from . import settings as app_settings
 
 SESSION_KEY = "openwisp_password_based_login"
 
@@ -71,19 +73,12 @@ def password_expired_response_payload(request):
             str(ACCOUNT_CHANGE_PASSWORD_PATH)
         ),
     }
-    try:
+    if app_settings.USERS_AUTH_API:
         api_password_change_url = reverse(API_PASSWORD_CHANGE_URL_NAME)
-    except NoReverseMatch:
-        pass
-    else:
         payload["api_password_change_url"] = request.build_absolute_uri(
             api_password_change_url
         )
-    try:
         api_password_reset_url = reverse("users:user_password_reset")
-    except NoReverseMatch:
-        pass
-    else:
         payload["api_password_reset_url"] = request.build_absolute_uri(
             api_password_reset_url
         )
