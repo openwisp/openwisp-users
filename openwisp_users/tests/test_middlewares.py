@@ -119,13 +119,9 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(admin.has_password_expired(), False)
 
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
-    def test_expired_password_session_bearer_request_not_blocked_for_existing_token(
-        self,
-    ):
-        admin = self._create_admin()
+    def test_bearer_token_ignores_expired_session(self):
+        admin = self._login_expired_admin()
         token = Token.objects.create(user=admin)
-        admin.password_updated = now().date() - timedelta(days=180)
-        admin.save()
         response = self.client.get(
             reverse("users:user_list"),
             HTTP_AUTHORIZATION=f"Bearer {token.key}",

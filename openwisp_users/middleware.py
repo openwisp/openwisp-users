@@ -9,6 +9,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .api.authentication import BearerAuthentication
 from .auth import (
     ACCOUNT_CHANGE_PASSWORD_PATH,
     API_PASSWORD_CHANGE_URL_NAME,
@@ -49,7 +50,11 @@ class PasswordExpirationMiddleware:
 
     def __call__(self, request):
         session_authenticated_before = AUTH_SESSION_KEY in request.session
-        if session_authenticated_before and self._is_expired_password_session(request):
+        if (
+            session_authenticated_before
+            and self._is_expired_password_session(request)
+            and not self._is_bearer_api_request(request)
+        ):
             blocked = self._blocked_response(request)
             if blocked is not None:
                 return blocked
@@ -63,6 +68,20 @@ class PasswordExpirationMiddleware:
             if blocked is not None:
                 return blocked
         return response
+
+    def _is_bearer_api_request(self, request):
+        try:
+            resolver_match = resolve(request.path_info)
+        except Resolver404:
+            return False
+        view_class = getattr(resolver_match.func, "cls", None)
+        if view_class is None or not issubclass(view_class, APIView):
+            return False
+        authorization = request.headers.get("Authorization", "")
+        return (
+            authorization.lower().startswith("bearer ")
+            and BearerAuthentication in view_class.authentication_classes
+        )
 
     def _is_expired_password_session(self, request):
         return (
