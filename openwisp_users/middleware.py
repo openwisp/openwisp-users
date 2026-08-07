@@ -37,8 +37,8 @@ class PasswordExpirationMiddleware:
         "account_reset_password_from_key",
         "account_reset_password_from_key_done",
         API_PASSWORD_CHANGE_URL_NAME,
-        "users:rest_password_reset",
-        "users:rest_password_reset_confirm",
+        "users:user_password_reset",
+        "users:user_password_reset_confirm",
         "users:user_auth_token",
     ]
     admin_login_path = reverse_lazy("admin:login")

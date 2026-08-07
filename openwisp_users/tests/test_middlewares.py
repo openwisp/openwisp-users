@@ -97,15 +97,15 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(
             response.json()["api_password_change_url"],
             response.wsgi_request.build_absolute_uri(
-                reverse("users:rest_password_change")
+                reverse("users:user_password_change")
             ),
         )
 
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
-    def test_expired_password_session_can_use_rest_password_change(self):
+    def test_expired_password_session_can_use_api_password_change(self):
         admin = self._login_expired_admin()
         response = self.client.post(
-            reverse("users:rest_password_change"),
+            reverse("users:user_password_change"),
             data={
                 "old_password": "tester",
                 "new_password1": "newpassword123",
@@ -146,10 +146,10 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertIn("token", response.json())
 
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
-    def test_expired_password_session_can_use_rest_password_reset(self):
+    def test_expired_password_session_can_use_api_password_reset(self):
         self._login_expired_admin()
         response = self.client.post(
-            reverse("users:rest_password_reset"),
+            reverse("users:user_password_reset"),
             data={"input": "admin"},
             content_type="application/json",
         )
@@ -157,10 +157,10 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
-    def test_expired_password_session_can_use_rest_password_reset_confirm(self):
+    def test_expired_password_session_can_use_api_password_reset_confirm(self):
         admin = self._login_expired_admin()
         self.client.post(
-            reverse("users:rest_password_reset"),
+            reverse("users:user_password_reset"),
             data={"input": "admin"},
             content_type="application/json",
         )
@@ -173,7 +173,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         segment = urlparse(reset_url).path.rstrip("/").rsplit("/", 1)[-1]
         uid, token = segment.split("-", 1)
         response = self.client.post(
-            reverse("users:rest_password_reset_confirm"),
+            reverse("users:user_password_reset_confirm"),
             data={
                 "uid": uid,
                 "token": token,
@@ -187,7 +187,7 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
         self.assertEqual(admin.check_password("newpassword123"), True)
 
     def test_payload_omits_url_when_reverse_fails(self):
-        # When OPENWISP_USERS_AUTH_API is disabled, "users:rest_password_change"
+        # When OPENWISP_USERS_AUTH_API is disabled, "users:user_password_change"
         # is not part of the urlconf and reverse() raises NoReverseMatch.
         request = RequestFactory().get("/")
         with patch("openwisp_users.auth.reverse", side_effect=NoReverseMatch):

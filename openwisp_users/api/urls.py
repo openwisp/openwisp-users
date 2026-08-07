@@ -49,18 +49,18 @@ def get_api_urls(api_views=None):
             path("users/token/", views.obtain_auth_token, name="user_auth_token"),
             path(
                 "users/password/reset/",
-                views.rest_password_reset,
-                name="rest_password_reset",
+                views.password_reset,
+                name="user_password_reset",
             ),
             path(
                 "users/password/reset/confirm/",
-                views.rest_password_reset_confirm,
-                name="rest_password_reset_confirm",
+                views.password_reset_confirm,
+                name="user_password_reset_confirm",
             ),
             path(
                 "users/user/password/change/",
                 views.password_change,
-                name="rest_password_change",
+                name="user_password_change",
             ),
         ]
     return urlpatterns

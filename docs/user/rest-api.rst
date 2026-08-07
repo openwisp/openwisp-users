@@ -95,7 +95,7 @@ List of Endpoints
 For complete parameter details, see the :ref:`users_live_documentation`
 and the :ref:`users_browsable_web_interface` of each endpoint.
 
-.. _rest_password_reset:
+.. _user_password_reset:
 
 Request Password Reset
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -118,7 +118,7 @@ Example usage:
 
     curl -i -X POST http://localhost:8000/api/v1/users/password/reset/ -d "input=openwisp"
 
-.. _rest_password_reset_confirm:
+.. _user_password_reset_confirm:
 
 Confirm Password Reset
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -138,7 +138,7 @@ Example usage:
         -d "uid=<uid>" -d "token=<token>" \
         -d "new_password1=newpass123" -d "new_password2=newpass123"
 
-.. _rest_password_change:
+.. _user_password_change:
 
 Change Own Password
 ~~~~~~~~~~~~~~~~~~~

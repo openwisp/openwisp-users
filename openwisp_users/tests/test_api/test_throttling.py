@@ -29,7 +29,7 @@ class RatelimitTests(APITestCase):
         AuthRateThrottle.rate = "1/day"
         user = self._get_operator()
         self.client.force_login(user)
-        url = reverse("users:rest_password_change")
+        url = reverse("users:user_password_change")
         data = {
             "old_password": "wrong-password",
             "new_password1": "newpassword123",

@@ -494,8 +494,10 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
     or not the supplied identifier exists.
     """
 
-    input = serializers.CharField()
+    # Remove dj-rest-auth's inherited required email field in favor of
+    # `input`, which accepts a username, e-mail address, or phone number.
     email = None
+    input = serializers.CharField()
     password_reset_form_class = PasswordResetForm
 
     def validate_input(self, value):

@@ -15,8 +15,8 @@ from openwisp_users.tests.utils import TestOrganizationMixin
 
 
 class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
-    request_url = reverse_lazy("users:rest_password_reset")
-    confirm_url = reverse_lazy("users:rest_password_reset_confirm")
+    request_url = reverse_lazy("users:user_password_reset")
+    confirm_url = reverse_lazy("users:user_password_reset_confirm")
 
     def setUp(self):
         cache.clear()
@@ -189,7 +189,7 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
 
 
 class TestPasswordChangeAPI(TestOrganizationMixin, TestCase):
-    change_url = reverse_lazy("users:rest_password_change")
+    change_url = reverse_lazy("users:user_password_change")
 
     def test_password_change_with_valid_current_password_succeeds(self):
         user = self._create_user(username="tester", password="tester")

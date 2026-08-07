@@ -82,9 +82,9 @@ class TestGetApiUrls(TestCase):
             url_names.isdisjoint(
                 {
                     "user_auth_token",
-                    "rest_password_reset",
-                    "rest_password_reset_confirm",
-                    "rest_password_change",
+                    "user_password_reset",
+                    "user_password_reset_confirm",
+                    "user_password_change",
                 }
             ),
             True,

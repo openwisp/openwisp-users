@@ -11,7 +11,7 @@ ACCOUNT_CHANGE_PASSWORD_PATH = reverse_lazy("account_change_password")
 # OpenWISP Users API can be disabled using the OPENWISP_USERS_AUTH_API setting.
 # We avoid using reverse_lazy here because it would raise an exception if the API is
 # disabled.
-API_PASSWORD_CHANGE_URL_NAME = "users:rest_password_change"
+API_PASSWORD_CHANGE_URL_NAME = "users:user_password_change"
 
 
 def record_password_based_token(user, password_based):
@@ -80,7 +80,7 @@ def password_expired_response_payload(request):
             api_password_change_url
         )
     try:
-        api_password_reset_url = reverse("users:rest_password_reset")
+        api_password_reset_url = reverse("users:user_password_reset")
     except NoReverseMatch:
         pass
     else:

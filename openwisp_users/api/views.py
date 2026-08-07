@@ -335,8 +335,8 @@ class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
-rest_password_reset = PasswordResetView.as_view()
-rest_password_reset_confirm = PasswordResetConfirmView.as_view()
+password_reset = PasswordResetView.as_view()
+password_reset_confirm = PasswordResetConfirmView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
 user_list = UsersListCreateView.as_view()
