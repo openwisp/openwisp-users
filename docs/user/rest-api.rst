@@ -89,18 +89,24 @@ header:
     # Get user list, send bearer token in authorization header
     curl http://localhost:8000/api/v1/users/user/ -H "Authorization: Bearer $TOKEN"
 
+List of Endpoints
+-----------------
+
+For complete parameter details, see the :ref:`users_live_documentation`
+and the :ref:`users_browsable_web_interface` of each endpoint.
+
 .. _rest_password_reset:
 
 Request Password Reset
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
-    /api/v1/users/password/reset/
+    POST /api/v1/users/password/reset/
 
-This endpoint only accepts the ``POST`` method and sends a password reset
-e-mail to the user identified by the ``input`` parameter, which can be a
-username, e-mail address or phone number.
+This endpoint sends a password reset e-mail to the user identified by the
+``input`` parameter, which can be a username, e-mail address or phone
+number.
 
 The response is always the same regardless of whether ``input`` matched a
 user, so this endpoint cannot be used to find out whether an identifier is
@@ -115,15 +121,14 @@ Example usage:
 .. _rest_password_reset_confirm:
 
 Confirm Password Reset
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
-    /api/v1/users/password/reset/confirm/
+    POST /api/v1/users/password/reset/confirm/
 
-This endpoint only accepts the ``POST`` method and sets a new password
-given the ``uid`` and ``token`` received in the password reset e-mail,
-along with ``new_password1`` and ``new_password2``.
+Sets a new password given the ``uid`` and ``token`` received in the
+password reset e-mail, along with ``new_password1`` and ``new_password2``.
 
 Example usage:
 
@@ -136,17 +141,17 @@ Example usage:
 .. _rest_password_change:
 
 Change Own Password
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
-    /api/v1/users/user/password/change/
+    POST /api/v1/users/user/password/change/
 
-This endpoint only accepts the ``POST`` method and lets an authenticated
-user change their own password, given their ``old_password`` and a new one
-(``new_password1``, confirmed via ``new_password2``). Unlike the "Change
-User password" endpoint listed below, which requires the target user's
-``id``, this endpoint always operates on the requesting user.
+Lets an authenticated user change their own password, given their
+``old_password`` and a new one (``new_password1``, confirmed via
+``new_password2``). Unlike :ref:`Change User Password
+<change_user_password>` above, this endpoint always operates on the
+requesting user.
 
 Example usage:
 
@@ -158,42 +163,17 @@ Example usage:
         -d "new_password1=newpass123" \
         -d "new_password2=newpass123"
 
-List of Endpoints
------------------
+.. _change_user_password:
 
-Since the detailed explanation is contained in the
-:ref:`users_live_documentation` and in the
-:ref:`users_browsable_web_interface` of each endpoint, here we'll provide
-just a list of the available endpoints, for further information please
-open the URL of the endpoint in your browser.
-
-Change User password
+Change User Password
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PUT /api/v1/users/user/{id}/password/
 
-Request Password Reset
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: text
-
-    POST /api/v1/users/password/reset/
-
-Confirm Password Reset
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: text
-
-    POST /api/v1/users/password/reset/confirm/
-
-Change Own Password
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: text
-
-    POST /api/v1/users/user/password/change/
+Allows an authorized user to change another user's password. The ``id``
+identifies the user whose password is changed.
 
 List Groups
 ~~~~~~~~~~~
