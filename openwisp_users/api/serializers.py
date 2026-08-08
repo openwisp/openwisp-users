@@ -202,6 +202,46 @@ class OrganizationUserSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
 
+class OrganizationMembershipSerializer(ValidatedModelSerializer):
+    exclude_validation = ("user", "organization")
+    id = serializers.UUIDField(read_only=True)
+    organization = OrgUserCustomPrimarykeyRelatedField()
+
+    class Meta:
+        model = OrganizationUser
+        fields = ("id", "organization", "is_admin", "created", "modified")
+
+    def validate(self, data):
+        data["user"] = self.context["user"]
+        if self.instance is None:
+            organization = data.get("organization")
+            if (
+                organization is not None
+                and self.Meta.model.objects.filter(
+                    user=data["user"], organization=organization
+                ).exists()
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "organization": _(
+                            "The user is already a member of this organization."
+                        )
+                    }
+                )
+        elif data.get("organization") is not None and (
+            data["organization"].pk != self.instance.organization_id
+        ):
+            raise serializers.ValidationError(
+                {
+                    "organization": _(
+                        "Organization in the request body does not match the "
+                        "organization in the URL."
+                    )
+                }
+            )
+        return super().validate(data)
+
+
 class BaseSuperUserSerializer(ValidatedModelSerializer):
     _skip_validation_fields = [
         "groups",
