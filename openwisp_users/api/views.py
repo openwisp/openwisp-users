@@ -25,6 +25,7 @@ from .serializers import (
     EmailAddressSerializer,
     GroupSerializer,
     OrganizationDetailSerializer,
+    OrganizationMembershipSerializer,
     OrganizationSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
@@ -252,6 +253,72 @@ class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
         return obj
 
 
+class BaseOrganizationMembershipView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
+    model = OrganizationUser
+    serializer_class = OrganizationMembershipSerializer
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return OrganizationUser.objects.none()
+        qs = OrganizationUser.objects.select_related("organization", "user")
+        if not self.request.user.is_superuser:
+            qs = qs.filter(organization_id__in=self.request.user.organizations_managed)
+        return qs
+
+    def initial(self, *args, **kwargs):
+        super().initial(*args, **kwargs)
+        self.assert_parent_exists()
+
+    def get_parent_queryset(self):
+        qs = User.objects.filter(pk=self.kwargs["pk"])
+        if self.request.user.is_superuser:
+            return qs
+        return self.get_organization_queryset(qs)
+
+    def get_organization_queryset(self, qs):
+        orgs = self.request.user.organizations_managed
+        app_label = User._meta.app_config.label
+        filter_kwargs = {
+            "is_superuser": False,
+            f"{app_label}_organizationuser__organization_id__in": orgs,
+        }
+        return qs.filter(**filter_kwargs).distinct()
+
+    def get_serializer_context(self):
+        if getattr(self, "swagger_fake_view", False):
+            return None
+        context = super().get_serializer_context()
+        context["user"] = self.get_parent_queryset().first()
+        return context
+
+
+class OrganizationMembershipListCreateView(
+    BaseOrganizationMembershipView, ListCreateAPIView
+):
+    pagination_class = OpenWispPagination
+
+    def get_queryset(self):
+        return super().get_queryset().filter(user_id=self.kwargs["pk"])
+
+
+class OrganizationMembershipDetailView(
+    BaseOrganizationMembershipView, RetrieveUpdateDestroyAPIView
+):
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(user_id=self.kwargs["pk"])
+        filter_kwargs = {
+            "organization_id": self.kwargs["org_id"],
+        }
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return super().update(request, *args, **kwargs)
+
+
 obtain_auth_token = ObtainAuthTokenView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
@@ -262,3 +329,5 @@ group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()
 email_update = EmailUpdateView.as_view()
 email_list = EmailListCreateView.as_view()
+organization_membership_list = OrganizationMembershipListCreateView.as_view()
+organization_membership_detail = OrganizationMembershipDetailView.as_view()
