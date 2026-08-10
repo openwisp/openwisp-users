@@ -34,6 +34,11 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
             "/api/v1/users/user/not-a-uuid/email/1/",
             "/api/v1/users/user/not-a-uuid/organization-membership/",
             "/api/v1/users/user/not-a-uuid/organization-membership/not-a-uuid/",
+            (
+                "/api/v1/users/user/"
+                "0c09d8e3-9e1d-4d2b-9a8c-6f1b2c3d4e5f/"
+                "organization-membership/not-a-uuid/"
+            ),
         )
 
         for path in invalid_uuid_paths:
