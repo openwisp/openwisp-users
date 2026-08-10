@@ -7,7 +7,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.templatetags.l10n import localize
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, localtime, now, timedelta
 from freezegun import freeze_time
@@ -16,6 +16,7 @@ from swapper import load_model
 from openwisp_utils.tests import catch_signal
 
 from .. import settings as app_settings
+from ..signals import organization_disabled, organization_enabled
 from ..tasks import (
     deactivate_expired_users,
     expiration_reminder_email,
@@ -1348,3 +1349,51 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 expiration_reminder_email,
                 None,
             )
+
+
+class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestCase):
+    def test_organization_disabled_signal(self):
+        org = self._create_org(name="org-to-disable")
+        with (
+            catch_signal(organization_disabled) as disabled_handler,
+            catch_signal(organization_enabled) as enabled_handler,
+        ):
+            org.is_active = False
+            org.save()
+        disabled_handler.assert_called_once_with(
+            signal=organization_disabled, sender=Organization, instance=org
+        )
+        enabled_handler.assert_not_called()
+
+    def test_organization_enabled_signal(self):
+        org = self._create_org(name="org-to-enable", is_active=False)
+        with (
+            catch_signal(organization_disabled) as disabled_handler,
+            catch_signal(organization_enabled) as enabled_handler,
+        ):
+            org.is_active = True
+            org.save()
+        enabled_handler.assert_called_once_with(
+            signal=organization_enabled, sender=Organization, instance=org
+        )
+        disabled_handler.assert_not_called()
+
+    def test_organization_active_state_signal_not_sent_on_unrelated_change(self):
+        org = self._create_org(name="org-unrelated-change")
+        with (
+            catch_signal(organization_disabled) as disabled_handler,
+            catch_signal(organization_enabled) as enabled_handler,
+        ):
+            org.description = "updated description"
+            org.save()
+        disabled_handler.assert_not_called()
+        enabled_handler.assert_not_called()
+
+    def test_organization_active_state_signal_not_sent_on_creation(self):
+        with (
+            catch_signal(organization_disabled) as disabled_handler,
+            catch_signal(organization_enabled) as enabled_handler,
+        ):
+            self._create_org(name="new-org", is_active=False)
+        disabled_handler.assert_not_called()
+        enabled_handler.assert_not_called()

@@ -22,6 +22,7 @@ from swapper import load_model
 from openwisp_utils.admin_theme.email import send_email
 
 from .. import settings as app_settings
+from ..signals import organization_disabled, organization_enabled
 from ..utils import throttle_email_batch
 
 logger = logging.getLogger(__name__)
@@ -470,6 +471,10 @@ class BaseOrganization(models.Model):
     email = models.EmailField(_("email"), blank=True)
     url = models.URLField(_("URL"), blank=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initial_is_active = self.is_active
+
     def __str__(self):
         value = self.name
         if not self.is_active:
@@ -478,6 +483,16 @@ class BaseOrganization(models.Model):
 
     class Meta:
         abstract = True
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        if not is_new and self.is_active != self._initial_is_active:
+            signal = organization_enabled if self.is_active else organization_disabled
+            transaction.on_commit(
+                lambda: signal.send(sender=self.__class__, instance=self)
+            )
+        self._initial_is_active = self.is_active
 
     def add_user(self, user, is_admin=False, **kwargs):
         """
