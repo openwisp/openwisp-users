@@ -538,6 +538,9 @@ class TestUsersApi(
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(OrganizationUser.objects.count(), 1)
+        self.assertEqual(
+            OrganizationUser.objects.get(organization=org1).user_id, user1.pk
+        )
         self.assertEqual(r.data["organization"], org1.pk)
         self.assertFalse(r.data["is_admin"])
 
