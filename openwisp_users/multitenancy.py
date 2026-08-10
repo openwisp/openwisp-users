@@ -89,7 +89,8 @@ class MultitenantAdminMixin(object):
 
     def get_inline_instances(self, request, obj=None):
         """
-        Disable add/change for inlines on objects from disabled organizations while keeping delete.
+        Disable add/change for inlines on objects from disabled organizations
+        while keeping delete.
         """
         inlines = super().get_inline_instances(request, obj)
         if obj is None or not self.disabled_organization_write_protection:

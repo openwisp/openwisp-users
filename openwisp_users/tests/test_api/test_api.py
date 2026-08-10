@@ -840,8 +840,8 @@ class TestUsersApi(
         # Resending an unchanged membership exercises the toggle-delete contract.
         data = {"organization_users": [{"is_admin": False, "organization": org1.pk}]}
         r = self.client.patch(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertIn("does not exist or is disabled", str(r.data))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(OrganizationUser.objects.count(), 0)
 
     def test_patch_user_org_membership_without_is_admin_preserves_it_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
