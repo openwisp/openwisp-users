@@ -515,7 +515,6 @@ class TestUsersApi(
         self.assertEqual(response.status_code, 204)
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 0)
 
-    # Tests for organization membership API endpoints
     def test_organization_membership_list_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")
