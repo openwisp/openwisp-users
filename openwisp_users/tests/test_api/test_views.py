@@ -13,6 +13,7 @@ from openwisp_users.api.serializers import (
 )
 from openwisp_users.api.urls import get_api_urls
 from openwisp_users.api.views import PasswordChangeView, PasswordResetView
+from openwisp_users.base.forms import PasswordResetForm
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -106,3 +107,18 @@ class TestGetApiUrls(TestCase):
         for view, serializer in serializers_by_view:
             with self.subTest(view=view.__name__):
                 self.assertIs(view.__dict__.get("serializer_class"), serializer)
+
+    def test_password_reset_form_can_be_overridden(self):
+        class CustomPasswordResetForm(PasswordResetForm):
+            pass
+
+        serializer = PasswordResetSerializer()
+        self.assertIs(serializer.password_reset_form_class, PasswordResetForm)
+
+        class CustomPasswordResetSerializer(PasswordResetSerializer):
+            password_reset_form_class = CustomPasswordResetForm
+
+        self.assertIs(
+            CustomPasswordResetSerializer().password_reset_form_class,
+            CustomPasswordResetForm,
+        )

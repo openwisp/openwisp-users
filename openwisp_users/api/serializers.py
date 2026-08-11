@@ -14,13 +14,14 @@ from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
 from django.db import transaction
 from django.db.models import Q
+from django.utils.module_loading import import_string
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from swapper import load_model
 
 from openwisp_utils.api.serializers import ValidatedModelSerializer
 
-from ..base.forms import PasswordResetForm
+from .. import settings as app_settings
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -498,7 +499,10 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
     # `input`, which accepts a username, e-mail address, or phone number.
     email = None
     input = serializers.CharField()
-    password_reset_form_class = PasswordResetForm
+
+    @property
+    def password_reset_form_class(self):
+        return import_string(app_settings.PASSWORD_RESET_FORM)
 
     def validate_input(self, value):
         self.users = self.context["view"].get_users(value)
