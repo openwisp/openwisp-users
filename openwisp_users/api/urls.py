@@ -51,7 +51,22 @@ def get_api_urls(api_views=None):
     ]
     if app_settings.USERS_AUTH_API:
         urlpatterns += [
-            path("users/token/", get_view("obtain_auth_token"), name="user_auth_token")
+            path("users/token/", get_view("obtain_auth_token"), name="user_auth_token"),
+            path(
+                "users/password/reset/",
+                get_view("password_reset"),
+                name="user_password_reset",
+            ),
+            path(
+                "users/password/reset/confirm/",
+                get_view("password_reset_confirm"),
+                name="user_password_reset_confirm",
+            ),
+            path(
+                "users/user/password/change/",
+                get_view("password_change"),
+                name="user_password_change",
+            ),
         ]
     return urlpatterns
 

@@ -1,5 +1,10 @@
 from allauth.account.models import EmailAddress
+from allauth.account.utils import user_pk_to_url_str
+from dj_rest_auth.views import PasswordChangeView as BasePasswordChangeView
+from dj_rest_auth.views import PasswordResetConfirmView as BasePasswordResetConfirmView
+from dj_rest_auth.views import PasswordResetView as BasePasswordResetView
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -16,6 +21,7 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
 from .mixins import FilterByParent
@@ -26,6 +32,8 @@ from .serializers import (
     GroupSerializer,
     OrganizationDetailSerializer,
     OrganizationSerializer,
+    PasswordChangeSerializer,
+    PasswordResetSerializer,
     SuperUserDetailSerializer,
     SuperUserListSerializer,
     UserDetailSerializer,
@@ -59,6 +67,59 @@ class ObtainAuthTokenView(ObtainAuthToken):
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
+
+
+class PasswordResetView(BasePasswordResetView):
+    """
+    Requests a password reset e-mail for a user identified by username,
+    e-mail address or phone number, mirroring the identifiers accepted at
+    local login.
+    """
+
+    serializer_class = PasswordResetSerializer
+    throttle_classes = [AuthRateThrottle]
+
+    def get_users(self, identifier):
+        return UsersAuthenticationBackend().get_users(identifier).filter(is_active=True)
+
+    def get_password_reset_url(self, user, token):
+        """
+        Returns allauth's HTML password reset URL,
+        which is used in the e-mail sent to the user.
+        """
+        uidb36 = user_pk_to_url_str(user)
+        key_path = reverse(
+            "account_reset_password_from_key",
+            kwargs={"uidb36": uidb36, "key": token},
+        )
+        return self.request.build_absolute_uri(key_path)
+
+
+class PasswordResetConfirmView(BasePasswordResetConfirmView):
+    """
+    Sets a new password given a valid uid/token pair.
+
+    Unlike PasswordResetView, an invalid uid/token still returns a plain
+    400: the pair is already an unguessable secret, so there is nothing
+    left to enumerate (see dj-rest-auth's PasswordResetConfirmSerializer,
+    reused unchanged below).
+    """
+
+    throttle_classes = [AuthRateThrottle]
+
+    def validate_user(self, user):
+        """
+        No-op extension point: openwisp-radius overrides this to reject a
+        reset when the user is not a member of the requesting organization.
+        """
+        pass
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.validate_user(serializer.user)
+        serializer.save()
+        return Response({"detail": _("Password has been reset with the new password.")})
 
 
 class BaseOrganizationView(ProtectedAPIMixin):
@@ -191,6 +252,19 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         )
 
 
+class PasswordChangeView(ProtectedAPIMixin, BasePasswordChangeView):
+    """
+    Self-service password change endpoint for authenticated users.
+    """
+
+    throttle_classes = [AuthRateThrottle]
+    # Intentional difference from ``ProtectedAPIMixin``: permission_classes
+    # here need to check only that the user is authenticated and nothing
+    # else, but authentication_classes are reused.
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PasswordChangeSerializer
+
+
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
     model = EmailAddress
     serializer_class = EmailAddressSerializer
@@ -253,6 +327,8 @@ class EmailUpdateView(BaseEmailView, RetrieveUpdateDestroyAPIView):
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
+password_reset = PasswordResetView.as_view()
+password_reset_confirm = PasswordResetConfirmView.as_view()
 organization_list = OrganizationListCreateView.as_view()
 organization_detail = OrganizationDetailView.as_view()
 user_list = UsersListCreateView.as_view()
@@ -260,5 +336,6 @@ user_detail = UserDetailView.as_view()
 group_list = GroupListCreateView.as_view()
 group_detail = GroupDetailView.as_view()
 change_password = ChangePasswordView.as_view()
+password_change = PasswordChangeView.as_view()
 email_update = EmailUpdateView.as_view()
 email_list = EmailListCreateView.as_view()

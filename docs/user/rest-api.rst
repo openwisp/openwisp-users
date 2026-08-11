@@ -92,18 +92,87 @@ header:
 List of Endpoints
 -----------------
 
-Since the detailed explanation is contained in the
-:ref:`users_live_documentation` and in the
-:ref:`users_browsable_web_interface` of each endpoint, here we'll provide
-just a list of the available endpoints, for further information please
-open the URL of the endpoint in your browser.
+For complete parameter details, see the :ref:`users_live_documentation`
+and the :ref:`users_browsable_web_interface` of each endpoint.
 
-Change User password
+.. _user_password_reset:
+
+Request Password Reset
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/password/reset/
+
+For an eligible user, this endpoint sends a password reset e-mail when the
+``input`` parameter matches a username, e-mail address or phone number.
+
+Unknown or ineligible identifiers receive the same response without an
+e-mail, so this endpoint cannot be used to find out whether an identifier
+is registered.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X POST http://localhost:8000/api/v1/users/password/reset/ -d "input=openwisp"
+
+.. _user_password_reset_confirm:
+
+Confirm Password Reset
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/password/reset/confirm/
+
+Sets a new password given the ``uid`` and ``token`` received in the
+password reset e-mail, along with ``new_password1`` and ``new_password2``.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X POST http://localhost:8000/api/v1/users/password/reset/confirm/ \
+        -d "uid=<uid>" -d "token=<token>" \
+        -d "new_password1=newpass123" -d "new_password2=newpass123"
+
+.. _user_password_change:
+
+Change Own Password
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/user/password/change/
+
+Lets an authenticated user change their own password, given their
+``old_password`` and a new one (``new_password1``, confirmed via
+``new_password2``). Unlike :ref:`Change User Password
+<change_user_password>` below, this endpoint always operates on the
+requesting user.
+
+Example usage:
+
+.. code-block:: shell
+
+    curl -i -X POST http://localhost:8000/api/v1/users/user/password/change/ \
+        -H "Authorization: Bearer $TOKEN" \
+        -d "old_password=oldpass123" \
+        -d "new_password1=newpass123" \
+        -d "new_password2=newpass123"
+
+.. _change_user_password:
+
+Change User Password
 ~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: text
 
     PUT /api/v1/users/user/{id}/password/
+
+Allows an authorized user to change another user's password. The ``id``
+identifies the user whose password is changed.
 
 List Groups
 ~~~~~~~~~~~
