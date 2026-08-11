@@ -278,3 +278,16 @@ Number of days before a user's ``expiration_date`` when OpenWISP sends an
 account expiration reminder email.
 
 If set to ``0``, reminder emails are disabled.
+
+``OPENWISP_USERS_PASSWORD_RESET_FORM``
+--------------------------------------
+
+============ =================================================
+**type**:    ``str``
+**default**: ``"openwisp_users.base.forms.PasswordResetForm"``
+============ =================================================
+
+Dotted path to the form used to deliver password reset messages. Override
+this setting to customize password recovery delivery, for example to send
+an SMS alongside email in deployments with custom password-expiration
+flows.

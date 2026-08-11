@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import PasswordResetForm as DjangoPasswordResetForm
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
@@ -13,6 +14,7 @@ from openwisp_users.api.serializers import (
 )
 from openwisp_users.api.urls import get_api_urls
 from openwisp_users.api.views import PasswordChangeView, PasswordResetView
+from openwisp_users.base.forms import PasswordResetForm
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -106,3 +108,15 @@ class TestGetApiUrls(TestCase):
         for view, serializer in serializers_by_view:
             with self.subTest(view=view.__name__):
                 self.assertIs(view.__dict__.get("serializer_class"), serializer)
+
+    def test_password_reset_form_is_configurable(self):
+        serializer = PasswordResetSerializer()
+        self.assertIs(serializer.get_password_reset_form_class(), PasswordResetForm)
+        with patch.object(
+            app_settings,
+            "PASSWORD_RESET_FORM",
+            "django.contrib.auth.forms.PasswordResetForm",
+        ):
+            self.assertIs(
+                serializer.get_password_reset_form_class(), DjangoPasswordResetForm
+            )

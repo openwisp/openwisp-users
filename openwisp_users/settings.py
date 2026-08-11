@@ -11,6 +11,12 @@ USERS_AUTH_THROTTLE_RATE = getattr(
     "OPENWISP_USERS_AUTH_THROTTLE_RATE",
     default_or_test(value="20/day", test=None),
 )
+# Allows applications to customize password reset delivery.
+PASSWORD_RESET_FORM = getattr(
+    settings,
+    "OPENWISP_USERS_PASSWORD_RESET_FORM",
+    "openwisp_users.base.forms.PasswordResetForm",
+)
 AUTH_BACKEND_AUTO_PREFIXES = getattr(
     settings, "OPENWISP_USERS_AUTH_BACKEND_AUTO_PREFIXES", tuple()
 )
