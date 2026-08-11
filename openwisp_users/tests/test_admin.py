@@ -7,7 +7,7 @@ from unittest.mock import patch
 import django
 from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
-from django.contrib.auth import REDIRECT_FIELD_NAME, get_user_model
+from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -25,6 +25,7 @@ from openwisp_utils.tests import AdminActionPermTestMixin, capture_any_output
 from .. import settings as app_settings
 from ..admin import OrganizationAdmin, OrganizationOwnerAdmin
 from ..apps import logger as apps_logger
+from ..auth import SESSION_KEY
 from ..multitenancy import MultitenantAdminMixin
 from .utils import (
     TestMultitenantAdminMixin,
@@ -178,6 +179,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         # inline emails
@@ -204,6 +206,15 @@ class TestUsersAdmin(
         self.assertEqual(email_set.count(), 2)
         self.assertEqual(email_set.filter(email="new@mail.com").count(), 1)
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_admin_change_user_hides_token_provenance(self):
+        admin = self._create_admin()
+        self.client.force_login(admin)
+        user = self._create_user()
+        response = self.client.get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        self.assertNotContains(response, 'name="password_based_token"')
 
     def test_admin_change_user_email_empty(self):
         admin = self._create_admin(email="")
@@ -388,6 +399,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
@@ -423,6 +435,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
@@ -447,6 +460,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
@@ -490,6 +504,7 @@ class TestUsersAdmin(
             params.pop("_password", None)
             params.pop("last_login")
             params.pop("password_updated")
+            params.pop("password_based_token")
             params.pop("expiration_date", None)
             params = self._additional_params_pop(params)
             params.update(self.add_user_inline_params)
@@ -838,6 +853,7 @@ class TestUsersAdmin(
         params["username"] = "user2"
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params.pop("phone_number")
         params.pop("password", None)
@@ -881,6 +897,7 @@ class TestUsersAdmin(
         params.pop("expiration_date", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
         params.update(
@@ -912,6 +929,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params.pop("phone_number")
         params.update(self.add_user_inline_params)
@@ -939,6 +957,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -1006,6 +1025,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params.update(self.add_user_inline_params)
         params.update(self._additional_params_add())
@@ -2047,6 +2067,7 @@ class TestUsersAdmin(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params["expiration_date"] = str(now().date() + timedelta(days=14))
         params = self._additional_params_pop(params)
         params.update(self.add_user_inline_params)
@@ -2137,6 +2158,7 @@ class TestBasicUsersIntegration(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params["birth_date"] = user.date_joined.date()
         params = self._additional_params_pop(params)
@@ -2176,6 +2198,7 @@ class TestBasicUsersIntegration(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params["expiration_date"] = str(user.expiration_date)
         params["birth_date"] = user.date_joined.date()
         params = self._additional_params_pop(params)
@@ -2201,6 +2224,7 @@ class TestBasicUsersIntegration(
         params.pop("_password", None)
         params.pop("last_login")
         params.pop("password_updated")
+        params.pop("password_based_token")
         params.pop("expiration_date", None)
         params = self._additional_params_pop(params)
         params.update(self._get_user_edit_form_inline_params(user, org))
@@ -2456,6 +2480,12 @@ class TestUserPasswordExpiration(TestOrganizationMixin, TestCase):
             reverse("admin:login"),
             data={"username": user.username, "password": "tester"},
         )
+        # The login itself must succeed but the user should be redirected
+        # to the password-change page instead of /admin/,
+        authenticated_user = get_user(self.client)
+        self.assertEqual(authenticated_user.is_authenticated, True)
+        self.assertEqual(authenticated_user.pk, user.pk)
+        self.assertIn(SESSION_KEY, self.client.session)
         self.assertEqual(login_response.status_code, 302)
         self.assertEqual(login_response.url, "/accounts/password/change/?next=/admin/")
 

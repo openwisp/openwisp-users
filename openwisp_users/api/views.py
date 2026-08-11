@@ -21,6 +21,7 @@ from rest_framework.settings import api_settings
 from swapper import load_model
 
 from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_users.auth import create_auth_token
 from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
 
@@ -66,7 +67,11 @@ class ObtainAuthTokenView(ObtainAuthToken):
         request_body=ObtainTokenRequest, responses={200: ObtainTokenResponse}
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        token = create_auth_token(request, user)
+        return Response({"token": token.key})
 
 
 class PasswordResetView(BasePasswordResetView):

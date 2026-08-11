@@ -163,6 +163,94 @@ You can also use the backend programmatically:
     backend = UsersAuthenticationBackend()
     backend.authenticate(request, identifier, password)
 
+``record_password_based_login()``
+---------------------------------
+
+**Full python path**: ``openwisp_users.auth.record_password_based_login``.
+
+Records on the current session, whether the user logged in using the local
+password. The ``password_based`` argument is a boolean: ``True`` if the
+local password was used, ``False`` for any other authentication method
+(SAML, OAuth, etc.).
+
+This is used internally by authentication flows to record how the session
+was authenticated. Sessions marked as not password-based are exempt from
+password expiration enforcement.
+
+.. code-block:: python
+
+    from openwisp_users.auth import record_password_based_login
+
+    # After a successful SAML or OAuth login
+    record_password_based_login(request, False)
+
+``create_auth_token()``
+-----------------------
+
+**Full python path**: ``openwisp_users.auth.create_auth_token``.
+
+Creates or renews a DRF authentication token and records whether the token
+was obtained using the user's local password in
+``User.password_based_token``.
+
+This is the recommended helper for downstream apps issuing authentication
+tokens. It determines how the request was authenticated, creates or renews
+the token, and records its provenance in a single call. Callers therefore
+do not need to manage ``password_based_token`` themselves.
+
+The token is considered password-based when:
+
+- the request has no authenticated user, or its user differs from the user
+  receiving the token. This indicates that local credentials were
+  validated directly, as in a login endpoint;
+- the request was not authenticated using a passwordless method, such as a
+  sesame magic-link token; and
+- the request's Django session is marked as password-based by
+  ``record_password_based_login()`` (see below).
+
+Pass ``renew=True`` to delete the user's existing token before creating a
+new one. This ensures the returned token always has a new key.
+
+.. code-block:: python
+
+    from openwisp_users.auth import create_auth_token
+
+    token = create_auth_token(request, user)
+    rotated_token = create_auth_token(request, user, renew=True)
+
+``is_password_based_user()``
+----------------------------
+
+**Full python path**: ``openwisp_users.auth.is_password_based_user``.
+
+Returns whether the last authentication token issued to a user was
+obtained using the local password. ``None`` is treated as password-based
+for backward compatibility. Use this helper instead of reading
+``password_based_token`` directly.
+
+.. code-block:: python
+
+    from openwisp_users.auth import is_password_based_user
+
+    is_password_based_user(user)
+
+``is_password_based_login()``
+-----------------------------
+
+**Full python path**: ``openwisp_users.auth.is_password_based_login``.
+
+Returns whether the local password was used to authenticate. It checks DRF
+token provenance first, then the session marker, and finally the user's
+stored value. Missing provenance remains password-based for backward
+compatibility.
+
+.. code-block:: python
+
+    from openwisp_users.auth import is_password_based_login
+
+    is_password_based_login(request)
+    is_password_based_login(user=user)
+
 ``PasswordExpirationMiddleware``
 --------------------------------
 
@@ -174,6 +262,21 @@ When the password expiration feature is enabled (see
 :ref:`OPENWISP_USERS_STAFF_USER_PASSWORD_EXPIRATION`), this middleware
 restricts users to the *password change view* until they change their
 password.
+
+The middleware runs **before** the view: for browser (HTML) requests it
+redirects to the password-change page, while for non-exempt DRF endpoints
+it returns a JSON ``403`` response with a ``password_expired`` error code
+and a link to the password-change API endpoint. The token issuance,
+password change, password reset, and password reset confirmation endpoints
+are exempt so users can recover access.
+
+Sessions that did not log in with the local password (SAML, OAuth, RADIUS,
+etc.) are **exempt**: the middleware does not block them even if the
+user's local password has technically expired.
+
+Requests carrying a ``Bearer`` token to a DRF view that supports Bearer
+authentication are not blocked by password expiration, even if they also
+carry an expired-password session cookie. DRF still validates the token.
 
 Ensure this middleware follows ``AuthenticationMiddleware`` and
 ``MessageMiddleware``:
