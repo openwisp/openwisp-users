@@ -10,8 +10,10 @@ from django.urls import reverse_lazy
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 
+from openwisp_users import settings as app_settings
 from openwisp_users.api.throttling import AuthRateThrottle
 from openwisp_users.api.views import PasswordResetConfirmView
+from openwisp_users.base.forms import PasswordResetForm
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 
@@ -70,6 +72,28 @@ class TestPasswordResetAPI(TestOrganizationMixin, TestCase):
                 self.assertEqual(len(mail.outbox), 1)
                 self.assertEqual(mail.outbox[0].to, [user.email])
                 mail.outbox.clear()
+
+    def test_reset_request_uses_configured_form(self):
+        class CustomPasswordResetForm(PasswordResetForm):
+            pass
+
+        user = self._create_user(username="tester", email="tester@example.com")
+        with (
+            patch.object(
+                app_settings,
+                "PASSWORD_RESET_FORM",
+                "test.CustomPasswordResetForm",
+            ),
+            patch(
+                "openwisp_users.api.serializers.import_string",
+                return_value=CustomPasswordResetForm,
+            ) as mocked_import_string,
+            patch.object(CustomPasswordResetForm, "send_mail") as mocked_send_mail,
+        ):
+            response = self.client.post(self.request_url, {"input": user.username})
+        self.assertEqual(response.status_code, 200)
+        mocked_import_string.assert_called_once_with("test.CustomPasswordResetForm")
+        mocked_send_mail.assert_called_once()
 
     def test_reset_request_without_input_fails(self):
         response = self.client.post(self.request_url, {})

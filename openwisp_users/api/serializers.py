@@ -500,7 +500,8 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
     email = None
     input = serializers.CharField()
 
-    def get_password_reset_form_class(self):
+    @property
+    def password_reset_form_class(self):
         return import_string(app_settings.PASSWORD_RESET_FORM)
 
     def validate_input(self, value):
@@ -511,8 +512,7 @@ class PasswordResetSerializer(BasePasswordResetSerializer):
         request = self.context["request"]
         view = self.context["view"]
         for user in self.users:
-            form_class = self.get_password_reset_form_class()
-            self.reset_form = form_class(data={"email": user.email})
+            self.reset_form = self.password_reset_form_class(data={"email": user.email})
             if not self.reset_form.is_valid():
                 continue
             opts = {

@@ -287,7 +287,6 @@ If set to ``0``, reminder emails are disabled.
 **default**: ``"openwisp_users.base.forms.PasswordResetForm"``
 ============ =================================================
 
-Dotted path to the form used to deliver password reset messages. Override
-this setting to customize password recovery delivery, for example to send
-an SMS alongside email in deployments with custom password-expiration
-flows.
+Dotted path to an OpenWISP Users-compatible password reset form. Configure
+a subclass of ``openwisp_users.base.forms.PasswordResetForm`` to customize
+password recovery delivery, for example to send an SMS alongside email.

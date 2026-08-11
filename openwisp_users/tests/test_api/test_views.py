@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import PasswordResetForm as DjangoPasswordResetForm
 from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
@@ -109,14 +108,17 @@ class TestGetApiUrls(TestCase):
             with self.subTest(view=view.__name__):
                 self.assertIs(view.__dict__.get("serializer_class"), serializer)
 
-    def test_password_reset_form_is_configurable(self):
+    def test_password_reset_form_can_be_overridden(self):
+        class CustomPasswordResetForm(PasswordResetForm):
+            pass
+
         serializer = PasswordResetSerializer()
-        self.assertIs(serializer.get_password_reset_form_class(), PasswordResetForm)
-        with patch.object(
-            app_settings,
-            "PASSWORD_RESET_FORM",
-            "django.contrib.auth.forms.PasswordResetForm",
-        ):
-            self.assertIs(
-                serializer.get_password_reset_form_class(), DjangoPasswordResetForm
-            )
+        self.assertIs(serializer.password_reset_form_class, PasswordResetForm)
+
+        class CustomPasswordResetSerializer(PasswordResetSerializer):
+            password_reset_form_class = CustomPasswordResetForm
+
+        self.assertIs(
+            CustomPasswordResetSerializer().password_reset_form_class,
+            CustomPasswordResetForm,
+        )
