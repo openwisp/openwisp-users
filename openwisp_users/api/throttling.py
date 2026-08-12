@@ -10,3 +10,9 @@ class AuthRateThrottle(UserRateThrottle):
     """
 
     rate = app_settings.USERS_AUTH_THROTTLE_RATE
+
+    def get_rate(self):
+        """
+        Return the dedicated auth rate without consulting DRF defaults.
+        """
+        return self.rate

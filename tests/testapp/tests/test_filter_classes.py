@@ -18,7 +18,8 @@ User = get_user_model()
 
 class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, TestCase):
     def setUp(self):
-        AuthRateThrottle.rate = 0
+        self._original_rate = AuthRateThrottle.rate
+        AuthRateThrottle.rate = None
         self.shelf_model = Shelf
         self.book_model = Book
         self.library_model = Library
@@ -45,6 +46,9 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.book2 = self._create_book(
             name="book2", organization=self._get_org("org_a"), shelf=self.shelf_b
         )
+
+    def tearDown(self):
+        AuthRateThrottle.rate = self._original_rate
 
     def _assert_django_filters_shelf_options(self, response, shelf_a, shelf_b):
         self.assertEqual(response.data[0]["id"], str(shelf_a.id))

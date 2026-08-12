@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.core.cache import cache
 from django.urls import reverse
 
@@ -24,6 +26,16 @@ class RatelimitTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         r = self.client.post(url, data)
         self.assertEqual(r.status_code, 429)
+
+    @patch.object(AuthRateThrottle, "THROTTLE_RATES", {})
+    def test_auth_rate_throttle_can_be_disabled(self):
+        AuthRateThrottle.rate = None
+        url = reverse("users:user_auth_token")
+        data = {"username": "operator", "password": "tester"}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
 
     def test_authenticated_password_change_is_rate_limited(self):
         AuthRateThrottle.rate = "1/day"
