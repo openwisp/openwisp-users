@@ -2135,6 +2135,7 @@ class TestUsersAdmin(
             params.pop("_password", None)
             params.pop("last_login")
             params.pop("password_updated")
+            params.pop("password_based_token")
             params.pop("expiration_date", None)
             params = self._additional_params_pop(params)
             params.update(self.add_user_inline_params)
