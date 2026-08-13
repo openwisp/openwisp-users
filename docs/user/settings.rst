@@ -67,13 +67,18 @@ Indicates whether the :doc:`rest-api` is enabled or not.
 ``OPENWISP_USERS_AUTH_THROTTLE_RATE``
 -------------------------------------
 
-============ ===========
-**type**:    ``str``
-**default**: ``100/day``
-============ ===========
+============ ===================
+**type**:    ``str`` or ``None``
+**default**: ``20/day``
+============ ===================
 
 Indicates the rate throttling for the :ref:`obtain_auth_token` API
-endpoint.
+endpoint, as well as the :ref:`user_password_reset`,
+:ref:`user_password_reset_confirm` and :ref:`user_password_change`
+endpoints.
+
+Set this to ``None`` to disable authentication throttling. This does not
+fall back to Django REST framework's default throttle rates.
 
 Please note that the current rate throttler is very basic and will also
 count valid requests for rate limiting. For more information, check
@@ -276,3 +281,15 @@ Number of days before a user's ``expiration_date`` when OpenWISP sends an
 account expiration reminder email.
 
 If set to ``0``, reminder emails are disabled.
+
+``OPENWISP_USERS_PASSWORD_RESET_FORM``
+--------------------------------------
+
+============ =================================================
+**type**:    ``str``
+**default**: ``"openwisp_users.base.forms.PasswordResetForm"``
+============ =================================================
+
+Dotted path to an OpenWISP Users-compatible password reset form. Configure
+a subclass of ``openwisp_users.base.forms.PasswordResetForm`` to customize
+password recovery delivery, for example to send an SMS alongside email.

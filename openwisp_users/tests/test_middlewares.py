@@ -1,11 +1,16 @@
+import re
 from unittest.mock import patch
+from urllib.parse import urlparse
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase, modify_settings
+from django.contrib.auth import get_user, get_user_model
+from django.core import mail
+from django.test import RequestFactory, TestCase, modify_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
+from rest_framework.authtoken.models import Token
 
 from .. import settings as app_settings
+from ..auth import SESSION_KEY, password_expired_response_payload
 from .utils import TestOrganizationMixin
 
 User = get_user_model()
@@ -43,7 +48,156 @@ class TestPasswordExpirationMiddleware(TestOrganizationMixin, TestCase):
                 reverse("admin:login"),
                 data={"username": admin.username, "password": "tester"},
             )
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.url, "/accounts/password/change/?next=/admin/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "/accounts/password/change/?next=/admin/")
+        self.assertEqual(self.client.session[SESSION_KEY], True)
+
         with self.assertNumQueries(1):
             self.client.force_login(admin)
+
+    def _login_expired_admin(self):
+        admin = self._create_admin(password_updated=now().date() - timedelta(days=180))
+        self.client.force_login(admin)
+        return admin
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_staff_user_can_still_logout(self):
+        self._login_expired_admin()
+        response = self.client.post(reverse("admin:logout"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "registration/logged_out.html")
+        self.assertEqual(get_user(self.client).is_authenticated, False)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_user_nonexistent_url_returns_404(self):
+        self._login_expired_admin()
+        response = self.client.get("/this-path-does-not-exist/")
+        self.assertEqual(response.status_code, 404)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_blocks_rest_request_before_view_runs(self):
+        self._login_expired_admin()
+        self.assertEqual(User.objects.count(), 1)
+        response = self.client.post(
+            reverse("users:user_list"),
+            data={
+                "username": "newuser",
+                "email": "newuser@example.com",
+                "password": "password123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(response.json()["code"], "password_expired")
+        self.assertEqual(
+            response.json()["detail"],
+            "Your password has expired. Update it to continue.",
+        )
+        self.assertEqual(
+            response.json()["api_password_change_url"],
+            response.wsgi_request.build_absolute_uri(
+                reverse("users:user_password_change")
+            ),
+        )
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_use_api_password_change(self):
+        admin = self._login_expired_admin()
+        response = self.client.post(
+            reverse("users:user_password_change"),
+            data={
+                "old_password": "tester",
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        admin.refresh_from_db()
+        self.assertEqual(admin.check_password("newpassword123"), True)
+        self.assertEqual(admin.has_password_expired(), False)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_bearer_token_ignores_expired_session(self):
+        admin = self._login_expired_admin()
+        token = Token.objects.create(user=admin)
+        response = self.client.get(
+            reverse("users:user_list"),
+            HTTP_AUTHORIZATION=f"Bearer {token.key}",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_obtain_auth_token(self):
+        # the final #511 decision allows token issuance even with an
+        # expired password, so a browser holding an expired-password
+        # session must still be able to reach the token endpoint.
+        self._login_expired_admin()
+        response = self.client.post(
+            reverse("users:user_auth_token"),
+            data={"username": "admin", "password": "tester"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("token", response.json())
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_use_api_password_reset(self):
+        self._login_expired_admin()
+        response = self.client.post(
+            reverse("users:user_password_reset"),
+            data={"input": "admin"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_can_use_api_password_reset_confirm(self):
+        admin = self._login_expired_admin()
+        self.client.post(
+            reverse("users:user_password_reset"),
+            data={"input": "admin"},
+            content_type="application/json",
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox.pop()
+        reset_url = re.search(r"https?://\S+", email.body).group(0)
+        # the emailed CTA points at allauth's HTML key page, whose path
+        # ends in "<uidb36>-<key>/"; uidb36 is alnum-only so it stops at
+        # the first "-".
+        segment = urlparse(reset_url).path.rstrip("/").rsplit("/", 1)[-1]
+        uid, token = segment.split("-", 1)
+        response = self.client.post(
+            reverse("users:user_password_reset_confirm"),
+            data={
+                "uid": uid,
+                "token": token,
+                "new_password1": "newpassword123",
+                "new_password2": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        admin.refresh_from_db()
+        self.assertEqual(admin.check_password("newpassword123"), True)
+
+    @patch.object(app_settings, "USERS_AUTH_API", False)
+    def test_payload_omits_api_urls_when_api_is_disabled(self):
+        request = RequestFactory().get("/")
+        payload = password_expired_response_payload(request)
+        self.assertNotIn("api_password_change_url", payload)
+        self.assertNotIn("api_password_reset_url", payload)
+        self.assertEqual(payload["code"], "password_expired")
+
+    def test_payload_includes_web_and_reset_urls(self):
+        request = RequestFactory().get("/")
+        payload = password_expired_response_payload(request)
+        self.assertEqual(
+            payload["web_password_change_url"],
+            request.build_absolute_uri("/accounts/password/change/"),
+        )
+        self.assertEqual(
+            payload["api_password_reset_url"],
+            request.build_absolute_uri("/api/v1/users/password/reset/"),
+        )

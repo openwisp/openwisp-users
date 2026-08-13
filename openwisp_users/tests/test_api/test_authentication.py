@@ -12,6 +12,7 @@ from sesame import settings as sesame_settings
 from sesame.utils import get_token as get_one_time_auth_token_for_user
 
 from openwisp_users.api.authentication import BearerAuthentication, SesameAuthentication
+from openwisp_users.auth import create_auth_token, is_password_based_user
 
 from . import APITestCase
 
@@ -91,3 +92,23 @@ class AuthenticationTests(APITestCase):
             )
             response = my_view(request)
             self.assertEqual(response.status_code, 200)
+
+    @modify_settings(AUTHENTICATION_BACKENDS={"append": "sesame.backends.ModelBackend"})
+    def test_sesame_authenticated_view_issues_non_password_based_token(self):
+        @api_view(["GET"])
+        @permission_classes([IsAuthenticated])
+        @authentication_classes([SesameAuthentication])
+        def my_view(request):
+            create_auth_token(request)
+            return Response({"password_based": is_password_based_user(request.user)})
+
+        user = self.operator
+        token = get_one_time_auth_token_for_user(user)
+        request = self.factory.get(
+            "/", HTTP_AUTHORIZATION=f"{sesame_settings.TOKEN_NAME} {token}"
+        )
+        response = my_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["password_based"], False)
+        user.refresh_from_db()
+        self.assertEqual(user.password_based_token, False)

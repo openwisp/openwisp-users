@@ -225,6 +225,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         "date_joined",
         "last_login",
     ]
+    exclude = ["password_based_token"]
     inlines = [EmailAddressInline, OrganizationUserInline]
     save_on_top = True
     actions = ["delete_selected_overridden", "make_inactive", "make_active"]
