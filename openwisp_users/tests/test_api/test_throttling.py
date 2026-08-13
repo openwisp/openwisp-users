@@ -32,7 +32,6 @@ class RatelimitTests(APITestCase):
         url = reverse("users:user_auth_token")
         data = {"username": "operator", "password": "tester"}
         for rates in ({}, {"user": "1/day"}):
-
             with self.subTest(rates=rates), patch.object(
                 AuthRateThrottle, "THROTTLE_RATES", rates
             ):
