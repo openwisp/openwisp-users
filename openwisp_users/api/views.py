@@ -401,6 +401,11 @@ class OrganizationMembershipDetailView(
         kwargs["partial"] = True
         return super().update(request, *args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except OwnershipRequired as error:
+            raise ValidationError(str(error))
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()

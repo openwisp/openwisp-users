@@ -655,6 +655,18 @@ class TestUsersApi(
             r = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 400)
 
+    def test_organization_membership_delete_owner_400_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        self.assertTrue(user1.is_owner(org1))
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        with self.assertNumQueries(5):
+            r = self.client.delete(path)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Cannot delete organization owner", str(r.data[0]))
+        self.assertEqual(OrganizationUser.objects.count(), 1)
+
     def test_organization_membership_list_403_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         self.client.force_login(user1)
