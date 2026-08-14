@@ -713,6 +713,7 @@ class TestUsersApi(
         with self.assertNumQueries(12):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["organization"], org2.pk)
         self.assertTrue(r.data["is_admin"])
 
     def test_organization_membership_manager_create_unmanaged_org_400_api(self):
