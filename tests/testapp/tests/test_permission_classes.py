@@ -420,6 +420,17 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
+        with self.subTest("full update keeps the disabled organization"):
+            response = self.client.put(
+                allowed_url,
+                data={"name": "renamed", "organization": str(org.pk)},
+                content_type="application/json",
+                **auth,
+            )
+            self.assertEqual(response.status_code, 200)
+            template.refresh_from_db()
+            self.assertEqual(template.organization_id, org.pk)
+
         with self.subTest("shared object unaffected"):
             shared_template = self._create_template(
                 name="shared-template", organization=None

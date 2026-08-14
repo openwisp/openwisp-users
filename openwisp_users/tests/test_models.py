@@ -404,6 +404,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.subTest("Test user first and last names are empty"):
             self.assertEqual(str(org_user), f"{user.username} ({org.name})")
 
+    def test_deferred_organization_queryset_num_queries(self):
+        for index in range(3):
+            self._create_org(name=f"deferred-org-{index}")
+        with self.assertNumQueries(1):
+            list(
+                Organization.objects.filter(name__startswith="deferred-org-").only("id")
+            )
+
     def test_add_user(self):
         org = self._get_org()
         user = self._create_user()

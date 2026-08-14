@@ -98,6 +98,29 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             roles=("superuser",),
         )
 
+    def test_disabled_organization_mutating_action_is_blocked(self):
+        class ShelfActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+            actions = ["rename_selected"]
+
+            @admin.action(permissions=["change"])
+            def rename_selected(self, request, queryset):
+                queryset.update(name="renamed-shelf")
+
+        org = self._get_org()
+        shelf = self._create_shelf(name="action-guard-shelf", organization=org)
+        org.is_active = False
+        org.save()
+        request = RequestFactory().post(
+            "/",
+            {"action": "rename_selected", "_selected_action": [str(shelf.pk)]},
+        )
+        request.user = self._get_admin()
+        model_admin = ShelfActionAdmin(Shelf, admin.site)
+        self.assertTrue(model_admin.has_delete_permission(request, shelf))
+        model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
+        shelf.refresh_from_db()
+        self.assertEqual(shelf.name, "action-guard-shelf")
+
     def test_disabled_org_admin_crud_org_admin_loses_access(self):
         org = self._create_org(name="admin-mixin-org-oa")
         shelf = self._create_shelf(name="admin-mixin-shelf-oa", organization=org)
