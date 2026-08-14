@@ -177,7 +177,9 @@ class TestOrganizationAutocompleteField(
             field.dataset.fieldName = "organization";
             field.append(new Option("Shared systemwide", "null", true, true));
             form.append(field);
-            form.addEventListener("submit", event => event.preventDefault(), {once: true});
+            form.addEventListener(
+                "submit", event => event.preventDefault(), {once: true}
+            );
             form.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
             return field.value;
             """)
