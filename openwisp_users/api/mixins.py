@@ -33,6 +33,17 @@ class OrgLookup:
     def organization_lookup(self):
         return f"{self.org_field}__in"
 
+    def _organization_relation_is_valid(self, model):
+        for part in self.org_field.split("__"):
+            try:
+                field = model._meta.get_field(part)
+            except FieldDoesNotExist:
+                return False
+            if not (field.concrete and (field.many_to_one or field.one_to_one)):
+                return False
+            model = field.related_model
+        return True
+
 
 class SharedObjectsLookup:
     @property
@@ -73,22 +84,6 @@ class FilterByOrganization(OrgLookup):
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
-
-    def _organization_relation_is_valid(self, model):
-        """
-        Check the relation before queryset evaluation can surface an invalid
-        ``select_related`` path.
-        """
-        for part in self.org_field.split("__"):
-            try:
-                field = model._meta.get_field(part)
-            except FieldDoesNotExist:
-                return False
-            related_model = getattr(field, "related_model", None)
-            if related_model is None:
-                return False
-            model = related_model
-        return True
 
     def get_organization_queryset(self, qs):
         if self.request.user.is_anonymous:
@@ -140,7 +135,9 @@ class FilterByParent(OrgLookup):
         parent_queryset = self.get_parent_queryset()
         if not self.request.user.is_superuser:
             parent_queryset = self.get_organization_queryset(parent_queryset)
-        if getattr(self, "select_related_organization", True):
+        if getattr(
+            self, "select_related_organization", True
+        ) and self._organization_relation_is_valid(parent_queryset.model):
             parent_queryset = parent_queryset.select_related(self.org_field)
         try:
             assert parent_queryset.exists()
@@ -211,6 +208,14 @@ class FilterSerializerByOrganization(OrgLookup):
         # Keep disabled organizations out of writable relation fields.
         queryset = field.queryset.filter(is_active=True)
         field.error_messages["does_not_exist"] = DISABLED_ORGANIZATION_ERROR_MESSAGE
+        view = self.context.get("view")
+        organization = getattr(self.instance, "organization", None)
+        if (
+            getattr(view, "allow_disabled_organization_writes", False)
+            and organization is not None
+            and not organization.is_active
+        ):
+            queryset |= field.queryset.filter(pk=organization.pk)
         if organization_filter is not None:
             field.allow_null = False
             queryset = queryset.filter(pk__in=organization_filter)
@@ -227,7 +232,7 @@ class FilterSerializerByOrganization(OrgLookup):
         else:
             conditions &= Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
-                conditions |= Q(organization__isnull=True)
+                conditions |= Q(**{f"{self.org_field}__isnull": True})
         field.queryset = queryset.filter(conditions)
 
     def __init__(self, *args, **kwargs):

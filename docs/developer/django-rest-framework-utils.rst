@@ -152,8 +152,9 @@ are not organization-scoped must opt out explicitly.
     ``has_object_permission``, which DRF does not call on ``POST``, so it
     does **not** block creation for a disabled organization. The
     serializer must exclude disabled organizations from its
-    ``organization`` field, for example by using a
-    ``FilterSerializerByOrganization`` mixin or ``Organization.active``. A
+    ``organization`` field, for example by using
+    ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
+    or ``FilterSerializerByOrgOwned`` mixin, or ``Organization.active``. A
     plain ``ModelSerializer`` can still create an object for a disabled
     organization.
 

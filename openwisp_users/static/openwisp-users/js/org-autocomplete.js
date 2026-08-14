@@ -10,17 +10,17 @@
     // Hence, we need to update the value of the selected option before
     // submission of the form.
     //
-    // Every organization autocomplete widget (top-level or inline) renders
-    // `data-field-name="organization"`, so we bind to each one instead of a
-    // single hardcoded id.
-    $("select[data-field-name='organization']").each(function () {
-      var orgSelect = $(this);
-      orgSelect.closest("form").on("submit", function () {
-        var selected = orgSelect.find("option:selected");
-        if (selected.val() === "null") {
-          selected.val("");
-        }
-      });
+    // Find the organization fields at submit time so dynamically added
+    // inlines are included too.
+    $("form").on("submit", function () {
+      $(this)
+        .find("select[data-field-name='organization'] option:selected")
+        .each(function () {
+          var selected = $(this);
+          if (selected.val() === "null") {
+            selected.val("");
+          }
+        });
     });
 
     // Auto-selection only applies to the single top-level organization field

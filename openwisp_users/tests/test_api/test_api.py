@@ -786,6 +786,42 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 400)
         self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
 
+    def test_org_manager_cannot_create_memberships_for_inaccessible_orgs(self):
+        managed_org = self._create_org(name="managed-org")
+        disabled_org = self._create_org(name="disabled-org", is_active=False)
+        unmanaged_org = self._create_org(name="unmanaged-org")
+        manager = self._create_user(username="manager", email="manager@example.com")
+        manager.groups.set(Group.objects.filter(name="Administrator"))
+        self._create_org_user(user=manager, organization=managed_org, is_admin=True)
+        self.client.force_login(manager)
+        path = reverse("users:user_list")
+
+        for name, organization in (
+            ("disabled", disabled_org),
+            ("unmanaged", unmanaged_org),
+        ):
+            with self.subTest(organization=name):
+                username = f"{name}-membership"
+                response = self.client.post(
+                    path,
+                    {
+                        "username": username,
+                        "email": f"{username}@example.com",
+                        "password": "password",
+                        "organization_users": {
+                            "is_admin": False,
+                            "organization": organization.pk,
+                        },
+                    },
+                    content_type="application/json",
+                )
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(User.objects.filter(username=username).exists(), False)
+                self.assertEqual(
+                    OrganizationUser.objects.filter(organization=organization).exists(),
+                    False,
+                )
+
     def test_patch_user_detail_api(self):
         user = self._get_user()
         path = reverse("users:user_detail", args=(user.pk,))

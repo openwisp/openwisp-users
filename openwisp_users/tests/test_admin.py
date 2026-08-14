@@ -2034,11 +2034,12 @@ class TestUsersAdmin(
         disabled_org = self._create_org(name="disabled-inline-org", is_active=False)
         request = RequestFactory().get("/")
         request.user = self._get_admin()
-        inlines = list(org_admin.get_inline_instances(request, disabled_org))
-        for inline in inlines:
-            for excluded_inlines in self._get_disabled_org_test_excluded_inline():
-                if isinstance(inline, excluded_inlines):
-                    inlines.remove(inline)
+        excluded = tuple(self._get_disabled_org_test_excluded_inline())
+        inlines = [
+            inline
+            for inline in org_admin.get_inline_instances(request, disabled_org)
+            if not (excluded and isinstance(inline, excluded))
+        ]
         self._test_disabled_org_admin_inline_readonly(
             org_admin, disabled_org, active_obj=active_org, inline_admins=inlines
         )
@@ -2106,8 +2107,7 @@ class TestUsersAdmin(
         self.assertContains(res, "errors field-organization")
         self.assertEqual(User.objects.filter(username="disableduserinline").count(), 0)
 
-    def test_user_inline_org_picker_excludes_disabled(self):
-        # The autocomplete endpoint must exclude disabled organizations.
+    def test_user_inline_org_picker_sets_exclude_disabled_parameter(self):
         admin = self._get_admin()
         self.client.force_login(admin)
         response = self.client.get(reverse(f"admin:{self.app_label}_user_add"))

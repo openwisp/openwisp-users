@@ -96,6 +96,7 @@ class TestDisabledOrgApiMixin(TestDisabledOrgMixin):
         for method in methods:
             with self.subTest(method=method):
                 if unchanged:
+                    obj.refresh_from_db()
                     before = getattr(obj, unchanged_field)
                 response = getattr(self.client, method)(
                     url, data=payload, content_type="application/json", **auth

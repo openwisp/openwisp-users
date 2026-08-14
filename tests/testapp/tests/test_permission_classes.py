@@ -4,9 +4,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from rest_framework.generics import ListAPIView
 from rest_framework.test import APIRequestFactory
 from swapper import load_model
 
+from openwisp_users.api.mixins import FilterByOrganizationManaged, FilterByParentManaged
 from openwisp_users.api.permissions import DisabledOrgReadOnly
 from openwisp_users.api.throttling import AuthRateThrottle
 
@@ -412,7 +414,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         with self.subTest("opt-out view allows write"):
             response = self.client.put(
                 allowed_url,
-                data={"name": "renamed"},
+                data={"name": "renamed", "organization": str(org.pk)},
                 content_type="application/json",
                 **auth,
             )
@@ -654,3 +656,28 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         view.request = request
         queryset = view.get_queryset()
         self.assertIn("organization", queryset.query.select_related)
+
+    def test_invalid_select_related_organization_paths_are_skipped(self):
+        class ManyToManyOrganizationView(FilterByOrganizationManaged, ListAPIView):
+            queryset = Shelf.objects.all()
+            organization_field = "tags"
+
+        class ManyToManyParentView(FilterByParentManaged, ListAPIView):
+            queryset = Shelf.objects.all()
+            organization_field = "tags"
+
+            def get_parent_queryset(self):
+                return Shelf.objects.all()
+
+        org = self._get_org()
+        shelf = Shelf(name="m2m-lookup-shelf", organization=org)
+        shelf.full_clean()
+        shelf.save()
+        admin = self._get_admin()
+        request = APIRequestFactory().get("/")
+        request.user = admin
+        for view_class in (ManyToManyOrganizationView, ManyToManyParentView):
+            with self.subTest(view=view_class.__name__):
+                view = view_class()
+                view.request = request
+                self.assertEqual(view.get_queryset().count(), 1)

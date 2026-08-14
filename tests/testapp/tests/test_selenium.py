@@ -166,3 +166,20 @@ class TestOrganizationAutocompleteField(
             )
         )
         self.logout()
+
+    def test_dynamic_organization_inline_normalizes_shared_value_on_submit(self):
+        path = reverse(f"admin:{User._meta.app_label}_user_add")
+        self.login(username=self.admin_username, password=self.admin_password)
+        self.open(path)
+        value = self.web_driver.execute_script("""
+            const form = document.querySelector("form");
+            const field = document.createElement("select");
+            field.dataset.fieldName = "organization";
+            field.append(new Option("Shared systemwide", "null", true, true));
+            form.append(field);
+            form.addEventListener("submit", event => event.preventDefault(), {once: true});
+            form.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
+            return field.value;
+            """)
+        self.assertEqual(value, "")
+        self.logout()

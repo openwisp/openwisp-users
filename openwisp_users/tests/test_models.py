@@ -1389,6 +1389,18 @@ class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestC
         disabled_handler.assert_not_called()
         enabled_handler.assert_not_called()
 
+    def test_organization_active_state_signal_respects_update_fields(self):
+        org = self._create_org(name="org-update-fields")
+        org.is_active = False
+        org.name = "renamed-org"
+        with catch_signal(organization_disabled) as disabled_handler:
+            org.save(update_fields={"name"})
+            disabled_handler.assert_not_called()
+            org.save(update_fields={"is_active"})
+            disabled_handler.assert_called_once_with(
+                signal=organization_disabled, sender=Organization, instance=org
+            )
+
     def test_organization_active_state_signal_not_sent_on_creation(self):
         with (
             catch_signal(organization_disabled) as disabled_handler,

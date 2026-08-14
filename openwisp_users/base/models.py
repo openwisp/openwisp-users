@@ -486,13 +486,19 @@ class BaseOrganization(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
+        update_fields = kwargs.get("update_fields")
         super().save(*args, **kwargs)
-        if not is_new and self.is_active != self._initial_is_active:
+        if (
+            not is_new
+            and (update_fields is None or "is_active" in update_fields)
+            and self.is_active != self._initial_is_active
+        ):
             signal = organization_enabled if self.is_active else organization_disabled
             transaction.on_commit(
                 lambda: signal.send(sender=self.__class__, instance=self)
             )
-        self._initial_is_active = self.is_active
+        if update_fields is None or "is_active" in update_fields:
+            self._initial_is_active = self.is_active
 
     def add_user(self, user, is_admin=False, **kwargs):
         """
