@@ -5,6 +5,7 @@ from allauth.account.models import EmailAddress, get_emailconfirmation_model
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.templatetags.l10n import localize
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -1405,6 +1406,43 @@ class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestC
             org.save(update_fields={"name"})
             disabled_handler.assert_not_called()
             org.save(update_fields={"is_active"})
+            disabled_handler.assert_called_once_with(
+                signal=organization_disabled, sender=Organization, instance=org
+            )
+
+    def test_organization_signal_transaction_state(self):
+        with self.subTest("callbacks receive the state of each transition"):
+            org = self._create_org(name="org-multiple-transitions")
+            disabled_states = []
+            enabled_states = []
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                disabled_handler.side_effect = lambda **kwargs: disabled_states.append(
+                    kwargs["instance"].is_active
+                )
+                enabled_handler.side_effect = lambda **kwargs: enabled_states.append(
+                    kwargs["instance"].is_active
+                )
+                with transaction.atomic():
+                    org.is_active = False
+                    org.save()
+                    org.is_active = True
+                    org.save()
+            self.assertEqual(disabled_states, [False])
+            self.assertEqual(enabled_states, [True])
+
+        with self.subTest("rollback does not suppress the retried transition"):
+            org = self._create_org(name="org-rollback-retry")
+            with catch_signal(organization_disabled) as disabled_handler:
+                with self.assertRaises(RuntimeError):
+                    with transaction.atomic():
+                        org.is_active = False
+                        org.save()
+                        raise RuntimeError
+                org.is_active = False
+                org.save()
             disabled_handler.assert_called_once_with(
                 signal=organization_disabled, sender=Organization, instance=org
             )

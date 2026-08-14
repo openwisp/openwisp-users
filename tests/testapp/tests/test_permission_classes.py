@@ -5,7 +5,7 @@ from django.contrib.auth.models import Permission
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from rest_framework.generics import ListAPIView
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 from swapper import load_model
 
 from openwisp_users.api.mixins import FilterByOrganizationManaged, FilterByParentManaged
@@ -14,7 +14,7 @@ from openwisp_users.api.throttling import AuthRateThrottle
 
 from ..models import Shelf, Template
 from ..serializers import BookManagerSerializer
-from ..views import TemplateDetailView
+from ..views import TemplateDetailView, TemplateDisabledOrgWriteAllowedDetailView
 from .mixins import TestMultitenancyMixin
 
 User = get_user_model()
@@ -420,12 +420,25 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
-        with self.subTest("full update keeps the disabled organization"):
-            response = self.client.put(
-                allowed_url,
-                data={"name": "renamed", "organization": str(org.pk)},
-                content_type="application/json",
-                **auth,
+        with self.subTest("manager update keeps the disabled organization"):
+
+            class ManagerAllowedTemplateDetailView(
+                TemplateDisabledOrgWriteAllowedDetailView
+            ):
+                permission_classes = ()
+
+                def get_queryset(self):
+                    return Template.objects.all()
+
+            manager = self._create_administrator()
+            request = APIRequestFactory().put(
+                "/",
+                {"name": "renamed", "organization": str(org.pk)},
+                format="json",
+            )
+            force_authenticate(request, user=manager)
+            response = ManagerAllowedTemplateDetailView.as_view()(
+                request, pk=template.pk
             )
             self.assertEqual(response.status_code, 200)
             template.refresh_from_db()
