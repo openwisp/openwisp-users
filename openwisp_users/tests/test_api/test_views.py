@@ -84,6 +84,15 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
                 response = self.client.get(url_path)
                 self.assertEqual(response.status_code, 404)
 
+    def test_schema_generation_introspects_views(self):
+        # drf_yasg sets ``swagger_fake_view`` on every view while
+        # generating the schema; querysets must handle that without
+        # relying on URL kwargs.
+        self._create_user(username="tester", password="tester")
+        self.client.force_login(self._get_user("tester"))
+        response = self.client.get(reverse("schema-json", args=[".json"]))
+        self.assertEqual(response.status_code, 200)
+
 
 class TestGetApiUrls(TestCase):
     @patch.object(app_settings, "USERS_AUTH_API", False)

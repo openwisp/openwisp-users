@@ -7,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
+from organizations.exceptions import OwnershipRequired
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import (
     GenericAPIView,
     ListCreateAPIView,
@@ -377,6 +379,8 @@ class OrganizationMembershipListCreateView(
     pagination_class = OpenWispPagination
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return OrganizationUser.objects.none()
         return super().get_queryset().filter(user_id=self.kwargs["pk"])
 
 
@@ -396,6 +400,7 @@ class OrganizationMembershipDetailView(
     def update(self, request, *args, **kwargs):
         kwargs["partial"] = True
         return super().update(request, *args, **kwargs)
+
 
 
 obtain_auth_token = ObtainAuthTokenView.as_view()
