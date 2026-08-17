@@ -75,6 +75,9 @@ jobs:
           pip install -U -r requirements-test.txt
           sudo npm install -g prettier
           pip install -e .[rest]
+          pip install --upgrade --force-reinstall --no-deps --no-cache-dir https://github.com/openwisp/openwisp-users/tarball/issues/522-disabled-org
+          pip install --upgrade --force-reinstall --no-deps --no-cache-dir https://github.com/openwisp/openwisp-controller/tarball/issues/1393-disabled-org
+          pip install --upgrade --force-reinstall --no-deps --no-cache-dir https://github.com/openwisp/openwisp-monitoring/tarball/issues/811-disabled-org
           pip install -U ${{ matrix.django-version }}
 
       - name: QA checks

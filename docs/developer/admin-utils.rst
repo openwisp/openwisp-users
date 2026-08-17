@@ -35,7 +35,7 @@ Disabled Organization Write Protection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``MultitenantAdminMixin`` also blocks changes to any object belonging to a
-:ref:`disabled organization <disabling_an_organization>`, while still
+:ref:`disabled organization <users_disabled_organization>`, while still
 allowing it to be viewed and deleted. This also applies to superusers. For
 models whose organization is reached through a parent, the mixin follows
 ``multitenant_parent`` to protect those objects too.

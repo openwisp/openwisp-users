@@ -138,7 +138,7 @@ Standard users will not be able to view or list shared objects.
 ``openwisp_users.api.permissions.DisabledOrgReadOnly``.
 
 This object-level permission class blocks updates to objects belonging to
-a :ref:`disabled organization <disabling_an_organization>`. ``GET``,
+a :ref:`disabled organization <users_disabled_organization>`. ``GET``,
 ``HEAD``, ``OPTIONS`` and ``DELETE`` remain allowed.
 
 The object's organization is resolved through the view's
@@ -317,7 +317,7 @@ These serializers do not allow non-superusers to create shared objects.
 .. _multi_tenant_serializers_disabled_org:
 
 These serializers also exclude :ref:`disabled organizations
-<disabling_an_organization>` from the ``organization`` field for all
+<users_disabled_organization>` from the ``organization`` field for all
 users, including superusers. Submitting a disabled organization's primary
 key returns a validation error.
 
