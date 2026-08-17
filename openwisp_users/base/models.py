@@ -1,3 +1,4 @@
+import copy
 import logging
 import uuid
 from smtplib import SMTPException
@@ -471,10 +472,6 @@ class BaseOrganization(models.Model):
     email = models.EmailField(_("email"), blank=True)
     url = models.URLField(_("URL"), blank=True)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._initial_is_active = self.is_active
-
     def __str__(self):
         value = self.name
         if not self.is_active:
@@ -487,18 +484,24 @@ class BaseOrganization(models.Model):
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         update_fields = kwargs.get("update_fields")
+        previous_is_active = None
+        if not is_new and (update_fields is None or "is_active" in update_fields):
+            previous_is_active = (
+                self.__class__.objects.filter(pk=self.pk)
+                .values_list("is_active", flat=True)
+                .first()
+            )
         super().save(*args, **kwargs)
         if (
             not is_new
             and (update_fields is None or "is_active" in update_fields)
-            and self.is_active != self._initial_is_active
+            and self.is_active != previous_is_active
         ):
             signal = organization_enabled if self.is_active else organization_disabled
+            instance = copy.copy(self)
             transaction.on_commit(
-                lambda: signal.send(sender=self.__class__, instance=self)
+                lambda: signal.send(sender=self.__class__, instance=instance)
             )
-        if update_fields is None or "is_active" in update_fields:
-            self._initial_is_active = self.is_active
 
     def add_user(self, user, is_admin=False, **kwargs):
         """
@@ -511,7 +514,9 @@ class BaseOrganization(models.Model):
             is_admin = True
 
         OrganizationUser = load_model("openwisp_users", "OrganizationUser")
-        org_user = OrganizationUser(user=user, organization=self, is_admin=is_admin)
+        org_user = OrganizationUser(
+            user=user, organization=self, is_admin=is_admin, **kwargs
+        )
         org_user.full_clean()
         org_user.save()
         return org_user
@@ -537,11 +542,10 @@ class BaseOrganizationUser(models.Model):
                 .first()
             )
 
-        changed = (
-            original is None
-            or original.organization_id != self.organization_id
-            or original.user_id != self.user_id
-            or original.is_admin != self.is_admin
+        changed = original is None or any(
+            getattr(original, field.attname) != getattr(self, field.attname)
+            for field in self._meta.concrete_fields
+            if field.editable and not field.primary_key
         )
 
         if changed and self.organization_id is not None:

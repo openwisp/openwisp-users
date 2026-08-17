@@ -42,7 +42,7 @@ class OrgLookup:
             if not (field.concrete and (field.many_to_one or field.one_to_one)):
                 return False
             model = field.related_model
-        return True
+        return model == Organization
 
 
 class SharedObjectsLookup:
@@ -218,7 +218,14 @@ class FilterSerializerByOrganization(OrgLookup):
             queryset |= field.queryset.filter(pk=organization.pk)
         if organization_filter is not None:
             field.allow_null = False
-            queryset = queryset.filter(pk__in=organization_filter)
+            allowed_organizations = Q(pk__in=organization_filter)
+            if (
+                getattr(view, "allow_disabled_organization_writes", False)
+                and organization is not None
+                and not organization.is_active
+            ):
+                allowed_organizations |= Q(pk=organization.pk)
+            queryset = queryset.filter(allowed_organizations)
         field.queryset = queryset
 
     def _filter_related_field(self, field, organization_filter):
@@ -239,6 +246,11 @@ class FilterSerializerByOrganization(OrgLookup):
         super().__init__(*args, **kwargs)
         # only filter related fields if the serializer
         # is being initiated during an HTTP request
+        if "request" in self.context:
+            self.filter_fields()
+
+    def bind(self, field_name, parent):
+        super().bind(field_name, parent)
         if "request" in self.context:
             self.filter_fields()
 

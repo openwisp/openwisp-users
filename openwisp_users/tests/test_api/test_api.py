@@ -89,25 +89,6 @@ class TestUsersApi(
             r = self.client.get(path)
         self.assertEqual(r.status_code, 404)
 
-    def test_organization_put_api(self):
-        org1 = self._get_org()
-        self.assertEqual(org1.name, "test org")
-        self.assertEqual(org1.description, "")
-        path = reverse("users:organization_detail", args=(org1.pk,))
-        data = {
-            "name": "test org change",
-            "is_active": False,
-            "slug": "test-org-change",
-            "description": "testing PUT",
-            "email": "testorg@test.com",
-            "url": "",
-        }
-        with self.assertNumQueries(8):
-            r = self.client.put(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.data["name"], "test org change")
-        self.assertEqual(r.data["description"], "testing PUT")
-
     def test_organization_patch_api(self):
         org1 = self._get_org()
         self.assertEqual(org1.name, "test org")
@@ -1070,3 +1051,22 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
         self.assertEqual(r.status_code, 400)
         self.assertEqual(User.objects.filter(username="tester").count(), 0)
         self.assertEqual(OrganizationUser.objects.filter(organization=org1).count(), 0)
+
+    def test_organization_put_api(self):
+        org1 = self._get_org()
+        self.assertEqual(org1.name, "test org")
+        self.assertEqual(org1.description, "")
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        data = {
+            "name": "test org change",
+            "is_active": False,
+            "slug": "test-org-change",
+            "description": "testing PUT",
+            "email": "testorg@test.com",
+            "url": "",
+        }
+        with self.assertNumQueries(8):
+            r = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["name"], "test org change")
+        self.assertEqual(r.data["description"], "testing PUT")

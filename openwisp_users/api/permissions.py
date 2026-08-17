@@ -38,6 +38,8 @@ class BaseOrganizationPermission(ObjectOrganizationMixin, BasePermission):
                 len(request.user.organizations_managed) >= 1
                 or len(request.user.organizations_owned) >= 1
             )
+        if not isinstance(organization, Organization):
+            return False
         return self.validate_membership(request.user, organization)
 
     def has_permission(self, request, view):
@@ -116,7 +118,9 @@ class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
         except AttributeError:
             # Do not fail open on a bad relation path; unrelated views opt out.
             return False
-        return organization is None or organization.is_active
+        return organization is None or (
+            isinstance(organization, Organization) and organization.is_active
+        )
 
 
 class DjangoModelPermissions(ObjectOrganizationMixin, BaseDjangoModelPermissions):

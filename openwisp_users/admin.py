@@ -129,12 +129,15 @@ class OrganizationUserInlineFormSet(RequiredInlineFormSet):
         ):
             org_field = form.fields.get("organization")
             if org_field is not None:
-                org_field.disabled = True
-                org_field.queryset = Organization.objects.filter(
+                # The formset queryset excludes disabled organizations,
+                # so the current membership's organization must be added
+                # back or the disabled field fails validation against it.
+                org_model = org_field.queryset.model
+                org_field.queryset = org_field.queryset | org_model.objects.filter(
                     pk=instance.organization_id
                 )
-            if "is_admin" in form.fields:
-                form.fields["is_admin"].disabled = True
+            for field in form.fields.values():
+                field.disabled = True
 
 
 class OrganizationUserInline(admin.StackedInline):
@@ -639,7 +642,7 @@ class OrganizationAdmin(
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False
         if obj and not obj.is_active:
-            return True
+            return request.user.is_superuser
         return super().has_change_permission(request, obj)
 
     def get_readonly_fields(self, request, obj=None):
@@ -654,6 +657,9 @@ class OrganizationAdmin(
                 for f in self.model._meta.local_fields
                 if f.editable and f.name != "is_active"
             ]
+            editable_fields.extend(
+                f.name for f in self.model._meta.local_many_to_many if f.editable
+            )
             fields = list(fields) + [f for f in editable_fields if f not in fields]
         return fields
 

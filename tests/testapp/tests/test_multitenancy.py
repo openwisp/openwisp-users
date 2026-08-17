@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.contrib.messages.storage.cookie import CookieStorage
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
@@ -115,11 +116,53 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             {"action": "rename_selected", "_selected_action": [str(shelf.pk)]},
         )
         request.user = self._get_admin()
+        request._messages = CookieStorage(request)
         model_admin = ShelfActionAdmin(Shelf, admin.site)
         self.assertTrue(model_admin.has_delete_permission(request, shelf))
         model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
         shelf.refresh_from_db()
         self.assertEqual(shelf.name, "action-guard-shelf")
+
+        class ShelfActionExemptionAdmin(ShelfActionAdmin):
+            disabled_organization_action_exclusions = ("rename_selected",)
+
+        request = RequestFactory().post(
+            "/",
+            {"action": "rename_selected", "_selected_action": [str(shelf.pk)]},
+        )
+        request.user = self._get_admin()
+        model_admin = ShelfActionExemptionAdmin(Shelf, admin.site)
+        model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
+        shelf.refresh_from_db()
+        self.assertEqual(shelf.name, "renamed-shelf")
+
+    def test_disabled_organization_guard_uses_custom_organization_resolver(self):
+        class LibraryActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+            actions = ["rename_selected"]
+
+            def get_object_organization(self, obj):
+                return obj.book.organization
+
+            @admin.action(permissions=["change"])
+            def rename_selected(self, request, queryset):
+                queryset.update(name="renamed-library")
+
+        org = self._get_org()
+        book = self._create_book(name="resolver-book", organization=org)
+        library = self._create_library(name="resolver-library", book=book)
+        org.is_active = False
+        org.save()
+        request = RequestFactory().post(
+            "/",
+            {"action": "rename_selected", "_selected_action": [str(library.pk)]},
+        )
+        request.user = self._get_admin()
+        request._messages = CookieStorage(request)
+        model_admin = LibraryActionAdmin(Library, admin.site)
+        self.assertEqual(model_admin.has_change_permission(request, library), False)
+        model_admin.response_action(request, Library.objects.filter(pk=library.pk))
+        library.refresh_from_db()
+        self.assertEqual(library.name, "resolver-library")
 
     def test_disabled_org_admin_crud_org_admin_loses_access(self):
         org = self._create_org(name="admin-mixin-org-oa")

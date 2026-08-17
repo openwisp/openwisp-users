@@ -1,5 +1,7 @@
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from swapper import load_model
 
@@ -22,6 +24,7 @@ class MultitenantAdminMixin(object):
     multitenant_parent = None
     # Set False on subclasses that allow writes to disabled-organization objects.
     disabled_organization_write_protection = True
+    disabled_organization_action_exclusions = ()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,16 +54,22 @@ class MultitenantAdminMixin(object):
         if user.is_superuser:
             return qs
         if hasattr(self.model, "organization"):
-            return qs.filter(organization__in=user.organizations_managed)
+            return qs.filter(
+                organization__in=user.organizations_managed,
+                organization__is_active=True,
+            )
         if self.model.__name__ == "Organization":
-            return qs.filter(pk__in=user.organizations_managed)
+            return qs.filter(pk__in=user.organizations_managed, is_active=True)
         elif not self.multitenant_parent:
             return qs
         else:
             qsarg = "{0}__organization__in".format(self.multitenant_parent)
-            return qs.filter(**{qsarg: user.organizations_managed})
+            active_qsarg = "{0}__organization__is_active".format(
+                self.multitenant_parent
+            )
+            return qs.filter(**{qsarg: user.organizations_managed, active_qsarg: True})
 
-    def _get_object_organization(self, obj):
+    def get_object_organization(self, obj):
         """
         Resolve an object's organization, including through
         ``multitenant_parent``.
@@ -82,7 +91,7 @@ class MultitenantAdminMixin(object):
         Block changes to disabled organizations unless the admin opts out.
         """
         if self.disabled_organization_write_protection and obj is not None:
-            organization = self._get_object_organization(obj)
+            organization = self.get_object_organization(obj)
             if organization is not None and not organization.is_active:
                 return False
         return super().has_change_permission(request, obj)
@@ -95,7 +104,7 @@ class MultitenantAdminMixin(object):
         inlines = super().get_inline_instances(request, obj)
         if obj is None or not self.disabled_organization_write_protection:
             return inlines
-        organization = self._get_object_organization(obj)
+        organization = self.get_object_organization(obj)
         if organization is None or organization.is_active:
             return inlines
         for inline in inlines:
@@ -118,6 +127,31 @@ class MultitenantAdminMixin(object):
                 return False
         return super().has_add_permission(request, *args, **kwargs)
 
+    def response_action(self, request, queryset):
+        action = request.POST.get("action")
+        if (
+            self.disabled_organization_write_protection
+            and action not in self.get_disabled_organization_action_exclusions()
+            and any(
+                organization is not None and not organization.is_active
+                for organization in (
+                    self.get_object_organization(obj) for obj in queryset
+                )
+            )
+        ):
+            self.message_user(
+                request,
+                _("Actions cannot modify objects of disabled organizations."),
+                messages.ERROR,
+            )
+            return HttpResponseRedirect(request.get_full_path())
+        return super().response_action(request, queryset)
+
+    def get_disabled_organization_action_exclusions(self):
+        return {"delete_selected", "delete_selected_overridden"}.union(
+            self.disabled_organization_action_exclusions
+        )
+
     def _edit_form(self, request, form, obj=None):
         """
         Filter form fields by organization and exclude disabled choices.
@@ -130,7 +164,7 @@ class MultitenantAdminMixin(object):
         org_field = fields.get("organization")
         keep_disabled_org_pk = None
         if not self.disabled_organization_write_protection and obj is not None:
-            organization = self._get_object_organization(obj)
+            organization = self.get_object_organization(obj)
             if organization is not None and not organization.is_active:
                 keep_disabled_org_pk = organization.pk
         if org_field:

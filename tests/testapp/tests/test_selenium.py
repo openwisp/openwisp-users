@@ -16,6 +16,7 @@ from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 from .mixins import TestMultitenancyMixin
 
 Organization = load_model("openwisp_users", "Organization")
+OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 User = get_user_model()
 
 
@@ -169,19 +170,32 @@ class TestOrganizationAutocompleteField(
 
     def test_dynamic_organization_inline_normalizes_shared_value_on_submit(self):
         path = reverse(f"admin:{User._meta.app_label}_user_add")
+        username = "shared-inline-user"
         self.login(username=self.admin_username, password=self.admin_password)
         self.open(path)
-        value = self.web_driver.execute_script("""
-            const form = document.querySelector("form");
-            const field = document.createElement("select");
-            field.dataset.fieldName = "organization";
-            field.append(new Option("Shared systemwide", "null", true, true));
-            form.append(field);
-            form.addEventListener(
-                "submit", event => event.preventDefault(), {once: true}
-            );
-            form.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
-            return field.value;
-            """)
-        self.assertEqual(value, "")
+        self.find_element(
+            By.CSS_SELECTOR, "#openwisp_users_organizationuser-group .add-row a"
+        ).click()
+        org_field = WebDriverWait(self.web_driver, 5).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "#openwisp_users_organizationuser-0-organization")
+            )
+        )
+        self.web_driver.execute_script(
+            "arguments[0].value = 'null'; "
+            "django.jQuery(arguments[0]).trigger('change');",
+            org_field,
+        )
+        self.find_element(By.ID, "id_username").send_keys(username)
+        self.find_element(By.ID, "id_password1").send_keys("testpassword")
+        self.find_element(By.ID, "id_password2").send_keys("testpassword")
+        self.find_element(By.CSS_SELECTOR, "input[name='_save']").click()
+        changelist_url = reverse(f"admin:{User._meta.app_label}_user_changelist")
+        WebDriverWait(self.web_driver, 5).until(
+            EC.url_to_be(f"{self.live_server_url}{changelist_url}")
+        )
+        self.assertEqual(
+            OrganizationUser.objects.get(user__username=username).organization_id,
+            None,
+        )
         self.logout()

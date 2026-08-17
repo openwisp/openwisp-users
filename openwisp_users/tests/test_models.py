@@ -238,16 +238,6 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(user1.is_member(org), False)
         self.assertEqual(user2.is_member(org), True)
 
-    def test_invalidate_cache_org_status_changed(self):
-        org = self._create_org(name="testorg1")
-        user1 = self._create_user(username="testuser1", email="user1@test.com")
-        self._create_org_user(user=user1, organization=org)
-        self.assertEqual(user1.is_member(org), True)
-        org.is_active = False
-        org.full_clean()
-        org.save()
-        self.assertEqual(user1.is_member(org), False)
-
     def test_organizations_managed(self):
         user = self._create_user(username="organizations_pk")
         self.assertEqual(user.organizations_managed, [])
@@ -1361,6 +1351,38 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
 
 class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestCase):
+    def test_organization_signal_uses_transition_snapshot_and_retries_after_rollback(
+        self,
+    ):
+        org = self._create_org(name="org-transition-snapshot")
+        with (
+            catch_signal(organization_disabled) as disabled_handler,
+            catch_signal(organization_enabled) as enabled_handler,
+        ):
+            with transaction.atomic():
+                org.is_active = False
+                org.save()
+                org.is_active = True
+                org.save()
+            self.assertEqual(
+                disabled_handler.call_args.kwargs["instance"].is_active, False
+            )
+            self.assertEqual(
+                enabled_handler.call_args.kwargs["instance"].is_active, True
+            )
+            disabled_handler.reset_mock()
+            enabled_handler.reset_mock()
+            try:
+                with transaction.atomic():
+                    org.is_active = False
+                    org.save()
+                    raise RuntimeError
+            except RuntimeError:
+                pass
+            org.is_active = False
+            org.save()
+        disabled_handler.assert_called()
+
     def test_organization_disabled_signal(self):
         org = self._create_org(name="org-to-disable")
         with (
@@ -1455,3 +1477,13 @@ class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestC
             self._create_org(name="new-org", is_active=False)
         disabled_handler.assert_not_called()
         enabled_handler.assert_not_called()
+
+    def test_invalidate_cache_org_status_changed(self):
+        org = self._create_org(name="testorg1")
+        user1 = self._create_user(username="testuser1", email="user1@test.com")
+        self._create_org_user(user=user1, organization=org)
+        self.assertEqual(user1.is_member(org), True)
+        org.is_active = False
+        org.full_clean()
+        org.save()
+        self.assertEqual(user1.is_member(org), False)

@@ -64,6 +64,21 @@ available, even when an inline does not use the mixin. Set
 ``disabled_organization_write_protection = False`` on the parent admin or
 on an individual inline to opt out.
 
+Custom admin actions are also blocked for disabled-organization objects,
+except for deletion actions. To allow a specific lifecycle action while
+keeping the rest of the protection enabled, list its name in
+``disabled_organization_action_exclusions``:
+
+.. code-block:: python
+
+    class DeviceAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+        disabled_organization_action_exclusions = ("deactivate_device",)
+
+The mixin resolves an object's organization from ``organization`` by
+default and follows ``multitenant_parent`` when configured. Admins using
+another relation can override ``get_object_organization()`` to return the
+related organization.
+
 ``MultitenantOrgFilter``
 ------------------------
 
