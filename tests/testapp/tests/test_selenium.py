@@ -169,16 +169,22 @@ class TestOrganizationAutocompleteField(
         self.logout()
 
     def test_dynamic_organization_inline_normalizes_shared_value_on_submit(self):
+        # OrganizationUser.organization is a required field, so selecting
+        # "Shared systemwide (no organization)" on an inline row must be
+        # rejected with a validation error rather than saved as None.
         path = reverse(f"admin:{User._meta.app_label}_user_add")
         username = "shared-inline-user"
         self.login(username=self.admin_username, password=self.admin_password)
         self.open(path)
         self.find_element(
+            By.CSS_SELECTOR, "#openwisp_users_organizationuser-0 .inline-deletelink"
+        ).click()
+        self.find_element(
             By.CSS_SELECTOR, "#openwisp_users_organizationuser-group .add-row a"
         ).click()
         org_field = WebDriverWait(self.web_driver, 5).until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "#openwisp_users_organizationuser-0-organization")
+                (By.CSS_SELECTOR, "#id_openwisp_users_organizationuser-0-organization")
             )
         )
         self.web_driver.execute_script(
@@ -187,15 +193,17 @@ class TestOrganizationAutocompleteField(
             org_field,
         )
         self.find_element(By.ID, "id_username").send_keys(username)
+        self.find_element(By.ID, "id_email").send_keys("test@openwisp.org")
         self.find_element(By.ID, "id_password1").send_keys("testpassword")
         self.find_element(By.ID, "id_password2").send_keys("testpassword")
         self.find_element(By.CSS_SELECTOR, "input[name='_save']").click()
-        changelist_url = reverse(f"admin:{User._meta.app_label}_user_changelist")
-        WebDriverWait(self.web_driver, 5).until(
-            EC.url_to_be(f"{self.live_server_url}{changelist_url}")
+        error = WebDriverWait(self.web_driver, 5).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "#openwisp_users_organizationuser-0 .errorlist")
+            )
         )
-        self.assertEqual(
-            OrganizationUser.objects.get(user__username=username).organization_id,
-            None,
+        self.assertIn("This field is required", error.text)
+        self.assertFalse(
+            OrganizationUser.objects.filter(user__username=username).exists()
         )
         self.logout()
