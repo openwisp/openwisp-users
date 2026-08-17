@@ -174,23 +174,33 @@ class TestOrganizationAutocompleteField(
         # rejected with a validation error rather than saved as None.
         path = reverse(f"admin:{User._meta.app_label}_user_add")
         username = "shared-inline-user"
+        app_label = OrganizationUser._meta.app_label
+        organization = self._create_org(name="inline-organization")
         self.login(username=self.admin_username, password=self.admin_password)
         self.open(path)
         self.find_element(
-            By.CSS_SELECTOR, "#openwisp_users_organizationuser-0 .inline-deletelink"
+            By.CSS_SELECTOR, f"#{app_label}_organizationuser-group .add-row a"
         ).click()
-        self.find_element(
-            By.CSS_SELECTOR, "#openwisp_users_organizationuser-group .add-row a"
-        ).click()
-        org_field = WebDriverWait(self.web_driver, 5).until(
+        static_org_field = self.find_element(
+            By.ID, f"id_{app_label}_organizationuser-0-organization"
+        )
+        dynamic_org_field = WebDriverWait(self.web_driver, 5).until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "#id_openwisp_users_organizationuser-0-organization")
+                (By.ID, f"id_{app_label}_organizationuser-1-organization")
             )
         )
         self.web_driver.execute_script(
-            "arguments[0].value = 'null'; "
-            "django.jQuery(arguments[0]).trigger('change');",
-            org_field,
+            "var organization = new Option(arguments[1], arguments[2], true, true); "
+            "django.jQuery(arguments[0]).append(organization).trigger('change');",
+            static_org_field,
+            organization.name,
+            str(organization.pk),
+        )
+        self.web_driver.execute_script(
+            "var shared = new Option("
+            "'Shared systemwide (no organization)', 'null', true, true); "
+            "django.jQuery(arguments[0]).append(shared).trigger('change');",
+            dynamic_org_field,
         )
         self.find_element(By.ID, "id_username").send_keys(username)
         self.find_element(By.ID, "id_email").send_keys("test@openwisp.org")
@@ -199,7 +209,7 @@ class TestOrganizationAutocompleteField(
         self.find_element(By.CSS_SELECTOR, "input[name='_save']").click()
         error = WebDriverWait(self.web_driver, 5).until(
             EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "#openwisp_users_organizationuser-0 .errorlist")
+                (By.CSS_SELECTOR, f"#{app_label}_organizationuser-1 .errorlist")
             )
         )
         self.assertIn("This field is required", error.text)
