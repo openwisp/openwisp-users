@@ -239,18 +239,12 @@ class OrganizationMembershipSerializer(ValidatedModelSerializer):
                         )
                     }
                 )
-        elif data.get("organization") is not None and (
-            data["organization"].pk != self.instance.organization_id
-        ):
-            raise serializers.ValidationError(
-                {
-                    "organization": _(
-                        "Organization in the request body does not match the "
-                        "organization in the URL."
-                    )
-                }
-            )
         return super().validate(data)
+
+
+class OrganizationMembershipDetailSerializer(OrganizationMembershipSerializer):
+    class Meta(OrganizationMembershipSerializer.Meta):
+        extra_kwargs = {"organization": {"read_only": True}}
 
 
 class BaseSuperUserSerializer(ValidatedModelSerializer):

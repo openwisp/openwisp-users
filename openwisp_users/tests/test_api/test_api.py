@@ -616,24 +616,6 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.data["is_admin"])
 
-    def test_organization_membership_put_org_mismatch_400_api(self):
-        user1 = self._create_user(username="user1", email="user1@email.com")
-        org1 = self._create_org(name="org1")
-        org2 = self._create_org(name="org2")
-        self._create_org_user(user=user1, organization=org1)
-        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
-        data = {"organization": org2.pk, "is_admin": True}
-        with self.assertNumQueries(5):
-            r = self.client.put(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(
-            r.data["organization"],
-            [
-                "Organization in the request body does not match the "
-                "organization in the URL."
-            ],
-        )
-
     def test_organization_membership_delete_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         org1 = self._create_org(name="org1")

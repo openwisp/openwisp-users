@@ -34,6 +34,7 @@ from .serializers import (
     EmailAddressSerializer,
     GroupSerializer,
     OrganizationDetailSerializer,
+    OrganizationMembershipDetailSerializer,
     OrganizationMembershipSerializer,
     OrganizationSerializer,
     PasswordChangeSerializer,
@@ -387,6 +388,9 @@ class OrganizationMembershipListCreateView(
 class OrganizationMembershipDetailView(
     BaseOrganizationMembershipView, RetrieveUpdateDestroyAPIView
 ):
+    def get_serializer_class(self):
+        return OrganizationMembershipDetailSerializer
+
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
         queryset = queryset.filter(user_id=self.kwargs["pk"])
