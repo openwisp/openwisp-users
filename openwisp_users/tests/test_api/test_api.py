@@ -101,39 +101,37 @@ class TestUsersApi(
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["name"], "test org change")
 
-    def test_patch_disabled_organization_field_without_reenabling_api(self):
+    def test_patch_disabled_organization_api(self):
         org1 = self._get_org()
         org1.is_active = False
         org1.save()
-        path = reverse("users:organization_detail", args=(org1.pk,))
-        data = {"name": "test org change"}
-        r = self.client.patch(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        org1.refresh_from_db()
-        self.assertEqual(org1.name, "test org")
+        with self.subTest("field update without re-enabling is rejected"):
+            path = reverse("users:organization_detail", args=(org1.pk,))
+            data = {"name": "test org change"}
+            resposne = self.client.patch(path, data, content_type="application/json")
+            self.assertEqual(resposne.status_code, 400)
+            org1.refresh_from_db()
+            self.assertEqual(org1.name, "test org")
 
-    def test_patch_disabled_organization_reenable_api(self):
-        org1 = self._get_org()
-        org1.is_active = False
-        org1.save()
-        path = reverse("users:organization_detail", args=(org1.pk,))
-        data = {"is_active": True}
-        r = self.client.patch(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 200)
-        org1.refresh_from_db()
-        self.assertTrue(org1.is_active)
+        with self.subTest("re-enable only is allowed"):
+            org1 = self._get_org()
+            path = reverse("users:organization_detail", args=(org1.pk,))
+            data = {"is_active": True}
+            resposne = self.client.patch(path, data, content_type="application/json")
+            self.assertEqual(resposne.status_code, 200)
+            org1.refresh_from_db()
+            self.assertTrue(org1.is_active)
 
-    def test_reenable_disabled_organization_with_field_edit_api(self):
-        org1 = self._get_org()
         org1.is_active = False
         org1.save()
-        path = reverse("users:organization_detail", args=(org1.pk,))
-        data = {"is_active": True, "name": "renamed while disabled"}
-        r = self.client.patch(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        org1.refresh_from_db()
-        self.assertEqual(org1.is_active, False)
-        self.assertEqual(org1.name, "test org")
+        with self.subTest("re-enable with field edit is rejected"):
+            path = reverse("users:organization_detail", args=(org1.pk,))
+            data = {"is_active": True, "name": "renamed while disabled"}
+            r = self.client.patch(path, data, content_type="application/json")
+            self.assertEqual(r.status_code, 400)
+            org1.refresh_from_db()
+            self.assertEqual(org1.is_active, False)
+            self.assertEqual(org1.name, "test org")
 
     def test_reenable_disabled_organization_via_put_api(self):
         org1 = self._get_org()

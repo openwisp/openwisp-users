@@ -1351,86 +1351,64 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
 
 class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestCase):
-    def test_organization_signal_uses_transition_snapshot_and_retries_after_rollback(
-        self,
-    ):
-        org = self._create_org(name="org-transition-snapshot")
-        with (
-            catch_signal(organization_disabled) as disabled_handler,
-            catch_signal(organization_enabled) as enabled_handler,
-        ):
-            with transaction.atomic():
+    def test_organization_active_state_signals(self):
+        with self.subTest("disabled"):
+            org = self._create_org(name="org-to-disable")
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
                 org.is_active = False
                 org.save()
-                org.is_active = True
-                org.save()
-            self.assertEqual(
-                disabled_handler.call_args.kwargs["instance"].is_active, False
-            )
-            self.assertEqual(
-                enabled_handler.call_args.kwargs["instance"].is_active, True
-            )
-            disabled_handler.reset_mock()
-            enabled_handler.reset_mock()
-            try:
-                with transaction.atomic():
-                    org.is_active = False
-                    org.save()
-                    raise RuntimeError
-            except RuntimeError:
-                pass
-            org.is_active = False
-            org.save()
-        disabled_handler.assert_called()
-
-    def test_organization_disabled_signal(self):
-        org = self._create_org(name="org-to-disable")
-        with (
-            catch_signal(organization_disabled) as disabled_handler,
-            catch_signal(organization_enabled) as enabled_handler,
-        ):
-            org.is_active = False
-            org.save()
-        disabled_handler.assert_called_once_with(
-            signal=organization_disabled, sender=Organization, instance=org
-        )
-        enabled_handler.assert_not_called()
-
-    def test_organization_enabled_signal(self):
-        org = self._create_org(name="org-to-enable", is_active=False)
-        with (
-            catch_signal(organization_disabled) as disabled_handler,
-            catch_signal(organization_enabled) as enabled_handler,
-        ):
-            org.is_active = True
-            org.save()
-        enabled_handler.assert_called_once_with(
-            signal=organization_enabled, sender=Organization, instance=org
-        )
-        disabled_handler.assert_not_called()
-
-    def test_organization_active_state_signal_not_sent_on_unrelated_change(self):
-        org = self._create_org(name="org-unrelated-change")
-        with (
-            catch_signal(organization_disabled) as disabled_handler,
-            catch_signal(organization_enabled) as enabled_handler,
-        ):
-            org.description = "updated description"
-            org.save()
-        disabled_handler.assert_not_called()
-        enabled_handler.assert_not_called()
-
-    def test_organization_active_state_signal_respects_update_fields(self):
-        org = self._create_org(name="org-update-fields")
-        org.is_active = False
-        org.name = "renamed-org"
-        with catch_signal(organization_disabled) as disabled_handler:
-            org.save(update_fields={"name"})
-            disabled_handler.assert_not_called()
-            org.save(update_fields={"is_active"})
             disabled_handler.assert_called_once_with(
                 signal=organization_disabled, sender=Organization, instance=org
             )
+            enabled_handler.assert_not_called()
+
+        with self.subTest("enabled"):
+            org = self._create_org(name="org-to-enable", is_active=False)
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                org.is_active = True
+                org.save()
+            enabled_handler.assert_called_once_with(
+                signal=organization_enabled, sender=Organization, instance=org
+            )
+            disabled_handler.assert_not_called()
+
+        with self.subTest("unrelated field change"):
+            org = self._create_org(name="org-unrelated-change")
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                org.description = "updated description"
+                org.save()
+            disabled_handler.assert_not_called()
+            enabled_handler.assert_not_called()
+
+        with self.subTest("update_fields respected"):
+            org = self._create_org(name="org-update-fields")
+            org.is_active = False
+            org.name = "renamed-org"
+            with catch_signal(organization_disabled) as disabled_handler:
+                org.save(update_fields={"name"})
+                disabled_handler.assert_not_called()
+                org.save(update_fields={"is_active"})
+                disabled_handler.assert_called_once_with(
+                    signal=organization_disabled, sender=Organization, instance=org
+                )
+
+        with self.subTest("not sent on creation"):
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                self._create_org(name="new-org", is_active=False)
+            disabled_handler.assert_not_called()
+            enabled_handler.assert_not_called()
 
     def test_organization_signal_transaction_state(self):
         with self.subTest("callbacks receive the state of each transition"):
@@ -1468,15 +1446,6 @@ class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestC
             disabled_handler.assert_called_once_with(
                 signal=organization_disabled, sender=Organization, instance=org
             )
-
-    def test_organization_active_state_signal_not_sent_on_creation(self):
-        with (
-            catch_signal(organization_disabled) as disabled_handler,
-            catch_signal(organization_enabled) as enabled_handler,
-        ):
-            self._create_org(name="new-org", is_active=False)
-        disabled_handler.assert_not_called()
-        enabled_handler.assert_not_called()
 
     def test_invalidate_cache_org_status_changed(self):
         org = self._create_org(name="testorg1")

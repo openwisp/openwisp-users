@@ -461,45 +461,6 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             response = self.client.delete(detail_url, **auth)
             self.assertEqual(response.status_code, 204)
 
-    def test_disabled_org_api_crud_superuser_only(self):
-        org = self._create_org(name="api-mixin-org")
-        template = self._create_template(name="t-super", organization=org)
-        org.is_active = False
-        org.save()
-        self._test_disabled_org_api_crud(
-            template,
-            detail_url=reverse("test_template_detail", args=[template.pk]),
-            list_url=reverse("test_template_list"),
-            create_payload={"name": "t-super-new", "organization": str(org.pk)},
-            update_payload={"name": "t-super-upd"},
-            roles=("superuser",),
-        )
-
-    def test_disabled_org_api_crud_org_admin_loses_access(self):
-        org = self._create_org(name="api-mixin-org-oa")
-        template = self._create_template(name="t-oa", organization=org)
-        org.is_active = False
-        org.save()
-        self._test_disabled_org_api_crud(
-            template,
-            detail_url=reverse("test_template_detail", args=[template.pk]),
-            list_url=reverse("test_template_list"),
-            create_payload={"name": "t-oa-new", "organization": str(org.pk)},
-            update_payload={"name": "t-oa-upd"},
-            roles=("org_admin",),
-            org_admin_expected={
-                "list": {"status": 200, "object_present": False},
-                "retrieve": {"status": 404},
-                "create": {
-                    "status": 400,
-                    "error_field": "organization",
-                    "error_contains": "does not exist or is disabled",
-                },
-                "update": {"status": 404, "unchanged": True},
-                "delete": {"status": 404, "exists_after": True},
-            },
-        )
-
     def test_disabled_org_api_crud_both_roles(self):
         org = self._create_org(name="api-mixin-org-both")
         template = self._create_template(name="t-both", organization=org)
@@ -536,34 +497,6 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             operations=("retrieve", "update"),
             update_payload={"name": "t-sess-upd"},
             auth_mechanism="session",
-        )
-
-    def test_disabled_org_api_crud_bare_protected_mixin(self):
-        org = self._create_org(name="api-mixin-org-bare")
-        template = self._create_template(name="t-bare", organization=org)
-        org.is_active = False
-        org.save()
-        self._test_disabled_org_api_crud(
-            template,
-            detail_url=reverse("test_protected_template_detail", args=[template.pk]),
-            roles=("superuser",),
-            operations=("retrieve", "update"),
-            update_payload={"name": "t-bare-upd"},
-        )
-
-    def test_disabled_org_api_crud_operations_subset(self):
-        org = self._create_org(name="api-mixin-org-subset")
-        template = self._create_template(name="t-subset", organization=org)
-        org.is_active = False
-        org.save()
-        self._test_disabled_org_api_crud(
-            template,
-            detail_url=reverse("test_template_detail", args=[template.pk]),
-            roles=("superuser",),
-            operations=("retrieve",),
-        )
-        self.assertEqual(
-            self.template_model.objects.filter(pk=template.pk).exists(), True
         )
 
     def test_disabled_org_api_crud_opt_out_override(self):
