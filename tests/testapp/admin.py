@@ -43,6 +43,7 @@ class BookAdmin(BaseAdmin):
         ShelfFilter,
     ]
     fields = ["name", "author", "organization", "shelf", "created", "modified"]
+    autocomplete_fields = ["shelf"]
     multitenant_shared_relations = ["shelf"]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):

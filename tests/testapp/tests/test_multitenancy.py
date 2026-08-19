@@ -88,6 +88,17 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
             superuser_hidden=[data["s3_inactive"].name],
         )
 
+    def test_book_shelf_fk_autocomplete_view(self):
+        data = self._create_multitenancy_test_env()
+        self._test_multitenant_admin(
+            url=self._get_autocomplete_view_path("testapp", "book", "shelf"),
+            visible=[data["s1"].name],
+            hidden=[data["s2"].name],
+            administrator=True,
+            # Keep disabled organizations hidden even for superusers.
+            superuser_hidden=[data["s3_inactive"].name],
+        )
+
     def test_shelf_disabled_organization_admin_guard(self):
         org = self._get_org()
         shelf = self._create_shelf(name="disable-guard-shelf", organization=org)
@@ -183,6 +194,7 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         self._test_disabled_org_admin_crud(
             shelf,
             change_data={"name": "renamed", "organization": str(org.pk)},
+            create_data={"name": "new-shelf", "organization": str(org.pk)},
         )
 
     def test_disabled_org_admin_crud_operations_subset(self):

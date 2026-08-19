@@ -197,6 +197,9 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
             "view": {"status": 200},
             "change": {"status": 403, "unchanged": True},
             "delete": {"status": 200, "exists_after": False},
+            # The organization field always excludes disabled organizations
+            # on add, regardless of role or write-protection opt-out.
+            "add": {"status": 200, "created": False},
         },
         "org_admin": {
             # The disabled object is outside the manager's queryset, so the
@@ -204,6 +207,10 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
             "view": {"status": 302},
             "change": {"status": 200, "unchanged": True},
             "delete": {"status": 200, "exists_after": True},
+            # organizations_managed excludes disabled organizations, so an
+            # org_admin whose only managed org is disabled has no add
+            # permission at all.
+            "add": {"status": 403, "created": False},
         },
     }
 
@@ -215,7 +222,13 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         delete_url = reverse(
             f"{admin_site}:{meta.app_label}_{meta.model_name}_delete", args=[obj.pk]
         )
-        return {"view": change_url, "change": change_url, "delete": delete_url}
+        add_url = reverse(f"{admin_site}:{meta.app_label}_{meta.model_name}_add")
+        return {
+            "view": change_url,
+            "change": change_url,
+            "delete": delete_url,
+            "add": add_url,
+        }
 
     def _test_disabled_org_admin_view(self, url, status=200):
         response = self.client.get(url)
@@ -245,6 +258,14 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         self.assertEqual(response.status_code, status)
         self.assertEqual(model.objects.filter(pk=pk).exists(), exists_after)
 
+    def _test_disabled_org_admin_add(
+        self, url, create_data, model, status=200, created=False
+    ):
+        count_before = model.objects.count()
+        response = self.client.post(url, create_data, follow=True)
+        self.assertEqual(response.status_code, status)
+        self.assertEqual(model.objects.count() > count_before, created)
+
     def _test_disabled_org_admin_org_field_excludes_disabled(
         self,
         url,
@@ -269,13 +290,16 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
         obj,
         change_data,
         roles=("org_admin", "superuser"),
-        operations=("view", "change", "delete"),
+        operations=("view", "change", "delete", "add"),
         organization=None,
         org_admin_expected=None,
         superuser_expected=None,
         unchanged_field="name",
+        create_data=None,
     ):
         """Run shared checks for direct or parent-linked organizations."""
+        if create_data is None:
+            operations = tuple(op for op in operations if op != "add")
         organization = organization or getattr(obj, "organization", None)
         urls = self._get_disabled_org_admin_urls(obj)
         specs = {
@@ -307,6 +331,10 @@ class TestDisabledOrgAdminMixin(TestDisabledOrgMixin):
                     elif operation == "delete":
                         self._test_disabled_org_admin_delete(
                             urls["delete"], type(obj), obj.pk, **spec
+                        )
+                    elif operation == "add":
+                        self._test_disabled_org_admin_add(
+                            urls["add"], create_data, type(obj), **spec
                         )
                     else:
                         raise ValueError(f"Unknown operation: {operation!r}")
@@ -351,6 +379,7 @@ class TestMultitenantAdminMixin(TestDisabledOrgAdminMixin):
     def setUp(self):
         admin = self._create_admin(password="tester")
         admin.organizations_dict  # force caching
+        super().setUp()
 
     def _login(self, username="admin", password="tester"):
         self.client.login(username=username, password=password)
