@@ -74,8 +74,7 @@ If instructions conflict, repository config and CI workflows win first, official
 - Cached lookups must check permission and organization scope on every request. Changed endpoints need cross-organization regression tests.
 - If you change swapped-model behavior, tenant isolation, auth flows, or admin/API permissions, cover both package-level and integration tests.
 - Changes to HTTP REST API endpoints or Django REST Framework serializers must include tests for permissions, input validation, filtering or pagination when supported, and organization or tenant boundaries where applicable.
-- Objects belonging to a disabled organization must be readable and deletable; creation and updates must be blocked across all relevant write paths.
-- New organization-scoped models and operations, including direct or indirect organization relationships, must follow this contract and include explicit tests. Block non-CRUD operations that change state or perform writes on behalf of the object.
+- Objects belonging to a disabled organization must be readable and deletable; creation and updates must be blocked across all relevant write paths. This applies to objects with either a direct or chained/nested relationship to the organization. No other operations should be permitted, except for ordinary cleanup operations.
 
 ## Troubleshooting
 
