@@ -78,15 +78,20 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
 
     def test_book_shelf_fk_queryset(self):
         data = self._create_multitenancy_test_env()
-        self._test_multitenant_admin(
-            url=reverse("admin:testapp_book_add"),
-            visible=[data["s1"].name],
-            hidden=[data["s2"].name, data["s3_inactive"].name],
-            select_widget=True,
-            administrator=True,
-            # Keep disabled organizations hidden even for superusers.
-            superuser_hidden=[data["s3_inactive"].name],
+        url = reverse("admin:testapp_book_add")
+        cases = (
+            ("administrator", {data["s1"].pk}),
+            ("admin", {data["s1"].pk, data["s2"].pk}),
         )
+        for username, expected_shelf_pks in cases:
+            with self.subTest(username=username):
+                self._login(username=username, password="tester")
+                response = self.client.get(url)
+                queryset = response.context["adminform"].form.fields["shelf"].queryset
+                self.assertEqual(
+                    set(queryset.values_list("pk", flat=True)), expected_shelf_pks
+                )
+                self._logout()
 
     def test_book_shelf_fk_autocomplete_view(self):
         data = self._create_multitenancy_test_env()

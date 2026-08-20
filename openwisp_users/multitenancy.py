@@ -52,7 +52,8 @@ class MultitenantAdminMixin(object):
         if self.model == User:
             return self.multitenant_behaviour_for_user_admin(request)
         if user.is_superuser:
-            # Autocomplete requests exclude objects associated with disabled organizations.
+            # Autocomplete requests exclude objects associated with
+            # disabled organizations.
             if "field_name" in request.GET and hasattr(self.model, "organization"):
                 active_or_shared = Q(organization__is_active=True) | Q(
                     organization=None
