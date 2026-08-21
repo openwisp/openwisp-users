@@ -16,6 +16,7 @@ from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.forms.formsets import DELETION_FIELD_NAME
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -113,31 +114,45 @@ class OrganizationOwnerInline(admin.StackedInline):
         return super().has_change_permission(request, obj)
 
 
-class OrganizationUserInlineFormSet(RequiredInlineFormSet):
+class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
     """
-    Keep disabled memberships valid on no-op saves while allowing deletion.
+    Keep rows belonging to a disabled organization valid on no-op saves while
+    making their editable fields read-only and preserving deletion.
     """
 
     def add_fields(self, form, index):
         super().add_fields(form, index)
         instance = getattr(form, "instance", None)
-        if (
-            instance
-            and instance.pk
-            and instance.organization_id
-            and not instance.organization.is_active
-        ):
-            org_field = form.fields.get("organization")
-            if org_field is not None:
-                # The formset queryset excludes disabled organizations,
-                # so the current membership's organization must be added
-                # back or the disabled field fails validation against it.
-                org_model = org_field.queryset.model
-                org_field.queryset = org_field.queryset | org_model.objects.filter(
-                    pk=instance.organization_id
-                )
-            for field in form.fields.values():
-                field.disabled = True
+        if not (instance and instance.pk and instance.organization_id):
+            return
+        if instance.organization.is_active:
+            return
+        organization_field = form.fields.get("organization")
+        if organization_field is not None:
+            # The formset queryset excludes disabled organizations,
+            # so the current row's value must be added back or the
+            # disabled field fails validation against it.
+            organization_model = organization_field.queryset.model
+            organization_field.queryset = organization_field.queryset | (
+                organization_model.objects.filter(pk=instance.organization_id)
+            )
+        pk_name = instance._meta.pk.name
+        for name, field in form.fields.items():
+            # The pk field and the parent-link field must stay enabled: a
+            # disabled field is never submitted by the browser, and when the
+            # pk field is missing from POST data BaseModelFormSet treats the
+            # row as tampered with and silently builds a blank instance
+            # instead of loading the existing one, which then fails
+            # validation on unrelated required fields.
+            if name in (pk_name, self.fk.name, DELETION_FIELD_NAME):
+                continue
+            field.disabled = True
+
+
+class OrganizationUserInlineFormSet(
+    MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet
+):
+    pass
 
 
 class OrganizationUserInline(admin.StackedInline):

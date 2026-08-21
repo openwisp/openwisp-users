@@ -1,13 +1,14 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from openwisp_users.admin import MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet
 from openwisp_users.multitenancy import (
     MultitenantAdminMixin,
     MultitenantOrgFilter,
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Book, Config, Library, Shelf, Tag, Template
+from .models import Bio, Book, Config, Library, Shelf, Tag, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -86,6 +87,17 @@ class ConfigAdmin(BaseAdmin):
     # Exercise the write-protection opt-out through the admin endpoints.
     disabled_organization_write_protection = False
     fields = ["name", "organization", "template"]
+
+
+class BioInlineFormSet(MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet):
+    pass
+
+
+class BioInline(MultitenantAdminMixin, admin.StackedInline):
+    model = Bio
+    formset = BioInlineFormSet
+    fields = ["website", "organization"]
+    extra = 0
 
 
 admin.site.register(Shelf, ShelfAdmin)

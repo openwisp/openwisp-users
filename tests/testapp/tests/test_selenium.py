@@ -11,8 +11,11 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from swapper import load_model
 
+from openwisp_users import admin as openwisp_users_admin
 from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 
+from ..admin import BioInline
+from ..models import Bio
 from .mixins import TestMultitenancyMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -24,6 +27,16 @@ User = get_user_model()
 class TestOrganizationAutocompleteField(
     SeleniumTestMixin, TestMultitenancyMixin, StaticLiveServerTestCase
 ):
+    @classmethod
+    def setUpClass(cls):
+        openwisp_users_admin.UserAdmin.inlines.append(BioInline)
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        openwisp_users_admin.UserAdmin.inlines.remove(BioInline)
+        super().tearDownClass()
+
     def setUp(self):
         self.admin = self._create_admin(
             username=self.admin_username, password=self.admin_password
@@ -167,6 +180,84 @@ class TestOrganizationAutocompleteField(
             )
         )
         self.logout()
+
+    def _create_disabled_bio(self, username):
+        organization = self._create_org(name=f"disabled-{username}-org")
+        user = self._create_user(username=username, email=f"{username}@example.com")
+        bio = Bio.objects.create(
+            user=user, organization=organization, website="https://example.com"
+        )
+        organization.is_active = False
+        organization.save()
+        inline_prefix = Bio._meta.get_field("user").remote_field.get_accessor_name()
+        path = reverse(f"admin:{User._meta.app_label}_user_change", args=[user.pk])
+        return bio, inline_prefix, path, user, organization
+
+    def test_user_admin_disabled_org_bio(self):
+        with self.subTest("saving user fields"):
+            bio, inline_prefix, path, user, organization = self._create_disabled_bio(
+                "disabled-bio-save"
+            )
+            self.login(username=self.admin_username, password=self.admin_password)
+            self.open(path)
+            organization_field = self.find_element(
+                By.ID, f"id_{inline_prefix}-0-organization"
+            )
+            self.assertEqual(
+                organization_field.get_attribute("value"), str(organization.pk)
+            )
+            self.assertEqual(organization_field.get_attribute("disabled"), "true")
+            self.assertEqual(
+                self.find_element(By.ID, f"id_{inline_prefix}-0-website").get_attribute(
+                    "disabled"
+                ),
+                "true",
+            )
+            notes_field = self.find_element(By.ID, "id_notes")
+            notes_field.send_keys("Updated notes")
+            save_button = self.find_element(By.NAME, "_continue")
+            self.web_driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});", save_button
+            )
+            save_button.click()
+            self.find_element(
+                By.ID, f"id_{inline_prefix}-0-DELETE", timeout=10, wait_for="presence"
+            )
+            user.refresh_from_db()
+            self.assertEqual(user.notes, "Updated notes")
+            self.assertEqual(Bio.objects.filter(pk=bio.pk).count(), 1)
+            self.assertEqual(bio.organization_id, organization.pk)
+            self.logout()
+
+        with self.subTest("deleting the disabled-organization bio"):
+            bio, inline_prefix, path, user, organization = self._create_disabled_bio(
+                "disabled-bio-delete"
+            )
+            self.login(username=self.admin_username, password=self.admin_password)
+            self.open(path)
+            delete_field = self.find_element(
+                By.ID, f"id_{inline_prefix}-0-DELETE", timeout=10, wait_for="presence"
+            )
+            self.assertEqual(delete_field.is_enabled(), True)
+            self.find_element(
+                By.CSS_SELECTOR, f"label[for='id_{inline_prefix}-0-DELETE']"
+            ).click()
+            self.assertEqual(delete_field.is_selected(), True)
+            save_button = self.find_element(By.NAME, "_save")
+            self.web_driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});", save_button
+            )
+            save_button.click()
+            WebDriverWait(self.web_driver, 5).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, ".messagelist .success")
+                )
+            )
+            self.assertEqual(Bio.objects.filter(pk=bio.pk).count(), 0)
+            user.refresh_from_db()
+            self.assertEqual(user.username, "disabled-bio-delete")
+            self.assertEqual(organization.is_active, False)
+            self.logout()
 
     def test_dynamic_organization_inline_normalizes_shared_value_on_submit(self):
         # OrganizationUser.organization is a required field, so selecting
