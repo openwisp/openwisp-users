@@ -5,9 +5,10 @@ from allauth.account.models import EmailAddress, get_emailconfirmation_model
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.templatetags.l10n import localize
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, localtime, now, timedelta
 from freezegun import freeze_time
@@ -16,6 +17,7 @@ from swapper import load_model
 from openwisp_utils.tests import catch_signal
 
 from .. import settings as app_settings
+from ..signals import organization_disabled, organization_enabled
 from ..tasks import (
     deactivate_expired_users,
     expiration_reminder_email,
@@ -236,16 +238,6 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(user1.is_member(org), False)
         self.assertEqual(user2.is_member(org), True)
 
-    def test_invalidate_cache_org_status_changed(self):
-        org = self._create_org(name="testorg1")
-        user1 = self._create_user(username="testuser1", email="user1@test.com")
-        self._create_org_user(user=user1, organization=org)
-        self.assertEqual(user1.is_member(org), True)
-        org.is_active = False
-        org.full_clean()
-        org.save()
-        self.assertEqual(user1.is_member(org), False)
-
     def test_organizations_managed(self):
         user = self._create_user(username="organizations_pk")
         self.assertEqual(user.organizations_managed, [])
@@ -403,12 +395,173 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.subTest("Test user first and last names are empty"):
             self.assertEqual(str(org_user), f"{user.username} ({org.name})")
 
+    def test_deferred_organization_queryset_num_queries(self):
+        for index in range(3):
+            self._create_org(name=f"deferred-org-{index}")
+        with self.assertNumQueries(1):
+            list(
+                Organization.objects.filter(name__startswith="deferred-org-").only("id")
+            )
+
     def test_add_user(self):
         org = self._get_org()
         user = self._create_user()
         org_user = org.add_user(user)
         self.assertIsInstance(org_user, OrganizationUser)
         self.assertTrue(org_user.is_admin)
+
+    def test_add_user_disabled_organization(self):
+        org = self._create_org(name="disabled-org", is_active=False)
+        user = self._create_user()
+        with self.assertRaisesMessage(
+            ValidationError, "Cannot add users to a disabled organization."
+        ):
+            org.add_user(user)
+        self.assertEqual(org.organization_users.count(), 0)
+
+    def test_organization_user_clean_disabled_organization(self):
+        with self.subTest("add a new membership to a disabled organization"):
+            org = self._create_org(name="disabled-org", is_active=False)
+            user = self._create_user()
+            org_user = OrganizationUser(organization=org, user=user)
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot add users to a disabled organization."
+            ):
+                org_user.full_clean()
+
+        with self.subTest("modify a membership after its organization is disabled"):
+            org = self._create_org(name="test-org-disable-change")
+            user = self._create_user(username="user2", email="user2@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.is_admin = True
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+            pk = org_user.pk
+            org_user.delete()
+            self.assertEqual(OrganizationUser.objects.filter(pk=pk).count(), 0)
+
+        with self.subTest("move an existing membership to a disabled organization"):
+            active_org = self._create_org(name="active-org")
+            disabled_org = self._create_org(name="disabled-org-2", is_active=False)
+            user = self._create_user(username="user3", email="user3@example.com")
+            org_user = self._create_org_user(organization=active_org, user=user)
+            org_user.organization = disabled_org
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+
+        with self.subTest("move a disabled-org membership to an active organization"):
+            org = self._create_org(name="test-org-move-out")
+            active_org = self._create_org(name="active-org-move-target")
+            user = self._create_user(username="user8", email="user8@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.organization = active_org
+                org_user.full_clean()
+
+        with self.subTest("unchanged membership of a disabled organization passes"):
+            org = self._create_org(name="test-org-noop")
+            user = self._create_user(username="user5", email="user5@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            # Existing disabled memberships must remain valid on no-op saves.
+            org_user.full_clean()
+
+        with self.subTest("reassign the user of a disabled organization membership"):
+            org = self._create_org(name="test-org-reassign-user")
+            user = self._create_user(username="user6", email="user6@example.com")
+            other_user = self._create_user(username="user7", email="user7@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_user.refresh_from_db()
+            org_user.user = other_user
+            with self.assertRaisesMessage(
+                ValidationError,
+                "Memberships of a disabled organization cannot be modified.",
+            ):
+                org_user.full_clean()
+
+    def test_organization_owner_clean_disabled_organization(self):
+        with self.subTest("assign an owner to a disabled organization"):
+            org = self._create_org(name="disabled-org-owner")
+            user = self._create_user()
+            org_user = self._create_org_user(organization=org, user=user)
+            org.is_active = False
+            org.save()
+            org_owner = OrganizationOwner(organization=org, organization_user=org_user)
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot assign an owner to a disabled organization."
+            ):
+                org_owner.full_clean()
+
+        with self.subTest("unassign an owner after its organization is disabled"):
+            org = self._create_org(name="test-org-owner-delete")
+            user = self._create_user(username="user4", email="user4@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
+            )
+            org.is_active = False
+            org.save()
+            pk = org_owner.pk
+            org_owner.delete()
+            self.assertEqual(OrganizationOwner.objects.filter(pk=pk).count(), 0)
+
+        with self.subTest("move a disabled-org owner to an active organization"):
+            org = self._create_org(name="test-org-owner-move-out")
+            active_org = self._create_org(name="active-org-owner-target")
+            user = self._create_user(username="user9", email="user9@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
+            )
+            org.is_active = False
+            org.save()
+            org_owner.refresh_from_db()
+            with self.assertRaisesMessage(
+                ValidationError, "Cannot assign an owner to a disabled organization."
+            ):
+                org_owner.organization = active_org
+                org_owner.full_clean()
+
+        with self.subTest("unchanged owner of a disabled organization passes"):
+            org = self._create_org(name="test-org-owner-noop")
+            user = self._create_user(username="user6", email="user6@example.com")
+            org_user = self._create_org_user(organization=org, user=user)
+            org_owner = self._create_org_owner(
+                organization=org, organization_user=org_user
+            )
+            org.is_active = False
+            org.save()
+            org_owner.refresh_from_db()
+            # Revalidating an unchanged owner must remain valid.
+            org_owner.full_clean()
+
+    def test_create_organization_owner_signal_defends_bypassed_validation(self):
+        # ``save()`` skips ``full_clean()``, so signals must tolerate legacy writes.
+        org = self._create_org(name="disabled-org-signal", is_active=False)
+        user = self._create_user()
+        # Bypass ``full_clean()`` to exercise the signal directly.
+        OrganizationUser.objects.create(organization=org, user=user, is_admin=True)
+        self.assertEqual(
+            OrganizationOwner.objects.filter(organization=org).exists(), False
+        )
 
     def test_has_password_expired(self):
         staff_user = self._create_operator()
@@ -1195,3 +1348,111 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 expiration_reminder_email,
                 None,
             )
+
+
+class TestOrganizationSignalsTransaction(TestOrganizationMixin, TransactionTestCase):
+    def test_organization_active_state_signals(self):
+        with self.subTest("disabled"):
+            org = self._create_org(name="org-to-disable")
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                org.is_active = False
+                org.save()
+            disabled_handler.assert_called_once_with(
+                signal=organization_disabled, sender=Organization, instance=org
+            )
+            enabled_handler.assert_not_called()
+
+        with self.subTest("enabled"):
+            org = self._create_org(name="org-to-enable", is_active=False)
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                org.is_active = True
+                org.save()
+            enabled_handler.assert_called_once_with(
+                signal=organization_enabled, sender=Organization, instance=org
+            )
+            disabled_handler.assert_not_called()
+
+        with self.subTest("unrelated field change"):
+            org = self._create_org(name="org-unrelated-change")
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                org.description = "updated description"
+                org.save()
+            disabled_handler.assert_not_called()
+            enabled_handler.assert_not_called()
+
+        with self.subTest("update_fields respected"):
+            org = self._create_org(name="org-update-fields")
+            org.is_active = False
+            org.name = "renamed-org"
+            with catch_signal(organization_disabled) as disabled_handler:
+                org.save(update_fields={"name"})
+                disabled_handler.assert_not_called()
+                org.save(update_fields={"is_active"})
+                disabled_handler.assert_called_once_with(
+                    signal=organization_disabled, sender=Organization, instance=org
+                )
+
+        with self.subTest("not sent on creation"):
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                self._create_org(name="new-org", is_active=False)
+            disabled_handler.assert_not_called()
+            enabled_handler.assert_not_called()
+
+    def test_organization_signal_transaction_state(self):
+        with self.subTest("callbacks receive the state of each transition"):
+            org = self._create_org(name="org-multiple-transitions")
+            disabled_states = []
+            enabled_states = []
+            with (
+                catch_signal(organization_disabled) as disabled_handler,
+                catch_signal(organization_enabled) as enabled_handler,
+            ):
+                disabled_handler.side_effect = lambda **kwargs: disabled_states.append(
+                    kwargs["instance"].is_active
+                )
+                enabled_handler.side_effect = lambda **kwargs: enabled_states.append(
+                    kwargs["instance"].is_active
+                )
+                with transaction.atomic():
+                    org.is_active = False
+                    org.save()
+                    org.is_active = True
+                    org.save()
+            self.assertEqual(disabled_states, [False])
+            self.assertEqual(enabled_states, [True])
+
+        with self.subTest("rollback does not suppress the retried transition"):
+            org = self._create_org(name="org-rollback-retry")
+            with catch_signal(organization_disabled) as disabled_handler:
+                with self.assertRaises(RuntimeError):
+                    with transaction.atomic():
+                        org.is_active = False
+                        org.save()
+                        raise RuntimeError
+                org.is_active = False
+                org.save()
+            disabled_handler.assert_called_once_with(
+                signal=organization_disabled, sender=Organization, instance=org
+            )
+
+    def test_invalidate_cache_org_status_changed(self):
+        org = self._create_org(name="testorg1")
+        user1 = self._create_user(username="testuser1", email="user1@test.com")
+        self._create_org_user(user=user1, organization=org)
+        self.assertEqual(user1.is_member(org), True)
+        org.is_active = False
+        org.full_clean()
+        org.save()
+        self.assertEqual(user1.is_member(org), False)

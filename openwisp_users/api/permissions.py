@@ -1,5 +1,5 @@
 from django.utils.translation import gettext_lazy as _
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.permissions import (
     DjangoModelPermissions as BaseDjangoModelPermissions,
 )
@@ -38,6 +38,8 @@ class BaseOrganizationPermission(ObjectOrganizationMixin, BasePermission):
                 len(request.user.organizations_managed) >= 1
                 or len(request.user.organizations_owned) >= 1
             )
+        if not isinstance(organization, Organization):
+            return False
         return self.validate_membership(request.user, organization)
 
     def has_permission(self, request, view):
@@ -93,6 +95,32 @@ class IsOrganizationOwner(BaseOrganizationPermission):
 
     def validate_membership(self, user, org):
         return org and (user.is_superuser or user.is_owner(org))
+
+
+class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
+    """
+    Keep disabled-organization objects read-only while allowing reads and
+    deletion. Views can opt out with ``allow_disabled_organization_writes``.
+    """
+
+    message = _(
+        "This object belongs to a disabled organization: "
+        "it can be viewed or deleted, but not modified."
+    )
+
+    def has_object_permission(self, request, view, obj):
+        if getattr(view, "allow_disabled_organization_writes", False):
+            return True
+        if request.method in SAFE_METHODS or request.method == "DELETE":
+            return True
+        try:
+            organization = self.get_object_organization(view, obj)
+        except AttributeError:
+            # Do not fail open on a bad relation path; unrelated views opt out.
+            return False
+        return organization is None or (
+            isinstance(organization, Organization) and organization.is_active
+        )
 
 
 class DjangoModelPermissions(ObjectOrganizationMixin, BaseDjangoModelPermissions):

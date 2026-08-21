@@ -16,6 +16,7 @@ from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.forms.formsets import DELETION_FIELD_NAME
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -38,6 +39,7 @@ from openwisp_utils.admin import CopyableFieldsAdmin
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
 from .utils import BaseAdmin
+from .widgets import OrganizationAutocompleteSelect
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -98,33 +100,114 @@ class OrganizationOwnerInline(admin.StackedInline):
     extra = 0
     autocomplete_fields = ("organization_user",)
 
+    def has_add_permission(self, request, obj=None):
+        # obj is the parent Organization here
+        if obj is not None and not obj.is_active:
+            return False
+        return super().has_add_permission(request, obj)
+
     def has_change_permission(self, request, obj=None):
+        if obj is not None and not obj.is_active:
+            return False
         if obj and not request.user.is_superuser and not request.user.is_owner(obj):
             return False
         return super().has_change_permission(request, obj)
 
 
+class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
+    """
+    Keep rows belonging to a disabled organization valid on no-op saves while
+    making their editable fields read-only and preserving deletion.
+    """
+
+    organization_fk_field = "organization"
+    organization_lookup = "organization"
+
+    def get_organization(self, instance):
+        organization = instance
+        for relation in self.organization_lookup.split("__"):
+            organization = getattr(organization, relation)
+        return organization
+
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        instance = getattr(form, "instance", None)
+        organization_id = getattr(instance, f"{self.organization_fk_field}_id", None)
+        if not (instance and instance.pk and organization_id):
+            return
+        if self.get_organization(instance).is_active:
+            return
+        organization_field = form.fields.get(self.organization_fk_field)
+        if organization_field is not None:
+            # The formset queryset excludes disabled organizations,
+            # so the current row's value must be added back or the
+            # disabled field fails validation against it.
+            organization_model = organization_field.queryset.model
+            organization_field.queryset = organization_field.queryset | (
+                organization_model.objects.filter(pk=organization_id)
+            )
+        pk_name = instance._meta.pk.name
+        for name, field in form.fields.items():
+            # The pk field and the parent-link field must stay enabled: a
+            # disabled field is never submitted by the browser, and when the
+            # pk field is missing from POST data BaseModelFormSet treats the
+            # row as tampered with and silently builds a blank instance
+            # instead of loading the existing one, which then fails
+            # validation on unrelated required fields.
+            if name in (pk_name, self.fk.name, DELETION_FIELD_NAME):
+                continue
+            field.disabled = True
+
+
+class OrganizationUserInlineFormSet(
+    MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet
+):
+    pass
+
+
 class OrganizationUserInline(admin.StackedInline):
     model = OrganizationUser
-    formset = RequiredInlineFormSet
+    formset = OrganizationUserInlineFormSet
     view_on_site = False
     fields = ("organization", "is_admin")
     autocomplete_fields = ("organization",)
 
+    def get_queryset(self, request):
+        # Avoid a query per inline row when checking the organization status.
+        return super().get_queryset(request).select_related("organization")
+
     def get_formset(self, request, obj=None, **kwargs):
         """
-        In form dropdowns, display only organizations
-        in which operator `is_admin` and for superusers
-        display all organizations
+        Limit membership choices to active organizations the user can manage.
         """
         formset = super().get_formset(request, obj=obj, **kwargs)
+        org_field = formset.form.base_fields["organization"]
+        org_field.queryset = org_field.queryset.filter(is_active=True)
         if request.user.is_superuser:
             return formset
-        if not request.user.is_superuser:
-            formset.form.base_fields["organization"].queryset = (
-                Organization.objects.filter(pk__in=request.user.organizations_managed)
-            )
+        org_field.queryset = org_field.queryset.filter(
+            pk__in=request.user.organizations_managed
+        )
         return formset
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Use the filtered endpoint because the stock autocomplete includes
+        disabled organizations.
+        """
+        if db_field.name == "organization" and db_field.name in (
+            self.get_autocomplete_fields(request)
+        ):
+            kwargs["widget"] = OrganizationAutocompleteSelect(
+                db_field, self.admin_site, using=kwargs.get("using")
+            )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def has_add_permission(self, request, obj=None):
+        # Without an active managed organization, the add form cannot be used.
+        if not request.user.is_superuser and not request.user.organizations_managed:
+            return False
+        return super().has_add_permission(request, obj)
 
     def get_extra(self, request, obj=None, **kwargs):
         if not obj:
@@ -566,7 +649,7 @@ class OrganizationAdmin(
 
     def get_inline_instances(self, request, obj=None):
         """
-        Remove OrganizationOwnerInline from organization add form
+        Owners require an existing organization, so omit this inline on add.
         """
         inlines = super().get_inline_instances(request, obj).copy()
         if not obj:
@@ -578,11 +661,38 @@ class OrganizationAdmin(
 
     def has_change_permission(self, request, obj=None):
         """
-        Allow only managers and superuser to change organization
+        Keep disabled organizations accessible so superusers can re-enable them;
+        read-only fields enforce the remaining restrictions.
         """
         if obj and not request.user.is_superuser and not request.user.is_manager(obj):
             return False
+        if obj and not obj.is_active:
+            return request.user.is_superuser
         return super().has_change_permission(request, obj)
+
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Lock every field except ``is_active`` while disabled; owner removal uses
+        the inline delete action.
+        """
+        fields = super().get_readonly_fields(request, obj)
+        if obj and not obj.is_active:
+            editable_fields = [
+                f.name
+                for f in self.model._meta.local_fields
+                if f.editable and f.name != "is_active"
+            ]
+            editable_fields.extend(
+                f.name for f in self.model._meta.local_many_to_many if f.editable
+            )
+            fields = list(fields) + [f for f in editable_fields if f not in fields]
+        return fields
+
+    def get_prepopulated_fields(self, request, obj=None):
+        # Django rejects prepopulated fields that are read-only.
+        if obj and not obj.is_active:
+            return {}
+        return super().get_prepopulated_fields(request, obj)
 
     class Media(CopyableFieldsAdmin.Media):
         css = {"all": ("openwisp-users/css/admin.css",)}
