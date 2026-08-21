@@ -120,21 +120,31 @@ class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
     making their editable fields read-only and preserving deletion.
     """
 
+    organization_fk_field = "organization"
+    organization_lookup = "organization"
+
+    def get_organization(self, instance):
+        organization = instance
+        for relation in self.organization_lookup.split("__"):
+            organization = getattr(organization, relation)
+        return organization
+
     def add_fields(self, form, index):
         super().add_fields(form, index)
         instance = getattr(form, "instance", None)
-        if not (instance and instance.pk and instance.organization_id):
+        organization_id = getattr(instance, f"{self.organization_fk_field}_id", None)
+        if not (instance and instance.pk and organization_id):
             return
-        if instance.organization.is_active:
+        if self.get_organization(instance).is_active:
             return
-        organization_field = form.fields.get("organization")
+        organization_field = form.fields.get(self.organization_fk_field)
         if organization_field is not None:
             # The formset queryset excludes disabled organizations,
             # so the current row's value must be added back or the
             # disabled field fails validation against it.
             organization_model = organization_field.queryset.model
             organization_field.queryset = organization_field.queryset | (
-                organization_model.objects.filter(pk=instance.organization_id)
+                organization_model.objects.filter(pk=organization_id)
             )
         pk_name = instance._meta.pk.name
         for name, field in form.fields.items():

@@ -81,3 +81,10 @@ class Bio(OrgMixin):
 
     def __str__(self):
         return self.website
+
+
+class Bookmark(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bookmarks"
+    )
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)

@@ -1,14 +1,16 @@
 import os
 
 import django
+from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from swapper import load_model
 
 from openwisp_users.tests.utils import TestOrganizationMixin
 
-from ..models import Template
+from ..admin import BookmarkInline
+from ..models import Book, Bookmark, Template
 
 Organization = load_model("openwisp_users", "Organization")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
@@ -43,6 +45,31 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertContains(
             r, '<input type="submit" class="button" value="Sign In" />', html=True
         )
+
+    def test_indirect_organization_inline_readonly_for_disabled_org(self):
+        admin_user = self._create_admin()
+        organization = self._create_org(name="disabled-bookmark-org", is_active=False)
+        user = self._create_user(
+            username="disabled-bookmark-user",
+            email="disabled-bookmark-user@example.com",
+        )
+        book = Book.objects.create(
+            name="Disabled organization book",
+            author="Test author",
+            organization=organization,
+        )
+        bookmark = Bookmark.objects.create(user=user, book=book)
+        request = RequestFactory().get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        request.user = admin_user
+        inline = BookmarkInline(User, admin.site)
+        formset_class = inline.get_formset(request, user)
+        formset = formset_class(instance=user, prefix="bookmarks")
+        form = formset.forms[0]
+        self.assertEqual(form.instance.pk, bookmark.pk)
+        self.assertEqual(form.fields["book"].disabled, True)
+        self.assertEqual(form.fields["book"].queryset.filter(pk=book.pk).exists(), True)
 
 
 class TestTemplateAdmin(TestOrganizationMixin, TestCase):

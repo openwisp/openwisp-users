@@ -8,7 +8,7 @@ from openwisp_users.multitenancy import (
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Bio, Book, Config, Library, Shelf, Tag, Template
+from .models import Bio, Book, Bookmark, Config, Library, Shelf, Tag, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -98,6 +98,19 @@ class BioInline(MultitenantAdminMixin, admin.StackedInline):
     formset = BioInlineFormSet
     fields = ["website", "organization"]
     extra = 0
+
+
+class BookmarkInlineFormSet(MultitenantReadOnlyInlineFormSet):
+    organization_fk_field = "book"
+    organization_lookup = "book__organization"
+
+
+class BookmarkInline(MultitenantAdminMixin, admin.StackedInline):
+    model = Bookmark
+    formset = BookmarkInlineFormSet
+    fields = ("book",)
+    extra = 0
+    multitenant_shared_relations = ["book"]
 
 
 admin.site.register(Shelf, ShelfAdmin)
