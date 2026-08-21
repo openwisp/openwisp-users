@@ -211,7 +211,7 @@ class MultitenantAdminMixin(object):
         return form
 
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj=None, **kwargs)
+        formset = super().get_formset(request, obj, **kwargs)
         self._edit_form(request, formset.form)
         return formset
 
