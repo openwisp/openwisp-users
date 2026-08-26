@@ -5,7 +5,6 @@ from django.urls import reverse
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
-from selenium.webdriver.support.ui import WebDriverWait
 from swapper import load_model
 
 from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
@@ -31,10 +30,10 @@ class TestOrganizationAutocompleteField(
         self.web_driver.find_element(
             By.CSS_SELECTOR, "#select2-id_organization-container"
         ).click()
-        WebDriverWait(self.web_driver, 2).until(
+        self.wait_until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, ".select2-results__option.loading-results")
-            )
+            ),
         )
         options = self.web_driver.find_elements(
             By.CSS_SELECTOR, ".select2-results__option"
