@@ -15,23 +15,6 @@ within a single OpenWISP instance and more.
 
 For a full introduction please refer to :doc:`user/intro`.
 
-The following diagram illustrates the role of the Users module within the
-OpenWISP architecture.
-
-.. figure:: images/architecture-v2-openwisp-users.png
-    :target: ../_images/architecture-v2-openwisp-users.png
-    :align: center
-    :alt: OpenWISP Architecture: Users module
-
-    **OpenWISP Architecture: highlighted users module**
-
-.. important::
-
-    For an enhanced viewing experience, open the image above in a new
-    browser tab.
-
-    Refer to :doc:`/general/architecture` for more information.
-
 .. toctree::
     :caption: Users Module Usage Docs
     :maxdepth: 1
