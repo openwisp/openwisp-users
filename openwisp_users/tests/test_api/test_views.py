@@ -70,12 +70,25 @@ class TestRestFrameworkViews(TestOrganizationMixin, TestCase):
             "/api/v1/users/user/not-a-uuid/password/",
             "/api/v1/users/user/not-a-uuid/email/",
             "/api/v1/users/user/not-a-uuid/email/1/",
+            "/api/v1/users/user/not-a-uuid/organization-membership/",
+            "/api/v1/users/user/not-a-uuid/organization-membership/not-a-uuid/",
+            (
+                "/api/v1/users/user/"
+                "0c09d8e3-9e1d-4d2b-9a8c-6f1b2c3d4e5f/"
+                "organization-membership/not-a-uuid/"
+            ),
         )
 
         for url_path in invalid_uuid_paths:
             with self.subTest(path=url_path):
                 response = self.client.get(url_path)
                 self.assertEqual(response.status_code, 404)
+
+    def test_schema_generation_introspects_views(self):
+        self._create_user(username="tester", password="tester")
+        self.client.force_login(self._get_user("tester"))
+        response = self.client.get(reverse("schema-json", args=[".json"]))
+        self.assertEqual(response.status_code, 200)
 
 
 class TestGetApiUrls(TestCase):
