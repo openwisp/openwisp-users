@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
@@ -11,6 +13,7 @@ from swapper import load_model
 
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
+from ... import settings as app_settings
 from ...api.serializers import OrganizationUserSerializer
 from ..utils import TestOrganizationMixin
 
@@ -432,6 +435,29 @@ class TestUsersApi(
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
             self.assertEqual(r.data["message"], "Password updated successfully")
+
+    def _login_expired_admin(self):
+        admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
+        self.client.force_login(admin)
+        return admin
+
+    @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 10)
+    def test_expired_password_session_blocks_change_password_of_other_user(self):
+        self._login_expired_admin()
+        other_user = self._create_user(username="other", password="tester")
+        response = self.client.put(
+            reverse("users:change_password", args=(other_user.pk,)),
+            data={
+                "current_password": "tester",
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["code"], "password_expired")
+        other_user.refresh_from_db()
+        self.assertEqual(other_user.check_password("tester"), True)
 
     # Tests for users email update endpoints
     def test_get_email_list_api(self):

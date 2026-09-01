@@ -100,6 +100,9 @@ class TestBackends(TestOrganizationMixin, TestCase):
             user1.save()
             self.assertEqual(auth_backend.get_users(user.email)[0], user)
 
+        with self.subTest("get user with case-insensitive email"):
+            self.assertEqual(auth_backend.get_users(user.email.upper())[0], user)
+
         with self.subTest("get user with phone_number"):
             user1.username = user.phone_number
             user1.save()

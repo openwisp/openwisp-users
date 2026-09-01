@@ -18,7 +18,9 @@ User = get_user_model()
 
 class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, TestCase):
     def setUp(self):
-        AuthRateThrottle.rate = 0
+        self._original_rate = AuthRateThrottle.rate
+        self.addCleanup(setattr, AuthRateThrottle, "rate", self._original_rate)
+        AuthRateThrottle.rate = None
         self.shelf_model = Shelf
         self.book_model = Book
         self.library_model = Library

@@ -16,7 +16,9 @@ OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 
 class TestPermissionClasses(TestMultitenancyMixin, TestCase):
     def setUp(self):
-        AuthRateThrottle.rate = 0
+        self._original_rate = AuthRateThrottle.rate
+        self.addCleanup(setattr, AuthRateThrottle, "rate", self._original_rate)
+        AuthRateThrottle.rate = None
         self.template_model = Template
         self.member_url = reverse("test_api_member_view")
         self.manager_url = reverse("test_api_manager_view")

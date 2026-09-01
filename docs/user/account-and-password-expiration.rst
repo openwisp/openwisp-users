@@ -73,3 +73,35 @@ staff users:
 
 If either setting is set to ``0``, password expiration is disabled for
 that user type.
+
+OAuth / SAML logins and password expiration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sessions that did not log in with the local password (SAML, OAuth, etc.)
+are **exempt** from password expiration enforcement. Even if the user's
+local password has expired, the user is not blocked as long as the session
+was not marked as password-based.
+
+REST API behavior
+~~~~~~~~~~~~~~~~~
+
+When a password-authenticated session has expired, non-exempt REST API
+clients receive a machine-readable JSON ``403`` response instead of an
+HTTP redirect. The response body includes a ``password_expired`` error
+code and a URL pointing to the web password-change page. The
+``api_password_change_url`` and ``api_password_reset_url`` fields are also
+included, but only when :ref:`OpenWISP Users' REST API is enabled
+<openwisp_users_auth_api>`:
+
+.. code-block:: json
+
+    {
+        "detail": "Your password has expired. Update it to continue.",
+        "code": "password_expired",
+        "web_password_change_url": "https://example.org/accounts/password/change/",
+        "api_password_change_url": "https://example.org/api/v1/users/user/password/change/",
+        "api_password_reset_url": "https://example.org/api/v1/users/password/reset/"
+    }
+
+The token issuance, password change, password reset, and password reset
+confirmation endpoints are exempt so users can recover access.
