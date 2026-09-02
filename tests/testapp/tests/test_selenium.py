@@ -9,6 +9,7 @@ from swapper import load_model
 
 from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 
+from ..models import Book
 from .mixins import TestMultitenancyMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -17,6 +18,8 @@ Organization = load_model("openwisp_users", "Organization")
 class TestOrganizationAutocompleteField(
     SeleniumTestMixin, TestMultitenancyMixin, StaticLiveServerTestCase
 ):
+    book_model = Book
+
     def setUp(self):
         self.admin = self._create_admin(
             username=self.admin_username, password=self.admin_password
@@ -142,3 +145,30 @@ class TestOrganizationAutocompleteField(
             self.assertEqual(len(org_select.all_selected_options), 1)
             self.assertEqual(org_select.first_selected_option.text, org1.name)
         self.logout()
+
+    def test_organization_autocomplete_without_field(self):
+        organization = self._create_org()
+        book = self._create_book(organization=organization)
+        self.login(username=self.admin_username, password=self.admin_password)
+        self.open(reverse("admin:testapp_book_change", args=[book.pk]))
+        self.assertTrue(
+            self.web_driver.execute_script(
+                "return !!document.querySelector('select#id_organization') && "
+                "[...document.scripts].some(({src}) => "
+                "src.includes('openwisp-users/js/org-autocomplete.js'));"
+            )
+        )
+        self.web_driver.execute_script(
+            "document.querySelector('select#id_organization').remove();"
+            "const script = document.createElement('script');"
+            "script.src = [...document.scripts].find(({src}) => "
+            "src.includes('openwisp-users/js/org-autocomplete.js')).src + '?missing';"
+            "script.onload = () => { window.orgAutocompleteReloaded = true; };"
+            "document.head.appendChild(script);"
+        )
+        self.wait_until(
+            lambda driver: driver.execute_script(
+                "return window.orgAutocompleteReloaded === true;"
+            )
+        )
+        self.assert_no_browser_errors()
