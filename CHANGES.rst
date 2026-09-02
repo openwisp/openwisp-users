@@ -1,10 +1,94 @@
 Changelog
 =========
 
-Version 1.3.0 [unreleased]
+Version 1.3.0 [2026-09-02]
 --------------------------
 
-Work in progress.
+Features
+~~~~~~~~
+
+- Added `user account expiration
+  <https://github.com/openwisp/openwisp-users/issues/499>`_ with automatic
+  deactivation and reminder emails.
+- Allowed `customizing the password reset form
+  <https://github.com/openwisp/openwisp-users/issues/511>`_.
+- Added `password self-service REST API endpoints
+  <https://github.com/openwisp/openwisp-users/issues/511>`_.
+- Added `API key management to the user admin
+  <https://github.com/openwisp/openwisp-users/issues/240>`_. Authorized
+  administrators can create and delete API keys for users, while users can
+  always delete their own API keys. API keys belonging to other users are
+  masked.
+- Added `extensible field serialization to the export_users command
+  <https://github.com/openwisp/openwisp-users/issues/497>`_, including
+  custom serializers, related object extraction and relation traversal.
+
+  This changes the structure of the generated CSV output and may require
+  updates to scripts which parse it.
+
+- Added ``OPENWISP_USERS_SOCIALACCOUNT_ADMIN_NEEDED`` to `support custom
+  allauth OAuth/SAML providers
+  <https://github.com/openwisp/openwisp-users/issues/501>`_ when automatic
+  detection is not sufficient.
+
+Changes
+~~~~~~~
+
+Other changes
++++++++++++++
+
+- Improved `password expiration handling with SSO and REST API
+  authentication
+  <https://github.com/openwisp/openwisp-users/issues/511>`_. Users
+  authenticated through passwordless methods such as SAML, OAuth and
+  sesame magic links are no longer prompted to update an expired local
+  password. REST API clients now receive a JSON ``403`` response instead
+  of an HTML redirect.
+- Renamed the `"Is admin" label to "Organization manager"
+  <https://github.com/openwisp/openwisp-users/issues/540>`_.
+- Improved `admin theme consistency
+  <https://github.com/openwisp/openwisp-users/issues/473>`_ by using
+  shared theme colors provided by OpenWISP Utils.
+
+Dependencies
+++++++++++++
+
+- Added `dj-rest-auth>=7.2.0,<7.3
+  <https://github.com/iMerica/dj-rest-auth/releases/tag/7.2.0>`_.
+- Bumped ``django-organizations`` from ``>=2.5.0,<2.6.0`` to
+  `>=2.7.0,<2.8.0
+  <https://github.com/bennylope/django-organizations/blob/master/HISTORY.rst>`_.
+- Bumped ``django-extensions`` from ``>=3.2,<4.2`` to `>=4.1,<4.2
+  <https://github.com/django-extensions/django-extensions/releases/tag/4.1>`_.
+- Bumped ``django-allauth[socialaccount]`` from ``>=65.12.0,<65.14.0`` to
+  `>=65.19.1,<65.20.0
+  <https://docs.allauth.org/en/latest/release-notes/recent.html>`_.
+- Bumped ``django-phonenumber-field`` from ``>=8.1.0,<8.2.0`` to
+  `>=8.5.0,<8.6.0
+  <https://github.com/django-phonenumber-field/django-phonenumber-field/releases/tag/8.5.0>`_.
+- Bumped ``phonenumbers`` from ``>=9.0.10,<9.1.0`` to `>=9.0.38,<9.1.0
+  <https://github.com/daviddrysdale/python-phonenumbers/releases/tag/v9.0.38>`_.
+- Bumped ``django-reversion`` from ``~=6.0.0`` to `~=6.3.0
+  <https://django-reversion.readthedocs.io/en/latest/changelog.html>`_.
+- Bumped ``django-redis`` from ``~=6.0.0`` to `~=7.0.0
+  <https://github.com/jazzband/django-redis/releases/tag/7.0.0>`_.
+- Bumped ``openwisp-utils[rest,celery]`` from ``~=1.2.0`` to `~=1.3.0
+  <https://github.com/openwisp/openwisp-utils/releases/tag/1.3.0>`_.
+- Dropped support for Django ``4.2.0``.
+- Dropped support for Python ``3.9``.
+
+Bugfixes
+~~~~~~~~
+
+- Fixed `custom REST API view overrides
+  <https://github.com/openwisp/openwisp-users/issues/553>`_ so
+  ``get_api_urls()`` correctly uses callbacks from custom view modules
+  while falling back to the default views when an override is not
+  provided.
+- Fixed infinite recursion when custom API views subclass
+  ``ChangePasswordView``.
+- Fixed `template loader ordering and template extensibility
+  <https://github.com/openwisp/openwisp-users/issues/489>`_.
 
 Version 1.2.2 [2026-04-25]
 --------------------------
