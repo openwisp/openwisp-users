@@ -10,6 +10,9 @@
     // Hence, we need to update the value of selected option before
     // submission of form.
     var formElement = $("select#id_organization");
+    if (formElement.length === 0) {
+      return;
+    }
     while (formElement.prop("tagName") !== "FORM") {
       formElement = formElement.parent();
     }
