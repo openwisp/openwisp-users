@@ -126,21 +126,6 @@ msgstr ""
 msgid "Invalid or expired token."
 msgstr "Neveljaven ali potekel žeton."
 
-#: api/permissions.py:21
-msgid "Organization not found, `organization_field` not implemented correctly."
-msgstr ""
-"Organizacije ni mogoče najti, `organization_field` ni pravilno implementiran."
-
-#: api/permissions.py:49
-msgid ""
-"View's permission_classes not implemented correctly.Please use one of the "
-"child classes: IsOrganizationMember, IsOrganizationManager or "
-"IsOrganizationOwner."
-msgstr ""
-"permission_classes pogleda niso pravilno implementirane. Uporabite enega od "
-"podrazredov: IsOrganizationMember, IsOrganizationManager ali "
-"IsOrganizationOwner."
-
 #: api/permissions.py:58
 msgid ""
 "User is not a member of the organization to which the requested resource "
@@ -343,10 +328,6 @@ msgstr ""
 #, python-brace-format
 msgid "User data exported successfully to {filename}!"
 msgstr "Podatki uporabnikov so bili uspešno izvoženi v {filename}!"
-
-#: management/commands/export_users.py:180
-msgid "Error calling function {func_name!r} for field '{name}': {e}"
-msgstr "Napaka pri klicu funkcije {func_name!r} za polje '{name}': {e}"
 
 #: middleware.py:38
 msgid "Your password has expired, please update your password."

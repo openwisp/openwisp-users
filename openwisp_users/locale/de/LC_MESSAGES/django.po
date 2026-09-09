@@ -133,22 +133,6 @@ msgstr ""
 msgid "Invalid or expired token."
 msgstr "Ungültiges oder abgelaufenes Token."
 
-#: api/permissions.py:21
-msgid "Organization not found, `organization_field` not implemented correctly."
-msgstr ""
-"Organisation nicht gefunden, `organization_field` wurde nicht korrekt "
-"implementiert."
-
-#: api/permissions.py:49
-msgid ""
-"View's permission_classes not implemented correctly.Please use one of the "
-"child classes: IsOrganizationMember, IsOrganizationManager or "
-"IsOrganizationOwner."
-msgstr ""
-"permission_classes der View wurden nicht korrekt implementiert. Bitte "
-"verwenden Sie eine der Unterklassen: IsOrganizationMember, "
-"IsOrganizationManager oder IsOrganizationOwner."
-
 #: api/permissions.py:58
 msgid ""
 "User is not a member of the organization to which the requested resource "
@@ -360,11 +344,6 @@ msgstr ""
 #, python-brace-format
 msgid "User data exported successfully to {filename}!"
 msgstr "Benutzerdaten erfolgreich nach {filename} exportiert!"
-
-#: management/commands/export_users.py:180
-msgid "Error calling function {func_name!r} for field '{name}': {e}"
-msgstr ""
-"Fehler beim Aufruf der Funktion {func_name!r} für das Feld '{name}': {e}"
 
 #: middleware.py:38
 msgid "Your password has expired, please update your password."
