@@ -17,10 +17,8 @@ class ObjectOrganizationMixin(object):
             accessed_object = getattr(accessed_object, field, False)
             if accessed_object is False:
                 raise AttributeError(
-                    _(
-                        "Organization not found, `organization_field` "
-                        "not implemented correctly."
-                    )
+                    "Organization not found, `organization_field` not implemented "
+                    "correctly."
                 )
         return accessed_object
 
@@ -45,11 +43,9 @@ class BaseOrganizationPermission(ObjectOrganizationMixin, BasePermission):
 
     def validate_membership(self, user, org):
         raise NotImplementedError(
-            _(
-                "View's permission_classes not implemented correctly."
-                "Please use one of the child classes: IsOrganizationMember, "
-                "IsOrganizationManager or IsOrganizationOwner."
-            )
+            "View's permission_classes not implemented correctly. "
+            "Please use one of the child classes: IsOrganizationMember, "
+            "IsOrganizationManager or IsOrganizationOwner."
         )
 
 
