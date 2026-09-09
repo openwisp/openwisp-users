@@ -95,6 +95,14 @@ Bugfixes
 - Fixed `template loader ordering and template extensibility
   <https://github.com/openwisp/openwisp-users/issues/489>`_.
 
+Version 1.2.3 [2026-09-09]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Prevented autocomplete loop without an organization field
+
 Version 1.2.2 [2026-04-25]
 --------------------------
 
