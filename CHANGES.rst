@@ -6,6 +6,14 @@ Version 1.4.0 [unreleased]
 
 Work in progress.
 
+Version 1.3.1 [2026-09-09]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Prevented autocomplete loop without an organization field
+
 Version 1.3.0 [2026-09-02]
 --------------------------
 
