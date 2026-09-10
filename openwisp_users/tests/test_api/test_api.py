@@ -14,7 +14,10 @@ from swapper import load_model
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
 from ... import settings as app_settings
-from ...api.serializers import OrganizationUserSerializer
+from ...api.serializers import (
+    OrganizationMembershipSerializer,
+    OrganizationUserSerializer,
+)
 from ..utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -38,6 +41,14 @@ class TestUsersApi(
         serializer = OrganizationUserSerializer()
         self.assertEqual(list(serializer.fields), ["organization", "is_admin"])
         self.assertEqual(serializer.fields["is_admin"].label, "Organization manager")
+
+    def test_organization_membership_serializer_fields(self):
+        serializer = OrganizationMembershipSerializer()
+        self.assertEqual(
+            list(serializer.fields),
+            ["id", "organization", "is_admin", "created", "modified"],
+        )
+        self.assertFalse(serializer.fields["organization"].allow_null)
 
     # Tests for Organization Model API endpoints
     def test_organization_list_api(self):
@@ -529,6 +540,230 @@ class TestUsersApi(
             response = self.client.delete(path)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 0)
+
+    def test_organization_membership_list_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        self._create_org_user(user=user1, organization=org1)
+        self._create_org_user(user=user1, organization=org2)
+        path = reverse("users:organization_membership_list", args=(user1.pk,))
+        with self.assertNumQueries(5):
+            r = self.client.get(path)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 2)
+
+    def test_organization_membership_post_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self.assertEqual(OrganizationUser.objects.count(), 0)
+        path = reverse("users:organization_membership_list", args=(user1.pk,))
+        data = {"organization": org1.pk}
+        with self.assertNumQueries(9):
+            r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(OrganizationUser.objects.count(), 1)
+        self.assertEqual(
+            OrganizationUser.objects.get(organization=org1).user_id, user1.pk
+        )
+        self.assertEqual(r.data["organization"], org1.pk)
+        self.assertFalse(r.data["is_admin"])
+
+    def test_organization_membership_post_duplicate_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1)
+        path = reverse("users:organization_membership_list", args=(user1.pk,))
+        data = {"organization": org1.pk}
+        with self.assertNumQueries(5):
+            r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(
+            r.data["organization"],
+            ["The user is already a member of this organization."],
+        )
+
+    def test_organization_membership_detail_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1)
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        with self.assertNumQueries(4):
+            r = self.client.get(path)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["organization"], org1.pk)
+        self.assertFalse(r.data["is_admin"])
+
+    def test_organization_membership_put_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1)
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        data = {"is_admin": True}
+        with self.assertNumQueries(7):
+            r = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["is_admin"])
+
+    def test_organization_membership_patch_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1)
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        data = {"is_admin": True}
+        with self.assertNumQueries(7):
+            r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["is_admin"])
+
+    def test_organization_membership_delete_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1)
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        with self.assertNumQueries(7):
+            r = self.client.delete(path)
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(OrganizationUser.objects.count(), 0)
+
+    def test_organization_membership_owner_downgrade_400_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        self.assertTrue(user1.is_owner(org1))
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        data = {"is_admin": False}
+        with self.assertNumQueries(4):
+            r = self.client.patch(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_organization_membership_delete_owner_400_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        org1 = self._create_org(name="org1")
+        self._create_org_user(user=user1, organization=org1, is_admin=True)
+        self.assertTrue(user1.is_owner(org1))
+        path = reverse("users:organization_membership_detail", args=(user1.pk, org1.pk))
+        with self.assertNumQueries(5):
+            r = self.client.delete(path)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Cannot delete organization owner", str(r.data[0]))
+        self.assertEqual(OrganizationUser.objects.count(), 1)
+
+    def test_organization_membership_list_403_api(self):
+        user1 = self._create_user(username="user1", email="user1@email.com")
+        self.client.force_login(user1)
+        path = reverse("users:organization_membership_list", args=(user1.pk,))
+        with self.assertNumQueries(4):
+            r = self.client.get(path)
+        self.assertEqual(r.status_code, 403)
+
+    def test_organization_membership_manager_list_api(self):
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        org1_manager = self._create_user(
+            username="org1_manager", email="org1_manager@test.com"
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name="Administrator")
+        org1_manager.groups.add(administrator)
+        org1_user = self._create_user(username="org1_user", email="org1_user@test.com")
+        self._create_org_user(organization=org1, user=org1_user)
+        self._create_org_user(organization=org2, user=org1_user)
+        self.client.force_login(org1_manager)
+        path = reverse("users:organization_membership_list", args=(org1_user.pk,))
+        with self.assertNumQueries(7):
+            r = self.client.get(path)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["count"], 1)
+        self.assertEqual(r.data["results"][0]["organization"], org1.pk)
+
+    def test_organization_membership_manager_create_api(self):
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        org1_manager = self._create_user(
+            username="org1_manager", email="org1_manager@test.com"
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        self._create_org_user(organization=org2, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name="Administrator")
+        org1_manager.groups.add(administrator)
+        org1_user = self._create_user(username="org1_user", email="org1_user@test.com")
+        self._create_org_user(organization=org1, user=org1_user)
+        self.client.force_login(org1_manager)
+        path = reverse("users:organization_membership_list", args=(org1_user.pk,))
+        data = {"organization": org2.pk, "is_admin": True}
+        with self.assertNumQueries(12):
+            r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["organization"], org2.pk)
+        self.assertTrue(r.data["is_admin"])
+
+    def test_organization_membership_manager_create_unmanaged_org_400_api(self):
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        org1_manager = self._create_user(
+            username="org1_manager", email="org1_manager@test.com"
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name="Administrator")
+        org1_manager.groups.add(administrator)
+        org1_user = self._create_user(username="org1_user", email="org1_user@test.com")
+        self._create_org_user(organization=org1, user=org1_user)
+        self.client.force_login(org1_manager)
+        path = reverse("users:organization_membership_list", args=(org1_user.pk,))
+        data = {"organization": org2.pk}
+        with self.assertNumQueries(6):
+            r = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("organization", r.data)
+
+    def test_organization_membership_manager_cross_org_404_api(self):
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        org1_manager = self._create_user(
+            username="org1_manager", email="org1_manager@test.com"
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name="Administrator")
+        org1_manager.groups.add(administrator)
+        org2_user = self._create_user(username="org2_user", email="org2_user@test.com")
+        self._create_org_user(organization=org2, user=org2_user)
+        self.client.force_login(org1_manager)
+
+        with self.subTest("list memberships of a user outside managed organizations"):
+            path = reverse("users:organization_membership_list", args=(org2_user.pk,))
+            with self.assertNumQueries(4):
+                r = self.client.get(path)
+            self.assertEqual(r.status_code, 404)
+
+        with self.subTest("get membership of an unmanaged organization"):
+            org1_user = self._create_user(
+                username="org1_user", email="org1_user@test.com"
+            )
+            self._create_org_user(organization=org1, user=org1_user)
+            self._create_org_user(organization=org2, user=org1_user)
+            path = reverse(
+                "users:organization_membership_detail", args=(org1_user.pk, org2.pk)
+            )
+            with self.assertNumQueries(5):
+                r = self.client.get(path)
+            self.assertEqual(r.status_code, 404)
+
+    def test_organization_membership_manager_cannot_manage_superuser_api(self):
+        org1 = self._create_org(name="org1")
+        org1_manager = self._create_user(
+            username="org1_manager", email="org1_manager@test.com"
+        )
+        self._create_org_user(organization=org1, user=org1_manager, is_admin=True)
+        administrator = Group.objects.get(name="Administrator")
+        org1_manager.groups.add(administrator)
+        self._create_org_user(organization=org1, user=self._get_admin(), is_admin=False)
+        self.client.force_login(org1_manager)
+        admin = self._get_admin()
+        path = reverse("users:organization_membership_list", args=(admin.pk,))
+        with self.assertNumQueries(4):
+            r = self.client.get(path)
+        self.assertEqual(r.status_code, 404)
 
     # Tests for superuser's User API endpoints
     def test_get_user_list_api(self):
