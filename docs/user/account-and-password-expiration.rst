@@ -61,12 +61,6 @@ How password expiration works
 When password expiration is enabled, OpenWISP Users checks the age of each
 user's password and notifies users before their password expires.
 
-Password updates, expiration checks, and expiration notices use the active
-local calendar date. A password remains valid on its expiration date and
-expires the following day. Each eligible user receives at most one
-expiration notice per task run, even if the user has multiple verified
-email addresses.
-
 Password expiration can be configured separately for regular users and
 staff users:
 

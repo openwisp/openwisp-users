@@ -1225,8 +1225,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
     @override_settings(TIME_ZONE="Europe/Rome")
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     def test_password_expiration_local_date(self):
-        # 23:30 UTC is already the next day in Europe/Rome (UTC+2),
-        # the password expiration dates must follow the local calendar day
+        """
+        23:30 UTC is already the next day in Europe/Rome (UTC+2), so password
+        expiration dates must follow the local calendar day.
+        """
         user = self._create_user()
 
         with self.subTest("password_updated is stamped with the local date"):
