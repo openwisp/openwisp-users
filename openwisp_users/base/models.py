@@ -129,7 +129,7 @@ class AbstractUser(BaseUser):
         return str(pk)
 
     def set_password(self, *args, **kwargs):
-        self.password_updated = timezone.now().date()
+        self.password_updated = localdate()
         return super().set_password(*args, **kwargs)
 
     def has_password_expired(self):
@@ -145,7 +145,7 @@ class AbstractUser(BaseUser):
             )
         else:
             return False
-        return expiry_date < timezone.now().date()
+        return expiry_date < localdate()
 
     def is_member(self, organization):
         return self._get_pk(organization) in self.organizations_dict

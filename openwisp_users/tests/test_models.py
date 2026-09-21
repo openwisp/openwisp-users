@@ -416,7 +416,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
 
         # User.objects.create_user does not call User.set_password.
         # Therefore, we set the password_updated field manually.
-        User.objects.update(password_updated=now().date())
+        User.objects.update(password_updated=localdate())
         staff_user.refresh_from_db()
         end_user.refresh_from_db()
 
@@ -437,7 +437,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 self.assertEqual(end_user.has_password_expired(), False)
 
         with self.subTest("Test password is expired"):
-            User.objects.update(password_updated=now().date() - timedelta(days=180))
+            User.objects.update(password_updated=localdate() - timedelta(days=180))
             staff_user.refresh_from_db()
             end_user.refresh_from_db()
             with (
@@ -459,10 +459,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     @patch.object(app_settings, "STAFF_USER_PASSWORD_EXPIRATION", 90)
     def test_password_expiration_mail(self):
-        user_expiry_date = now().date() - timedelta(
+        user_expiry_date = localdate() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
-        staff_user_expiry_date = now().date() - timedelta(
+        staff_user_expiry_date = localdate() - timedelta(
             days=(app_settings.STAFF_USER_PASSWORD_EXPIRATION - 7)
         )
         staff_user = self._create_operator()
@@ -498,7 +498,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 password_updated=user_expiry_date
             )
             password_expiration_email.delay()
-            expected_date = localize((now() + timedelta(days=7)).date())
+            expected_date = localize(localdate() + timedelta(days=7))
             self.assertEqual(len(mail.outbox), 1)
             email = mail.outbox.pop()
             self.assertEqual(email.to, [verified_email_user.email])
@@ -525,7 +525,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
     @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
     @patch("openwisp_users.utils.sleep")
     def test_password_expiration_mail_sleep(self, mocked_sleep):
-        user_expiry_date = now().date() - timedelta(
+        user_expiry_date = localdate() - timedelta(
             days=(app_settings.USER_PASSWORD_EXPIRATION - 7)
         )
         for i in range(10):
@@ -547,7 +547,7 @@ class TestUsers(TestOrganizationMixin, TestCase):
         self.assertEqual(app_settings.USER_PASSWORD_EXPIRATION, 0)
         self.assertEqual(app_settings.STAFF_USER_PASSWORD_EXPIRATION, 0)
         self._create_user()
-        User.objects.update(password_updated=now().date() - timedelta(days=180))
+        User.objects.update(password_updated=localdate() - timedelta(days=180))
         with patch("openwisp_users.tasks.send_email") as mocked_send_email:
             password_expiration_email.delay()
         mocked_send_email.assert_not_called()
@@ -1195,3 +1195,80 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 expiration_reminder_email,
                 None,
             )
+
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
+    def test_password_expiration_mail_multiple_verified_emails(self):
+        user = self._create_user()
+        for index in range(2):
+            EmailAddress.objects.create(
+                user=user,
+                email=f"alias{index}@tester.com",
+                verified=True,
+            )
+        User.objects.update(
+            password_updated=localdate()
+            - timedelta(days=app_settings.USER_PASSWORD_EXPIRATION - 7)
+        )
+        password_expiration_email.delay()
+        self.assertEqual(
+            len(mail.outbox),
+            1,
+            msg=(
+                f"Expected 1 password expiry notice, got {len(mail.outbox)}:"
+                " the notice is duplicated once per verified email address"
+                " of the same user"
+            ),
+        )
+        self.assertEqual(mail.outbox[0].to, [user.email])
+
+    @freeze_time("2026-03-29 23:30:00")
+    @override_settings(TIME_ZONE="Europe/Rome")
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
+    def test_password_expiration_local_date(self):
+        # 23:30 UTC is already the next day in Europe/Rome (UTC+2),
+        # the password expiration dates must follow the local calendar day
+        user = self._create_user()
+
+        with self.subTest("password_updated is stamped with the local date"):
+            user.set_password("tester")
+            self.assertEqual(
+                user.password_updated,
+                localdate(),
+                msg=(
+                    f"Expected password_updated {localdate()} (local date),"
+                    f" got {user.password_updated} (UTC date)"
+                ),
+            )
+
+        with self.subTest("expiration is evaluated against the local date"):
+            expiration = app_settings.USER_PASSWORD_EXPIRATION
+            user.password_updated = localdate() - timedelta(days=expiration + 1)
+            self.assertTrue(
+                user.has_password_expired(),
+                msg=(
+                    "Expected the password to be expired: it expired on"
+                    f" {user.password_updated + timedelta(days=expiration)},"
+                    f" while the local date is {localdate()}"
+                ),
+            )
+
+    @freeze_time("2026-03-29 23:30:00")
+    @override_settings(TIME_ZONE="Europe/Rome")
+    @patch.object(app_settings, "USER_PASSWORD_EXPIRATION", 30)
+    def test_password_expiration_mail_local_date(self):
+        self._create_user()
+        User.objects.update(
+            password_updated=localdate()
+            - timedelta(days=app_settings.USER_PASSWORD_EXPIRATION - 7)
+        )
+        password_expiration_email.delay()
+        self.assertEqual(
+            len(mail.outbox),
+            1,
+            msg=(
+                f"Expected 1 password expiry notice, got {len(mail.outbox)}:"
+                " the task looks for passwords expiring 7 days after the UTC"
+                f" date ({now().date()}) instead of the local date"
+                f" ({localdate()})"
+            ),
+        )
