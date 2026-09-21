@@ -1240,8 +1240,16 @@ class TestUsers(TestOrganizationMixin, TestCase):
                 ),
             )
 
-        with self.subTest("expiration is evaluated against the local date"):
-            expiration = app_settings.USER_PASSWORD_EXPIRATION
+        expiration = app_settings.USER_PASSWORD_EXPIRATION
+
+        with self.subTest("password is valid on the expiration date"):
+            user.password_updated = localdate() - timedelta(days=expiration)
+            self.assertFalse(
+                user.has_password_expired(),
+                msg="Expected password to remain valid on its expiration date",
+            )
+
+        with self.subTest("password is expired after the expiration date"):
             user.password_updated = localdate() - timedelta(days=expiration + 1)
             self.assertTrue(
                 user.has_password_expired(),
