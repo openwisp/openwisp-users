@@ -272,6 +272,53 @@ Remove Email Address
 
     DELETE /api/v1/users/user/{id}/email/{id}/
 
+List Organization Memberships
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/organization-membership/
+
+Add Organization Membership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    POST /api/v1/users/user/{id}/organization-membership/
+
+.. note::
+
+    The organization manager flag is represented internally by the
+    ``is_admin`` field in the payload.
+
+Get Organization Membership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    GET /api/v1/users/user/{id}/organization-membership/{org_id}/
+
+Change Organization Membership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    PUT /api/v1/users/user/{id}/organization-membership/{org_id}/
+
+Patch Organization Membership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    PATCH /api/v1/users/user/{id}/organization-membership/{org_id}/
+
+Remove Organization Membership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+    DELETE /api/v1/users/user/{id}/organization-membership/{org_id}/
+
 List Organizations
 ~~~~~~~~~~~~~~~~~~
 
