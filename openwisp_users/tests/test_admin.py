@@ -262,6 +262,8 @@ class TestUsersAdmin(
             content = f"User with ID “{id}” doesn’t exist. Perhaps it was deleted?"
             self.assertContains(response, content, status_code=200)
 
+    @override_settings(TIME_ZONE="Europe/Rome")
+    @freeze_time("2026-10-02 23:00:00")
     def test_admin_change_user_password_updated(self):
         admin = self._create_admin()
         # User.objects.create_user does not execute User.set_password
@@ -276,7 +278,7 @@ class TestUsersAdmin(
             response,
             (
                 "<label>Password updated:</label>\n\n"
-                f'<div class="readonly">{date(now())}</div>'
+                f'<div class="readonly">{date(localdate())}</div>'
             ),
             html=True,
         )
