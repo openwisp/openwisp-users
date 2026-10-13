@@ -33,11 +33,13 @@ Install sqlite:
 
     sudo apt-get install sqlite3 libsqlite3-dev openssl libssl-dev
 
-Install your forked repo:
+Fork the `openwisp-users repository
+<https://github.com/openwisp/openwisp-users>`_ on GitHub, then clone your
+fork. Replace ``YOUR_GITHUB_USERNAME`` with your GitHub username:
 
 .. code-block:: shell
 
-    git clone git://github.com/<your_fork>/openwisp-users
+    git clone git@github.com:YOUR_GITHUB_USERNAME/openwisp-users.git
     cd openwisp-users/
     pip install -e .[rest]
 
@@ -105,8 +107,8 @@ To install the latest development version tarball via HTTPs:
 
     pip install https://github.com/openwisp/openwisp-users/tarball/master
 
-Alternatively you can use the git protocol:
+Alternatively you can install the latest development version from Git:
 
 .. code-block:: shell
 
-    pip install -e git+git://github.com/openwisp/openwisp-users#egg=openwisp_users
+    pip install -e git+https://github.com/openwisp/openwisp-users#egg=openwisp_users
