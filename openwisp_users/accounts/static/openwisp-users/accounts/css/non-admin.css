@@ -5,3 +5,8 @@ button,
 form label {
   margin-right: 5px;
 }
+@media (max-width: 768px) {
+  h1#site-name {
+    padding: 0.5rem 0;
+  }
+}
