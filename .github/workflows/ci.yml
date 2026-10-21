@@ -6,12 +6,12 @@ on:
     branches:
       - master
       - new-menu
-      - "1.0"
+      - "[0-9]+.[0-9]+"
   pull_request:
     branches:
       - master
       - new-menu
-      - "1.0"
+      - "[0-9]+.[0-9]+"
 
 jobs:
   build:
