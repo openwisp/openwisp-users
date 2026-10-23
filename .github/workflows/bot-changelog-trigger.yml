@@ -6,8 +6,13 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: changelog-trigger-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: Check approved pull request
     if: >
       github.repository == 'openwisp/openwisp-users' &&
       github.event.review.state == 'approved' &&
@@ -22,7 +27,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if echo "$PR_TITLE" | grep -qiE '^\[(feature|fix|change!?)\]'; then
-            echo "has_noteworthy=true" >> $GITHUB_OUTPUT
+            echo "has_noteworthy=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Save PR metadata
@@ -33,7 +38,7 @@ jobs:
 
       - name: Upload PR metadata
         if: steps.check.outputs.has_noteworthy == 'true'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: changelog-metadata
           path: pr_number
