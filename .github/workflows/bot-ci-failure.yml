@@ -1,15 +1,12 @@
 name: CI Failure Bot
 
 on:
-  workflow_run:
+  workflow_run: # zizmor: ignore[dangerous-triggers] Privileged analysis follows failed PR CI and treats PR code and logs as data only.
     workflows: ["OpenWISP Users CI Build"]
     types:
       - completed
 
-permissions:
-  pull-requests: read
-  actions: read
-  contents: read
+permissions: {}
 
 concurrency:
   group: ci-failure-${{ github.repository }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch }}
@@ -17,11 +14,16 @@ concurrency:
 
 jobs:
   find-pr:
+    name: Find failed CI pull request
     runs-on: ubuntu-latest
     if: >
       github.repository == 'openwisp/openwisp-users' &&
+      github.event.workflow_run.name == 'OpenWISP Users CI Build' &&
       github.event.workflow_run.conclusion == 'failure' &&
       github.event.workflow_run.event == 'pull_request'
+    permissions:
+      pull-requests: read # Locates the pull request associated with the failed workflow run.
+      actions: read # Queries workflow runs when the event payload lacks a PR number.
     outputs:
       pr_number: ${{ steps.pr.outputs.number }}
       pr_author: ${{ steps.pr.outputs.author }}
@@ -52,7 +54,7 @@ jobs:
           fi
           HEAD_SHA="$EVENT_HEAD_SHA"
           echo "Payload empty. Searching for PR via Commits API..."
-          PR_NUMBER=$(gh api repos/$REPO/commits/$HEAD_SHA/pulls -q '.[0].number' 2>/dev/null || true)
+          PR_NUMBER=$(gh api "repos/$REPO/commits/$HEAD_SHA/pulls" -q '.[0].number' 2>/dev/null || true)
           if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
              echo "Found PR #$PR_NUMBER using Commits API."
              emit_pr "$PR_NUMBER"
@@ -72,10 +74,8 @@ jobs:
     needs: find-pr
     if: ${{ needs.find-pr.outputs.pr_number != '' }}
     permissions:
-      pull-requests: write
-      actions: write
       contents: read
-    uses: openwisp/openwisp-utils/.github/workflows/reusable-bot-ci-failure.yml@master
+    uses: openwisp/openwisp-utils/.github/workflows/reusable-bot-ci-failure.yml@0bd0c3190d6081ec776baa96d73d8a8a3e059a73 # master
     with:
       pr_number: ${{ needs.find-pr.outputs.pr_number }}
       head_sha: ${{ github.event.workflow_run.head_sha }}
