@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 1.3.2 [2026-10-23]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Restored logo padding on mobile screens
+
+  Rules in `openwisp.css` removed the logo padding on non-admin screens,
+  making it appear cramped.
+
+- Corrected password expiration dates and duplicate notifications `#375
+  <https://github.com/openwisp/openwisp-users/issues/375>`_
+
 Version 1.3.1 [2026-09-09]
 --------------------------
 
