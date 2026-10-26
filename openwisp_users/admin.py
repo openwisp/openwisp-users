@@ -392,8 +392,9 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             return False
         return super().has_delete_permission(request, obj)
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
+    def get_actions(self, request, action_location=None):
+        kwargs = {"action_location": action_location} if action_location else {}
+        actions = super().get_actions(request, **kwargs)
         if not request.POST.get("post") and "delete_selected" in actions:
             del actions["delete_selected"]
         return actions
@@ -636,8 +637,9 @@ class OrganizationUserAdmin(
             )
             return HttpResponseRedirect(redirect_url)
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
+    def get_actions(self, request, action_location=None):
+        kwargs = {"action_location": action_location} if action_location else {}
+        actions = super().get_actions(request, **kwargs)
         if not request.POST.get("post") and "delete_selected" in actions:
             del actions["delete_selected"]
         return actions
