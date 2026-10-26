@@ -62,6 +62,7 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
+        # for Django <= 5.2, which calls Field.pre_save() once per insert
         expected_queries = 6 if django.VERSION < (6, 0) else 7
         with self.assertNumQueries(expected_queries):
             r = self.client.post(path, data, content_type="application/json")
@@ -756,6 +757,7 @@ class TestUsersApi(
     def test_organization_slug_post_custom_validation_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
+        # for Django <= 5.2, which calls Field.pre_save() once per insert
         expected_queries = 6 if django.VERSION < (6, 0) else 7
         with self.assertNumQueries(expected_queries):
             r = self.client.post(path, data, content_type="application/json")
