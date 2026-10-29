@@ -309,6 +309,30 @@ class TestFilterClasses(AssertNumQueriesSubTestMixin, TestMultitenancyMixin, Tes
         self.assertEqual(Shelf.objects.count(), 3)
         self.assertEqual(Book.objects.count(), 3)
 
+    def test_post_book_nested_shelf_rejects_disabled_organization(self):
+        org = self._get_org("org_a")
+        disabled_org = self._create_org(name="disabled-org", is_active=False)
+        administrator = self._create_administrator()
+        self._create_org_user(user=administrator, is_admin=True, organization=org)
+        token = self._obtain_auth_token(administrator)
+        response = self.client.post(
+            reverse("test_book_nested_shelf"),
+            {
+                "shelf": {
+                    "name": "disabled-shelf",
+                    "organization": disabled_org.pk,
+                },
+                "name": "disabled-book",
+                "author": "test-author",
+                "organization": org.pk,
+            },
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Shelf.objects.filter(name="disabled-shelf").exists(), False)
+        self.assertEqual(Book.objects.filter(name="disabled-book").exists(), False)
+
     def test_shelf_with_read_only_org_field(self):
         org1 = self._create_org(name="org1")
         operator = self._get_operator()

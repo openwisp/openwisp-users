@@ -149,6 +149,48 @@ instance of the platform.
     `django-organizations
     <https://github.com/bennylope/django-organizations>`_ third-party app.
 
+.. _users_disabled_organization:
+
+Disabled Organization
+---------------------
+
+An organization is disabled when its **Is active** flag is unchecked on
+the "Change organization" page or through the REST API. Superusers and
+organization managers can disable an organization, subject to the usual
+permission requirements for editing it.
+
+A disabled organization retains its users, memberships, and related
+objects. Superusers can still read and delete that data, but:
+
+- **No new object can be created for a disabled organization**, and
+  **existing objects belonging to it cannot be modified**. For the
+  organization itself, only **Is active** can be changed and its owner can
+  be unassigned while it is disabled.
+- Deleting objects, including the organization itself, remains allowed.
+- The organization is hidden from **organization selection widgets** but
+  remains available in admin **list filters**.
+- Re-enabling a disabled organization is allowed **only for superusers**.
+  Once an organization is disabled, its managers lose access to it (a
+  disabled organization is no longer part of the organizations they
+  manage), so they can no longer edit it, including re-enabling it. A
+  superuser must re-enable the organization before its managers regain
+  access.
+
+.. note::
+
+    In the REST API, updating an object in a disabled organization returns
+    HTTP 400 or 403, depending on the endpoint, with an error message.
+
+.. note::
+
+    Re-enabling an organization and editing its other fields must be done
+    in **two separate steps**, matching the admin interface (which locks
+    every field except **Is active** while the organization is disabled).
+    First re-enable the organization (change only **Is active**), then
+    edit its other fields or assign an owner. A single request that both
+    re-enables the organization and changes another field (or assigns an
+    owner) is rejected.
+
 Organization Membership and Roles
 ---------------------------------
 

@@ -60,6 +60,16 @@ urlpatterns = [
         name="test_template_detail",
     ),
     path(
+        "template_disabled_org_write_allowed/<int:pk>/",
+        views.template_disabled_org_write_allowed_detail,
+        name="test_template_disabled_org_write_allowed_detail",
+    ),
+    path(
+        "protected_template/<int:pk>/",
+        views.protected_template_detail,
+        name="test_protected_template_detail",
+    ),
+    path(
         "library/",
         views.library_list,
         name="test_library_list",

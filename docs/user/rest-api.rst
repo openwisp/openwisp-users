@@ -356,7 +356,9 @@ Change User Detail
 
     When editing organization memberships, the organization manager flag
     is represented internally by the ``is_admin`` field in the
-    ``organization_users`` payload.
+    ``organization_users`` payload. For an existing membership, omitting
+    ``is_admin`` leaves it unchanged, changing its value updates the role,
+    and sending its current value removes the membership.
 
 Patch User Detail
 ~~~~~~~~~~~~~~~~~
@@ -369,7 +371,9 @@ Patch User Detail
 
     When patching organization memberships, the organization manager flag
     is represented internally by the ``is_admin`` field in the
-    ``organization_users`` payload.
+    ``organization_users`` payload. For an existing membership, omitting
+    ``is_admin`` leaves it unchanged, changing its value updates the role,
+    and sending its current value removes the membership.
 
 Delete User
 ~~~~~~~~~~~

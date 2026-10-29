@@ -1,6 +1,7 @@
 import swapper
-from django.core.exceptions import ValidationError
+from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db.models import ForeignKey, ManyToManyField, Q
+from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 from django_filters.filters import QuerySetRequestMixin as BaseQuerySetRequestMixin
 from rest_framework.authentication import SessionAuthentication
@@ -8,12 +9,22 @@ from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 
 from .authentication import BearerAuthentication
-from .permissions import DjangoModelPermissions, IsOrganizationManager
+from .permissions import (
+    DisabledOrgReadOnly,
+    DjangoModelPermissions,
+    IsOrganizationManager,
+)
 
 Organization = swapper.load_model("openwisp_users", "Organization")
 
+DISABLED_ORGANIZATION_ERROR_MESSAGE = _(
+    'Organization with pk "{pk_value}" does not exist or is disabled.'
+)
+
 
 class OrgLookup:
+    select_related_organization = True
+
     @property
     def org_field(self):
         return getattr(self, "organization_field", "organization")
@@ -21,6 +32,17 @@ class OrgLookup:
     @property
     def organization_lookup(self):
         return f"{self.org_field}__in"
+
+    def _organization_relation_is_valid(self, model):
+        for part in self.org_field.split("__"):
+            try:
+                field = model._meta.get_field(part)
+            except FieldDoesNotExist:
+                return False
+            if not (field.concrete and (field.many_to_one or field.one_to_one)):
+                return False
+            model = field.related_model
+        return model == Organization
 
 
 class SharedObjectsLookup:
@@ -55,6 +77,10 @@ class FilterByOrganization(OrgLookup):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if getattr(
+            self, "select_related_organization", True
+        ) and self._organization_relation_is_valid(qs.model):
+            qs = qs.select_related(self.org_field)
         if self.request.user.is_superuser:
             return qs
         return self.get_organization_queryset(qs)
@@ -109,6 +135,10 @@ class FilterByParent(OrgLookup):
         parent_queryset = self.get_parent_queryset()
         if not self.request.user.is_superuser:
             parent_queryset = self.get_organization_queryset(parent_queryset)
+        if getattr(
+            self, "select_related_organization", True
+        ) and self._organization_relation_is_valid(parent_queryset.model):
+            parent_queryset = parent_queryset.select_related(self.org_field)
         try:
             assert parent_queryset.exists()
         except (AssertionError, ValidationError):
@@ -158,34 +188,69 @@ class FilterSerializerByOrganization(OrgLookup):
         raise NotImplementedError()
 
     def filter_fields(self):
+        """
+        Restrict the querysets of writable relational fields so users can
+        only select active organizations they manage, and related objects
+        belonging to those organizations (including shared objects when
+        ``include_shared`` is set).
+        """
         user = self.context["request"].user
-        # superuser can see everything
-        if user.is_superuser or user.is_anonymous:
+        organization_filter = None
+        if not user.is_superuser and not user.is_anonymous:
+            organization_filter = getattr(user, self._user_attr)
+        for name, field in self.fields.items():
+            if name == "organization" and not field.read_only:
+                self._filter_organization_field(field, organization_filter)
+            else:
+                self._filter_related_field(field, organization_filter)
+
+    def _filter_organization_field(self, field, organization_filter):
+        # Keep disabled organizations out of writable relation fields.
+        queryset = field.queryset.filter(is_active=True)
+        field.error_messages["does_not_exist"] = DISABLED_ORGANIZATION_ERROR_MESSAGE
+        view = self.context.get("view")
+        organization = getattr(self.instance, "organization", None)
+        if (
+            getattr(view, "allow_disabled_organization_writes", False)
+            and organization is not None
+            and not organization.is_active
+        ):
+            queryset |= field.queryset.filter(pk=organization.pk)
+        if organization_filter is not None:
+            field.allow_null = False
+            allowed_organizations = Q(pk__in=organization_filter)
+            if (
+                getattr(view, "allow_disabled_organization_writes", False)
+                and organization is not None
+                and not organization.is_active
+            ):
+                allowed_organizations |= Q(pk=organization.pk)
+            queryset = queryset.filter(allowed_organizations)
+        field.queryset = queryset
+
+    def _filter_related_field(self, field, organization_filter):
+        queryset = getattr(field, "queryset", None)
+        # Read-only and non-relational fields do not expose a queryset.
+        if queryset is None:
             return
-        # non superusers can see only items of organizations they're related to
-        organization_filter = getattr(user, self._user_attr)
-        for field in self.fields:
-            if field == "organization" and not self.fields[field].read_only:
-                # queryset attribute will not be present if set to read_only
-                self.fields[field].allow_null = False
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    pk__in=organization_filter
-                )
-                continue
-            conditions = Q(**{self.organization_lookup: organization_filter})
+        conditions = Q(**{f"{self.org_field}__is_active": True})
+        if organization_filter is None:
+            conditions |= Q(**{f"{self.org_field}__isnull": True})
+        else:
+            conditions &= Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
-                conditions |= Q(organization__isnull=True)
-            try:
-                self.fields[field].queryset = self.fields[field].queryset.filter(
-                    conditions
-                )
-            except AttributeError:
-                pass
+                conditions |= Q(**{f"{self.org_field}__isnull": True})
+        field.queryset = queryset.filter(conditions)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # only filter related fields if the serializer
         # is being initiated during an HTTP request
+        if "request" in self.context:
+            self.filter_fields()
+
+    def bind(self, field_name, parent):
+        super().bind(field_name, parent)
         if "request" in self.context:
             self.filter_fields()
 
@@ -308,4 +373,5 @@ class ProtectedAPIMixin(object):
     permission_classes = (
         IsOrganizationManager,
         DjangoModelPermissions,
+        DisabledOrgReadOnly,
     )

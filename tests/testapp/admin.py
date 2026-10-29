@@ -1,17 +1,25 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from openwisp_users.admin import MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet
 from openwisp_users.multitenancy import (
     MultitenantAdminMixin,
     MultitenantOrgFilter,
     MultitenantRelatedOrgFilter,
 )
 
-from .models import Book, Library, Shelf, Tag, Template
+from .models import Bio, Book, Bookmark, Config, Library, Shelf, Tag, Template
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
     pass
+
+
+class BookInline(admin.TabularInline):
+    # Verify the parent mixin protects inlines that do not use it.
+    model = Book
+    fields = ["name", "author"]
+    extra = 0
 
 
 class ShelfAdmin(BaseAdmin):
@@ -20,6 +28,7 @@ class ShelfAdmin(BaseAdmin):
     fields = ["name", "organization", "tags", "created", "modified"]
     search_fields = ["name"]
     multitenant_shared_relations = ["tags"]
+    inlines = [BookInline]
 
 
 class ShelfFilter(MultitenantRelatedOrgFilter):
@@ -35,6 +44,7 @@ class BookAdmin(BaseAdmin):
         ShelfFilter,
     ]
     fields = ["name", "author", "organization", "shelf", "created", "modified"]
+    autocomplete_fields = ["shelf"]
     multitenant_shared_relations = ["shelf"]
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
@@ -68,8 +78,44 @@ class TagAdmin(BaseAdmin):
     pass
 
 
+class LibraryParentAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    # Resolve the organization through Book for parent traversal coverage.
+    multitenant_parent = "book"
+
+
+class ConfigAdmin(BaseAdmin):
+    # Exercise the write-protection opt-out through the admin endpoints.
+    disabled_organization_write_protection = False
+    fields = ["name", "organization", "template"]
+
+
+class BioInlineFormSet(MultitenantReadOnlyInlineFormSet, RequiredInlineFormSet):
+    pass
+
+
+class BioInline(MultitenantAdminMixin, admin.StackedInline):
+    model = Bio
+    formset = BioInlineFormSet
+    fields = ["website", "organization"]
+    extra = 0
+
+
+class BookmarkInlineFormSet(MultitenantReadOnlyInlineFormSet):
+    organization_fk_field = "book"
+    organization_lookup = "book__organization"
+
+
+class BookmarkInline(MultitenantAdminMixin, admin.StackedInline):
+    model = Bookmark
+    formset = BookmarkInlineFormSet
+    fields = ("book",)
+    extra = 0
+    multitenant_shared_relations = ["book"]
+
+
 admin.site.register(Shelf, ShelfAdmin)
 admin.site.register(Book, BookAdmin)
 admin.site.register(Template, TemplateAdmin)
-admin.site.register(Library)
+admin.site.register(Library, LibraryParentAdmin)
 admin.site.register(Tag, TagAdmin)
+admin.site.register(Config, ConfigAdmin)
