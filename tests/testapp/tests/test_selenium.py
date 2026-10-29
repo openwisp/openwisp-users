@@ -15,7 +15,7 @@ from openwisp_users import admin as openwisp_users_admin
 from openwisp_utils.test_selenium_mixins import SeleniumTestMixin
 
 from ..admin import BioInline
-from ..models import Bio
+from ..models import Bio, Book
 from .mixins import TestMultitenancyMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -27,6 +27,8 @@ User = get_user_model()
 class TestOrganizationAutocompleteField(
     SeleniumTestMixin, TestMultitenancyMixin, StaticLiveServerTestCase
 ):
+    book_model = Book
+
     @classmethod
     def setUpClass(cls):
         openwisp_users_admin.UserAdmin.inlines.append(BioInline)
@@ -60,10 +62,10 @@ class TestOrganizationAutocompleteField(
         self.login(username=username, password=password)
         self.open(path)
         self.find_element(By.CSS_SELECTOR, "#select2-id_organization-container").click()
-        WebDriverWait(self.web_driver, 2).until(
+        self.wait_until(
             EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, ".select2-results__option.loading-results")
-            )
+            ),
         )
         options = self.find_elements(By.CSS_SELECTOR, ".select2-results__option")
         for option in options:
@@ -308,3 +310,30 @@ class TestOrganizationAutocompleteField(
             OrganizationUser.objects.filter(user__username=username).exists()
         )
         self.logout()
+
+    def test_organization_autocomplete_without_field(self):
+        organization = self._create_org()
+        book = self._create_book(organization=organization)
+        self.login(username=self.admin_username, password=self.admin_password)
+        self.open(reverse("admin:testapp_book_change", args=[book.pk]))
+        self.assertTrue(
+            self.web_driver.execute_script(
+                "return !!document.querySelector('select#id_organization') && "
+                "[...document.scripts].some(({src}) => "
+                "src.includes('openwisp-users/js/org-autocomplete.js'));"
+            )
+        )
+        self.web_driver.execute_script(
+            "document.querySelector('select#id_organization').remove();"
+            "const script = document.createElement('script');"
+            "script.src = [...document.scripts].find(({src}) => "
+            "src.includes('openwisp-users/js/org-autocomplete.js')).src + '?missing';"
+            "script.onload = () => { window.orgAutocompleteReloaded = true; };"
+            "document.head.appendChild(script);"
+        )
+        self.wait_until(
+            lambda driver: driver.execute_script(
+                "return window.orgAutocompleteReloaded === true;"
+            )
+        )
+        self.assert_no_browser_errors()

@@ -176,8 +176,9 @@ class Command(BaseCommand):
             except Exception as e:
                 func_name = getattr(callable_fn, "__name__", repr(callable_fn))
                 raise CommandError(
-                    _(
-                        "Error calling function {func_name!r} for field '{name}': {e}"
+                    (
+                        "Error calling function {func_name!r} "
+                        "for field '{name}': {e}"
                     ).format(func_name=func_name, name=name, e=e)
                 )
             return self._normalize_value(val)

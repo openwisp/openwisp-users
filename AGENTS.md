@@ -37,8 +37,6 @@ If instructions conflict, repository config and CI workflows win first, official
 
 - Follow the DRY principle: do not duplicate information or code across files.
 - Respect module boundaries and encapsulation. The module that owns a model, stored state, lifecycle, or domain invariant must expose the cohesive public operation that reads or changes it. Integrations must use that operation, not write its fields, coordinate multi-step changes to its internal state, or depend on its storage representation. Prefer behavior-oriented public APIs over setters for internal flags. When an integration needs a missing capability, add it to the owning module with invariant tests, then call it from the integration.
-- Preserve swappable model support, public APIs, migrations, and multi-tenant permission behavior unless explicitly required.
-- Mark user-facing strings for translation with Django i18n helpers in Django code.
 - Place imports at the top of the file. Only defer imports when necessary (e.g., Django model imports inside functions or methods where the app registry is not yet ready).
 - Avoid unnecessary blank lines inside function and method bodies.
 - Prefer short, precise names that rely on their nearest meaningful scope. Do not repeat a feature, domain object, or namespace already named by the containing module, class, or function. For example, prefer `EstimatedLocation.refresh()` over `EstimatedLocation.refresh_estimated_location()`. Repeat that context only when the name is used outside that scope or is needed to distinguish genuinely different concepts. When a concise name cannot express a necessary distinction, use a concise docstring to describe it rather than encoding it in an excessively long name.
@@ -63,8 +61,15 @@ If instructions conflict, repository config and CI workflows win first, official
 
 - Build internal URLs with named URL patterns and `reverse()` or `reverse_lazy()`, including in tests. Use the appropriate namespace and URL arguments.
 - In the main behavior test for non-trivial, frequently called views, include `assertNumQueries()` with representative data to enforce an intentional query budget and catch N+1 queries. Use `AssertNumQueriesSubTestMixin` from `openwisp_utils.tests` where available: it records the query-count check as a subtest, so subsequent assertions in the method still run. Change the expected count only when the extra queries are necessary and understood.
+- When processing all records from a queryset in commands, tasks, imports, exports, migrations, or similar operations, use `QuerySet.iterator()` or another bounded method. Do not load all matching records into memory at once.
+- When accessing related objects while processing a queryset, use `select_related()` or `prefetch_related()` as needed to avoid N+1 queries. `prefetch_related()` used with `iterator()` requires an explicit `chunk_size`; otherwise use `iterator()` with its default behavior.
+- Paginate API list responses that can return many records. Do not return every matching record in one response unless the maximum result size is defined and safely bounded.
+- Prefer bulk writes when writing many objects. Use `bulk_create()` or `bulk_update()` unless model validation, `save()` behavior, signals, or another requirement prevents it. Explain the reason for not using a bulk write in a nearby code comment.
+- Test custom pagination, custom batching, and code that consumes paginated APIs beyond the first page or batch. Do not repeat coverage already provided by an unchanged shared pagination class or utility.
 - Before defining a new class, view, URL, REST endpoint, or test layout, inspect analogous implementations in related OpenWISP modules. Match their established names, URL names, API shape, and test organization unless the behavior requires a difference.
 - Treat email addresses as case-insensitive when identifying, deduplicating, importing, migrating, or searching users by email. Use `email__iexact` for direct and `Q()` ORM lookups. Keep username matching case-sensitive unless explicitly required. Normalize email records this module owns to lowercase, and cover casing-only inputs, including legacy mixed-case records when relevant.
+- Preserve swappable model support, public APIs, migrations, and multi-tenant permission behavior unless explicitly required.
+- Mark user-facing strings for translation with Django i18n helpers in Django code.
 
 ## Security and Auth Rules
 
