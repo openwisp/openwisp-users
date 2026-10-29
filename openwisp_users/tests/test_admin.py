@@ -4,7 +4,6 @@ import smtplib
 import uuid
 from unittest.mock import patch
 
-import django
 from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
@@ -164,7 +163,7 @@ class TestUsersAdmin(
         response = self.client.post(reverse(f"admin:{self.app_label}_user_add"), params)
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 0)
-        self.assertContains(response, "errors field-email")
+        self.assertContains(response, 'id="id_email_error"')
         self.assertEqual(len(mail.outbox), 0)
 
     def test_admin_change_user_auto_email(self):
@@ -238,7 +237,7 @@ class TestUsersAdmin(
         queryset = User.objects.filter(username="testchange")
         self.assertEqual(queryset.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "errors field-email")
+        self.assertContains(response, 'id="id_email_error"')
 
     def test_admin_change_user_page_get_invalid_UUID(self):
         admin = self._create_admin()
@@ -305,13 +304,9 @@ class TestUsersAdmin(
             )
             self.assertContains(
                 response,
-                (
-                    '<ul class="errorlist"{}><li>'
-                    "You cannot re-use your current password. "
-                    "Enter a new password.</li></ul>"
-                ).format(
-                    ' id="id_password2_error"' if django.VERSION >= (5, 2) else ""
-                ),
+                '<ul class="errorlist" id="id_password2_error"><li>'
+                "You cannot re-use your current password. "
+                "Enter a new password.</li></ul>",
             )
         with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
             response = self.client.post(
@@ -1143,7 +1138,9 @@ class TestUsersAdmin(
         res = self.client.post(reverse(f"admin:{self.app_label}_user_add"), params)
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 0)
-        self.assertContains(res, "errors field-organization")
+        self.assertContains(
+            res, f'id="id_{self.app_label}_organizationuser-0-organization_error"'
+        )
 
     def test_admin_user_add_form(self):
         self.client.force_login(self._get_admin())
@@ -1250,7 +1247,9 @@ class TestUsersAdmin(
         res = self.client.post(
             reverse(f"admin:{self.app_label}_user_add"), params, follow=True
         )
-        self.assertNotContains(res, "errors field-organization")
+        self.assertNotContains(
+            res, f'id="id_{self.app_label}_organizationuser-0-organization_error"'
+        )
         self.assertNotContains(res, "Please correct the errors below.")
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 1)
