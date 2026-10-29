@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import translation
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import localdate, timedelta
 from django.utils.translation import gettext_lazy as _
 from swapper import load_model
 
@@ -30,7 +30,7 @@ def password_expiration_email():
     ):
         # The password expiration feature is not enabled
         return
-    expiry_date = now().date() + timedelta(days=7)
+    expiry_date = localdate() + timedelta(days=7)
     query = Q()
     if app_settings.USER_PASSWORD_EXPIRATION:
         query |= Q(
@@ -54,6 +54,9 @@ def password_expiration_email():
             emailaddress__verified=True,
         )
         .filter(query)
+        # a user can own more than one verified email address:
+        # without distinct() the join would send one email per address
+        .distinct()
     )
     email_count = 0
     for user in qs.iterator():
