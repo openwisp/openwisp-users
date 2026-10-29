@@ -1026,6 +1026,56 @@ class TestUsersApiTransaction(TestOrganizationMixin, TransactionTestCase):
     def setUp(self):
         self.client.force_login(self._get_admin())
 
+    def test_disabled_organization_manager_access_with_stale_cache(self):
+        org1 = self._create_org(name="org1")
+        user1 = self._create_administrator(
+            organizations=[org1], username="user1", email="user1@email.com"
+        )
+        self.client.force_login(user1)
+        path = reverse("users:organization_detail", args=(org1.pk,))
+        active_org = self._create_org(name="active", slug="active")
+        self._create_org_user(user=user1, organization=active_org, is_admin=True)
+        user1.user_permissions.add(
+            *Permission.objects.filter(
+                codename__in=("change_organization", "delete_organization")
+            )
+        )
+        list_url = reverse("users:organization_list")
+        active_url = reverse("users:organization_detail", args=(active_org.pk,))
+        self.assertIn(str(org1.pk), user1.organizations_managed)
+
+        with mock.patch(
+            "openwisp_users.tasks.invalidate_org_membership_cache.delay"
+        ) as task:
+            org1.is_active = False
+            org1.save()
+        task.assert_called_once_with(org1.pk)
+        response = self.client.get(list_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            {str(item["id"]) for item in response.data["results"]},
+            {str(active_org.pk)},
+        )
+        self.assertEqual(self.client.get(active_url).status_code, 200)
+        self.assertEqual(self.client.get(path).status_code, 404)
+
+        def assert_inaccessible(method, payload=None):
+            response = getattr(self.client, method)(
+                path, payload, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 404)
+            org1.refresh_from_db()
+            self.assertFalse(org1.is_active)
+
+        with self.subTest("manager cannot reactivate with PATCH"):
+            assert_inaccessible("patch", {"is_active": True})
+
+        with self.subTest("manager cannot reactivate with PUT"):
+            assert_inaccessible("put", {"is_active": True})
+
+        with self.subTest("manager cannot delete disabled organization"):
+            assert_inaccessible("delete")
+
     def test_create_user_organization_users_disabled_org_api(self):
         # Bypass field validation so model validation fails after the user is
         # saved, proving the transaction rolls both rows back.

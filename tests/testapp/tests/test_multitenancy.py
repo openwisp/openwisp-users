@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -19,6 +21,15 @@ class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin)
     disabled_organization_write_protection = False
     fields = ["name", "organization"]
     inlines = [BookInline]
+
+
+# Provide a mutating action to exercise the disabled organization guard.
+class ShelfActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    actions = ["rename_selected"]
+
+    @admin.action(permissions=["change"])
+    def rename_selected(self, request, queryset):
+        queryset.update(name="renamed-shelf")
 
 
 class TestMultitenancy(TestMultitenancyMixin, TestCase):
@@ -116,13 +127,6 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         )
 
     def test_disabled_organization_mutating_action_is_blocked(self):
-        class ShelfActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-            actions = ["rename_selected"]
-
-            @admin.action(permissions=["change"])
-            def rename_selected(self, request, queryset):
-                queryset.update(name="renamed-shelf")
-
         org = self._get_org()
         shelf = self._create_shelf(name="action-guard-shelf", organization=org)
         org.is_active = False
@@ -135,7 +139,14 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         request._messages = CookieStorage(request)
         model_admin = ShelfActionAdmin(Shelf, admin.site)
         self.assertTrue(model_admin.has_delete_permission(request, shelf))
-        model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
+        response = model_admin.response_action(
+            request, Shelf.objects.filter(pk=shelf.pk)
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            [str(message) for message in request._messages],
+            ["Actions cannot modify objects of disabled organizations."],
+        )
         shelf.refresh_from_db()
         self.assertEqual(shelf.name, "action-guard-shelf")
 
@@ -151,6 +162,75 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
         shelf.refresh_from_db()
         self.assertEqual(shelf.name, "renamed-shelf")
+
+    def test_disabled_organization_action_uses_submitted_index(self):
+        org = self._get_org()
+        shelf = self._create_shelf(name="action-guard-shelf", organization=org)
+        org.is_active = False
+        org.save()
+        model_admin = ShelfActionAdmin(Shelf, admin.site)
+
+        def assert_rename_blocked(actions, index):
+            request = RequestFactory().post(
+                "/",
+                {
+                    "action": actions,
+                    "index": index,
+                    "_selected_action": [str(shelf.pk)],
+                },
+            )
+            request.user = self._get_admin()
+            request._messages = CookieStorage(request)
+            model_admin.response_action(request, Shelf.objects.all())
+            shelf.refresh_from_db()
+            self.assertEqual(shelf.name, "action-guard-shelf")
+
+        with self.subTest("first action is rename and second is exempt delete"):
+            assert_rename_blocked(["rename_selected", "delete_selected"], "0")
+
+        with self.subTest("second action is rename and first is exempt delete"):
+            assert_rename_blocked(["delete_selected", "rename_selected"], "1")
+
+    def test_disabled_organization_action_checks_selection(self):
+        org = self._get_org()
+        shelf = self._create_shelf(name="action-guard-shelf", organization=org)
+        org.is_active = False
+        org.save()
+        active_shelf = self._create_shelf(
+            name="active-shelf",
+            organization=self._create_org(name="active", slug="active"),
+        )
+        self.client.force_login(self._get_admin())
+        url = reverse("admin:testapp_shelf_changelist")
+        model_admin = admin.site._registry[Shelf]
+
+        def assert_action(selected, expected_name, select_across=False):
+            active_shelf.name = "active-shelf"
+            active_shelf.save()
+            data = {
+                "action": "rename_selected",
+                "_selected_action": [str(selected.pk)],
+            }
+            if select_across:
+                data["select_across"] = "1"
+            response = self.client.post(url, data)
+            self.assertEqual(response.status_code, 302)
+            active_shelf.refresh_from_db()
+            shelf.refresh_from_db()
+            self.assertEqual(active_shelf.name, expected_name)
+            self.assertEqual(shelf.name, "action-guard-shelf")
+
+        with mock.patch.object(
+            model_admin, "actions", [ShelfActionAdmin.rename_selected]
+        ):
+            with self.subTest("selected active shelf is updated"):
+                assert_action(active_shelf, "renamed-shelf")
+
+            with self.subTest("selected disabled shelf is blocked"):
+                assert_action(shelf, "active-shelf")
+
+            with self.subTest("select all includes disabled shelf and is blocked"):
+                assert_action(active_shelf, "active-shelf", select_across=True)
 
     def test_disabled_organization_guard_uses_custom_organization_resolver(self):
         class LibraryActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):

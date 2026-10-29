@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.http import HttpResponseRedirect
@@ -135,14 +136,51 @@ class MultitenantAdminMixin(object):
         return super().has_add_permission(request, *args, **kwargs)
 
     def response_action(self, request, queryset):
-        action = request.POST.get("action")
+        """
+        Prevent actions from changing objects of disabled organizations.
+
+        Django resolves the action and selected objects only during dispatch.
+        Mirror that resolution first so the guard checks the actual action and
+        targets, while allowing exempt cleanup actions and active objects.
+        """
+        # The changelist can submit action selectors from both ends of the page.
+        try:
+            action_index = int(request.POST.get("index", 0))
+        except ValueError:
+            action_index = 0
+        # Validate the same action Django will execute, including its exemptions.
+        data = request.POST.copy()
+        data.pop(ACTION_CHECKBOX_NAME, None)
+        data.pop("index", None)
+        try:
+            data.update({"action": data.getlist("action")[action_index]})
+        except IndexError:
+            pass
+        action_form = self.action_form(data, auto_id=None)
+        action_form.fields["action"].choices = self.get_action_choices(request)
+        if not action_form.is_valid():
+            return super().response_action(request, queryset)
+        action = action_form.cleaned_data["action"]
+        select_across = action_form.cleaned_data["select_across"]
+        # Django receives the full filtered queryset and narrows it on dispatch.
+        selected = request.POST.getlist(ACTION_CHECKBOX_NAME)
+        if not select_across:
+            if not selected:
+                # With no selected objects and select_across false, Django
+                # warns and exits without executing the action. Delegate so
+                # it can provide that response; there are no targets to guard.
+                return super().response_action(request, queryset)
+            checked_queryset = queryset.filter(pk__in=selected)
+        else:
+            checked_queryset = queryset
         if (
             self.disabled_organization_write_protection
             and action not in self.get_disabled_organization_action_exclusions()
             and any(
                 organization is not None and not organization.is_active
                 for organization in (
-                    self.get_object_organization(obj) for obj in queryset
+                    self.get_object_organization(obj)
+                    for obj in checked_queryset.iterator()
                 )
             )
         ):
