@@ -269,7 +269,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 count,
             ),
             usernames=formatted_names,
-            ending=" …" if has_more else ".",
+            ending=", …" if has_more else ".",
         )
 
     def require_confirmation(func):

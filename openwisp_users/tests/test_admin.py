@@ -1569,7 +1569,7 @@ class TestUsersAdmin(
             self.assertEqual(
                 message,
                 "No users were updated because you do not have permission to modify "
-                f"these users: {', '.join(user_links[:10])} …",
+                f"these users: {', '.join(user_links[:10])}, …",
             )
 
         with self.subTest("username is escaped in the link"):
