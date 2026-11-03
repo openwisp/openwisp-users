@@ -1492,6 +1492,199 @@ class TestUsersAdmin(
             extra_payload={"confirmation": True},
         )
 
+    def test_org_admin_cannot_bulk_activate_or_deactivate_owner(self):
+        org = self._get_org()
+        owner = self._create_administrator(
+            [org], username="owner", email="owner@example.com"
+        )
+        org_admin = self._create_administrator([org])
+        org_user = self._create_user(username="member", email="member@example.com")
+        self._create_org_user(user=org_user, organization=org)
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+        expiration_date = localdate() - timedelta(days=1)
+
+        def assert_denied(action, selected, before, after, confirmed=False):
+            owner.refresh_from_db()
+            org_user.refresh_from_db()
+            self.assertEqual(owner.is_active, before)
+            self.assertEqual(org_user.is_active, before)
+            self.client.force_login(org_admin)
+            post_data = {"action": action, "_selected_action": selected}
+            if confirmed:
+                post_data["confirmation"] = "Confirm"
+            response = self.client.post(path, post_data, follow=True)
+            owner.refresh_from_db()
+            org_user.refresh_from_db()
+            self.assertEqual(owner.is_active, after)
+            self.assertEqual(org_user.is_active, after)
+            self.assertEqual(owner.expiration_date, expiration_date)
+            self.assertEqual(org_user.expiration_date, expiration_date)
+            self.assertRedirects(response, path)
+            self.assertContains(
+                response,
+                "No users were updated because you don&#x27;t have permission "
+                "to modify some of the selected users.",
+            )
+            self.assertNotContains(response, "Successfully")
+
+        User.objects.filter(pk__in=[owner.pk, org_user.pk]).update(
+            is_active=True, expiration_date=expiration_date
+        )
+        with self.subTest("deactivating an owner before confirmation"):
+            assert_denied(
+                action="make_inactive", selected=[owner.pk], before=True, after=True
+            )
+
+        with self.subTest("deactivating an owner after confirmation"):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk],
+                before=True,
+                after=True,
+                confirmed=True,
+            )
+
+        with self.subTest(
+            scenario="deactivating an owner and member before confirmation"
+        ):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk, org_user.pk],
+                before=True,
+                after=True,
+            )
+
+        with self.subTest(
+            scenario="deactivating an owner and member after confirmation"
+        ):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk, org_user.pk],
+                before=True,
+                after=True,
+                confirmed=True,
+            )
+
+        User.objects.filter(pk__in=[owner.pk, org_user.pk]).update(is_active=False)
+        with self.subTest("activating an owner before confirmation"):
+            assert_denied(
+                action="make_active", selected=[owner.pk], before=False, after=False
+            )
+
+        with self.subTest("activating an owner after confirmation"):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk],
+                before=False,
+                after=False,
+                confirmed=True,
+            )
+
+        with self.subTest(
+            scenario="activating an owner and member before confirmation"
+        ):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk, org_user.pk],
+                before=False,
+                after=False,
+            )
+
+        with self.subTest("activating an owner and member after confirmation"):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk, org_user.pk],
+                before=False,
+                after=False,
+                confirmed=True,
+            )
+
+    def test_owner_and_superuser_can_bulk_change_owner_active_status(self):
+        organization = self._get_org()
+        owner = self._create_administrator(
+            [organization], username="owner", email="owner@example.com"
+        )
+        member = self._create_user(username="member", email="member@example.com")
+        self._create_org_user(user=member, organization=organization)
+        superuser = self._create_admin()
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+
+        def assert_allowed(actor, action, expected_active):
+            self.client.force_login(actor)
+            response = self.client.post(
+                path,
+                {
+                    "action": action,
+                    "_selected_action": [owner.pk, member.pk],
+                    "confirmation": "Confirm",
+                },
+            )
+            owner.refresh_from_db()
+            member.refresh_from_db()
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(owner.is_active, expected_active)
+            self.assertEqual(member.is_active, expected_active)
+
+        with self.subTest("owner can deactivate themselves and a member"):
+            assert_allowed(actor=owner, action="make_inactive", expected_active=False)
+
+        with self.subTest("superuser can activate an owner and a member"):
+            assert_allowed(actor=superuser, action="make_active", expected_active=True)
+
+        with self.subTest("superuser can deactivate an owner and a member"):
+            assert_allowed(
+                actor=superuser, action="make_inactive", expected_active=False
+            )
+
+        User.objects.filter(pk=owner.pk).update(is_active=True)
+        owner.refresh_from_db()
+        with self.subTest("active owner can activate a member alongside themselves"):
+            self.assertEqual(owner.is_active, True)
+            self.assertEqual(member.is_active, False)
+            assert_allowed(actor=owner, action="make_active", expected_active=True)
+
+    def test_bulk_user_actions_exclude_other_organizations(self):
+        org1 = self._get_org()
+        org2 = self._create_org(name="organization 2", slug="organization-2")
+        org_admin = self._create_administrator([org1])
+        org1_user = self._create_user(username="member", email="member@example.com")
+        org2_user = self._create_user(username="user2", email="user2@example.com")
+        self._create_org_user(user=org1_user, organization=org1)
+        self._create_org_user(user=org2_user, organization=org2)
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+        self.client.force_login(org_admin)
+
+        with self.subTest("deactivation excludes a user from another organization"):
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [org1_user.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+            )
+            org1_user.refresh_from_db()
+            org2_user.refresh_from_db()
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(org1_user.is_active, False)
+            self.assertEqual(org2_user.is_active, True)
+
+        User.objects.filter(pk=org2_user.pk).update(is_active=False)
+        with self.subTest("activation excludes a user from another organization"):
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_active",
+                    "_selected_action": [org1_user.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+            )
+            org1_user.refresh_from_db()
+            org2_user.refresh_from_db()
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(org1_user.is_active, True)
+            self.assertEqual(org2_user.is_active, False)
+
     def test_action_confirmation_page(self):
         user = User.objects.create(
             username="openwisp",

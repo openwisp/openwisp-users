@@ -247,6 +247,18 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         """
 
         def wrapper(modeladmin, request, queryset):
+            # Bulk updates bypass the object checks used by the change form.
+            for obj in queryset.iterator():
+                if not modeladmin.has_change_permission(request, obj):
+                    modeladmin.message_user(
+                        request,
+                        _(
+                            "No users were updated because you don't have permission "
+                            "to modify some of the selected users."
+                        ),
+                        messages.ERROR,
+                    )
+                    return HttpResponseRedirect(request.get_full_path())
             opts = modeladmin.model._meta
             if request.POST.get("confirmation") is None:
                 request.current_app = modeladmin.admin_site.name
