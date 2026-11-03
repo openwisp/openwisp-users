@@ -1548,6 +1548,18 @@ class TestUsersAdmin(
                 f"these users: {user_links[0]}, {user_links[1]} and {user_links[2]}.",
             )
 
+        with self.subTest("lists exactly ten usernames without an ellipsis"):
+            message = get_denial_message(users[:10])
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users[:10]]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {', '.join(user_links[:-1])} and {user_links[-1]}.",
+            )
+
         with self.subTest("truncated list of more than ten usernames"):
             user_admin = django_admin.site._registry[User]
             # Add a spy on UserAdmin.has_change_permission to verify early return when

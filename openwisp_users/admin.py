@@ -15,7 +15,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
@@ -285,6 +285,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             # Bulk updates bypass the object checks used by the change form.
             unauthorized_users = []
             has_more_unauthorized_users = False
+            checked_pks = []
             for obj in queryset.iterator():
                 if not modeladmin.has_change_permission(request, obj):
                     if len(unauthorized_users) < 10:
@@ -294,6 +295,8 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                         # An eleventh denial confirms truncation. The action cannot
                         # proceed, so checking further users would not change it.
                         break
+                else:
+                    checked_pks.append(obj.pk)
             if unauthorized_users:
                 modeladmin.message_user(
                     request,
@@ -303,6 +306,16 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                     messages.ERROR,
                 )
                 return HttpResponseRedirect(request.get_full_path())
+            queryset = queryset.filter(pk__in=checked_pks)
+            if not request.user.is_superuser:
+                protected_owner_ids = (
+                    OrganizationOwner.objects.filter(
+                        organization_user__user_id=OuterRef("pk")
+                    )
+                    .exclude(organization_user__user_id=request.user.pk)
+                    .values("organization_user__user_id")
+                )
+                queryset = queryset.exclude(pk__in=Subquery(protected_owner_ids))
             opts = modeladmin.model._meta
             if request.POST.get("confirmation") is None:
                 request.current_app = modeladmin.admin_site.name
