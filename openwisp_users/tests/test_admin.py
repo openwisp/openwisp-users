@@ -1492,6 +1492,100 @@ class TestUsersAdmin(
             extra_payload={"confirmation": True},
         )
 
+    def test_bulk_user_action_lists_first_ten_users_without_permission(self):
+        org = self._get_org()
+        operator = self._create_administrator([org])
+        users = []
+        for index in range(12):
+            user = self._create_user(
+                username=f"bulk-owner-{index}", email=f"bulk-owner-{index}@example.com"
+            )
+            self._create_org_user(user=user, organization=org)
+            owner_org = self._create_org(
+                name=f"Owner organization {index}", slug=f"owner-organization-{index}"
+            )
+            organization_user = self._create_org_user(user=user, organization=owner_org)
+            self._create_org_owner(
+                organization_user=organization_user, organization=owner_org
+            )
+            users.append(user)
+        self.client.force_login(operator)
+
+        def user_link(user):
+            url = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+            return f'<a href="{url}">{user.username}</a>'
+
+        def get_denial_message(selected_users):
+            response = self.client.post(
+                reverse(f"admin:{self.app_label}_user_changelist"),
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [user.pk for user in selected_users],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+            return str(list(response.context["messages"])[0])
+
+        with self.subTest("single username without a conjunction or ellipsis"):
+            message = get_denial_message(users[:1])
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"this user: {user_link(users[0])}",
+            )
+
+        with self.subTest("natural conjunction for three usernames"):
+            message = get_denial_message(users[:3])
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users[:3]]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {user_links[0]}, {user_links[1]} and {user_links[2]}",
+            )
+
+        with self.subTest("truncated list of more than ten usernames"):
+            user_admin = django_admin.site._registry[User]
+            # Add a spy on UserAdmin.has_change_permission to verify early return when
+            # there are more than 11 offending users.
+            with patch.object(
+                user_admin,
+                "has_change_permission",
+                wraps=user_admin.has_change_permission,
+            ) as permission_check:
+                message = get_denial_message(users)
+            object_checks = [
+                call for call in permission_check.call_args_list if len(call.args) > 1
+            ]
+            self.assertEqual(len(object_checks), 11)
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {', '.join(user_links[:10])} …",
+            )
+
+        with self.subTest("username is escaped in the link"):
+            User.objects.filter(pk=users[0].pk).update(
+                username='<script>alert("x")</script>'
+            )
+            message = get_denial_message(users[:1])
+            self.assertIn("&lt;script&gt;", message)
+            self.assertNotIn("<script>", message)
+        self.assertEqual(
+            User.objects.filter(
+                pk__in=[user.pk for user in users], is_active=True
+            ).count(),
+            12,
+        )
+
     def test_org_admin_cannot_bulk_activate_or_deactivate_owner(self):
         org = self._get_org()
         owner = self._create_administrator(
@@ -1520,10 +1614,11 @@ class TestUsersAdmin(
             self.assertEqual(owner.expiration_date, expiration_date)
             self.assertEqual(org_user.expiration_date, expiration_date)
             self.assertRedirects(response, path)
+            owner_url = reverse(f"admin:{self.app_label}_user_change", args=[owner.pk])
             self.assertContains(
                 response,
-                "No users were updated because you don&#x27;t have permission "
-                "to modify some of the selected users.",
+                "No users were updated because you do not have permission to modify "
+                f'this user: <a href="{owner_url}">owner</a>',
             )
             self.assertNotContains(response, "Successfully")
 
@@ -1544,9 +1639,7 @@ class TestUsersAdmin(
                 confirmed=True,
             )
 
-        with self.subTest(
-            scenario="deactivating an owner and member before confirmation"
-        ):
+        with self.subTest("deactivating an owner and member before confirmation"):
             assert_denied(
                 action="make_inactive",
                 selected=[owner.pk, org_user.pk],
@@ -1554,9 +1647,7 @@ class TestUsersAdmin(
                 after=True,
             )
 
-        with self.subTest(
-            scenario="deactivating an owner and member after confirmation"
-        ):
+        with self.subTest("deactivating an owner and member after confirmation"):
             assert_denied(
                 action="make_inactive",
                 selected=[owner.pk, org_user.pk],
@@ -1580,9 +1671,7 @@ class TestUsersAdmin(
                 confirmed=True,
             )
 
-        with self.subTest(
-            scenario="activating an owner and member before confirmation"
-        ):
+        with self.subTest("activating an owner and member before confirmation"):
             assert_denied(
                 action="make_active",
                 selected=[owner.pk, org_user.pk],
@@ -1662,12 +1751,15 @@ class TestUsersAdmin(
                     "_selected_action": [org1_user.pk, org2_user.pk],
                     "confirmation": "Confirm",
                 },
+                follow=True,
             )
             org1_user.refresh_from_db()
             org2_user.refresh_from_db()
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(org1_user.is_active, False)
             self.assertEqual(org2_user.is_active, True)
+            self.assertNotContains(response, "No users were updated")
+            self.assertNotContains(response, org2_user.username)
 
         User.objects.filter(pk=org2_user.pk).update(is_active=False)
         with self.subTest("activation excludes a user from another organization"):
@@ -1678,12 +1770,35 @@ class TestUsersAdmin(
                     "_selected_action": [org1_user.pk, org2_user.pk],
                     "confirmation": "Confirm",
                 },
+                follow=True,
             )
             org1_user.refresh_from_db()
             org2_user.refresh_from_db()
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(org1_user.is_active, True)
             self.assertEqual(org2_user.is_active, False)
+            self.assertNotContains(response, "No users were updated")
+            self.assertNotContains(response, org2_user.username)
+
+        with self.subTest("denial does not disclose an unmanaged user"):
+            owner = self._create_administrator(
+                [org1], username="owner", email="owner@example.com"
+            )
+            owner_org = self._create_org(name="Owner org", slug="owner-org")
+            membership = self._create_org_user(user=owner, organization=owner_org)
+            self._create_org_owner(organization_user=membership, organization=owner_org)
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [owner.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            self.assertContains(response, "this user:")
+            self.assertContains(response, owner.username)
+            self.assertNotContains(response, org2_user.username)
 
     def test_action_confirmation_page(self):
         user = User.objects.create(
