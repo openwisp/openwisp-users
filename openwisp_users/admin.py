@@ -8,19 +8,19 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.actions import delete_selected
-from django.contrib.admin.utils import model_ngettext
+from django.contrib.admin.utils import model_ngettext, quote
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.timezone import localdate
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
@@ -237,6 +237,41 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     class Media:
         css = {"all": ("openwisp-users/css/admin.css",)}
 
+    def _format_permission_denied(self, users, has_more):
+        display_names = []
+        url_name = f"{self.opts.app_label}_{self.opts.model_name}_change"
+        for user in users:
+            url = reverse(
+                f"{self.admin_site.name}:{url_name}",
+                args=[quote(user.pk)],
+            )
+            display_names.append(format_html('<a href="{}">{}</a>', url, user.username))
+        count = len(users)
+        if has_more:
+            formatted_names = format_html_join(
+                ", ", "{}", ((name,) for name in display_names)
+            )
+        elif count > 1:
+            preceding = format_html_join(
+                ", ", "{}", ((name,) for name in display_names[:-1])
+            )
+            formatted_names = format_html(
+                "{} {} {}", preceding, _("and"), display_names[-1]
+            )
+        else:
+            formatted_names = display_names[0]
+        return format_html(
+            ngettext(
+                "No users were updated because you do not have permission "
+                "to modify this user: {usernames}{ending}",
+                "No users were updated because you do not have permission "
+                "to modify these users: {usernames}{ending}",
+                count,
+            ),
+            usernames=formatted_names,
+            ending=" …" if has_more else ".",
+        )
+
     def require_confirmation(func):
         """
         Decorator to lead to a confirmation page.
@@ -247,6 +282,40 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         """
 
         def wrapper(modeladmin, request, queryset):
+            # Bulk updates bypass the object checks used by the change form.
+            unauthorized_users = []
+            has_more_unauthorized_users = False
+            checked_pks = []
+            for obj in queryset.iterator():
+                if not modeladmin.has_change_permission(request, obj):
+                    if len(unauthorized_users) < 10:
+                        unauthorized_users.append(obj)
+                    else:
+                        has_more_unauthorized_users = True
+                        # An eleventh denial confirms truncation. The action cannot
+                        # proceed, so checking further users would not change it.
+                        break
+                else:
+                    checked_pks.append(obj.pk)
+            if unauthorized_users:
+                modeladmin.message_user(
+                    request,
+                    modeladmin._format_permission_denied(
+                        unauthorized_users, has_more_unauthorized_users
+                    ),
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+            queryset = queryset.filter(pk__in=checked_pks)
+            if not request.user.is_superuser:
+                protected_owner_ids = (
+                    OrganizationOwner.objects.filter(
+                        organization_user__user_id=OuterRef("pk")
+                    )
+                    .exclude(organization_user__user_id=request.user.pk)
+                    .values("organization_user__user_id")
+                )
+                queryset = queryset.exclude(pk__in=Subquery(protected_owner_ids))
             opts = modeladmin.model._meta
             if request.POST.get("confirmation") is None:
                 request.current_app = modeladmin.admin_site.name
