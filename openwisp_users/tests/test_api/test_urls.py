@@ -19,6 +19,8 @@ class TestApiUrls(SimpleTestCase):
             "change_password": "change_password",
             "email_list": "email_list",
             "email_update": "email_update",
+            "organization_membership_list": "organization_membership_list",
+            "organization_membership_detail": "organization_membership_detail",
             "group_list": "group_list",
             "group_detail": "group_detail",
             "user_auth_token": "obtain_auth_token",
