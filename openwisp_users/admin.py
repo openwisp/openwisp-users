@@ -237,19 +237,20 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     class Media:
         css = {"all": ("openwisp-users/css/admin.css",)}
 
-    def _format_permission_denied(self, request, users, has_more):
+    def _format_permission_denied(self, users, has_more):
         display_names = []
+        url_name = f"{self.opts.app_label}_{self.opts.model_name}_change"
         for user in users:
-            url_name = f"{self.opts.app_label}_{self.opts.model_name}_change"
             url = reverse(
                 f"{self.admin_site.name}:{url_name}",
                 args=[quote(user.pk)],
             )
             display_names.append(format_html('<a href="{}">{}</a>', url, user.username))
         count = len(users)
-        joined = format_html_join(", ", "{}", ((name,) for name in display_names))
         if has_more:
-            formatted_names = format_html("{} …", joined)
+            formatted_names = format_html_join(
+                ", ", "{}", ((name,) for name in display_names)
+            )
         elif count > 1:
             preceding = format_html_join(
                 ", ", "{}", ((name,) for name in display_names[:-1])
@@ -262,12 +263,13 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
         return format_html(
             ngettext(
                 "No users were updated because you do not have permission "
-                "to modify this user: {usernames}",
+                "to modify this user: {usernames}{ending}",
                 "No users were updated because you do not have permission "
-                "to modify these users: {usernames}",
+                "to modify these users: {usernames}{ending}",
                 count,
             ),
             usernames=formatted_names,
+            ending=" …" if has_more else ".",
         )
 
     def require_confirmation(func):
@@ -296,7 +298,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
                 modeladmin.message_user(
                     request,
                     modeladmin._format_permission_denied(
-                        request, unauthorized_users, has_more_unauthorized_users
+                        unauthorized_users, has_more_unauthorized_users
                     ),
                     messages.ERROR,
                 )

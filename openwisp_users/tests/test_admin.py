@@ -1533,7 +1533,7 @@ class TestUsersAdmin(
             self.assertEqual(
                 message,
                 "No users were updated because you do not have permission to modify "
-                f"this user: {user_link(users[0])}",
+                f"this user: {user_link(users[0])}.",
             )
 
         with self.subTest("natural conjunction for three usernames"):
@@ -1545,7 +1545,7 @@ class TestUsersAdmin(
             self.assertEqual(
                 message,
                 "No users were updated because you do not have permission to modify "
-                f"these users: {user_links[0]}, {user_links[1]} and {user_links[2]}",
+                f"these users: {user_links[0]}, {user_links[1]} and {user_links[2]}.",
             )
 
         with self.subTest("truncated list of more than ten usernames"):
@@ -1618,7 +1618,7 @@ class TestUsersAdmin(
             self.assertContains(
                 response,
                 "No users were updated because you do not have permission to modify "
-                f'this user: <a href="{owner_url}">owner</a>',
+                f'this user: <a href="{owner_url}">owner</a>.',
             )
             self.assertNotContains(response, "Successfully")
 
@@ -1797,7 +1797,8 @@ class TestUsersAdmin(
                 follow=True,
             )
             self.assertContains(response, "this user:")
-            self.assertContains(response, owner.username)
+            message = str(list(response.context["messages"])[0])
+            self.assertIn(f">{owner.username}</a>", message)
             self.assertNotContains(response, org2_user.username)
 
     def test_action_confirmation_page(self):
