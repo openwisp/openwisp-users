@@ -669,6 +669,32 @@ class OrganizationUserAdmin(
     fields = ("user", "organization", "is_admin")
     search_fields = ["user__username", "organization__name"]
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "user" and not request.user.is_superuser:
+            # Validate submitted user IDs against the manager's existing scope;
+            # otherwise a forged ID could grant access to another tenant's user.
+            kwargs["queryset"] = User.objects.filter(
+                id__in=OrganizationUser.objects.filter(
+                    organization_id__in=request.user.organizations_managed
+                ).values_list("user_id"),
+                is_superuser=False,
+            )
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        response = super().changeform_view(request, object_id, form_url, extra_context)
+        if request.method == "POST" and not request.user.is_superuser:
+            adminform = getattr(response, "context_data", {}).get("adminform")
+            if adminform and "user" in adminform.form.errors:
+                logger.warning(
+                    "Rejected organization membership %s with invalid user: "
+                    "actor=%s membership=%r",
+                    "change" if object_id else "addition",
+                    request.user.pk,
+                    object_id,
+                )
+        return response
+
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
         fields = super().get_readonly_fields(request, obj)
