@@ -14,7 +14,7 @@ from swapper import load_model
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
 from ... import settings as app_settings
-from ...api.serializers import OrganizationUserSerializer
+from ...api.serializers import OrganizationUserSerializer, SuperUserListSerializer
 from ..utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -782,6 +782,9 @@ class TestUsersApi(
     def test_create_user_enforces_password_validators(self):
         path = reverse("users:user_list")
         data = {"username": "tester", "email": "tester@test.com", "password": "short"}
+        serializer = SuperUserListSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("password", serializer.errors)
         response = self.client.post(path, data, content_type="application/json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("This password is too short", str(response.data["password"][0]))

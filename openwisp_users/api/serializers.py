@@ -278,6 +278,17 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             raise serializers.ValidationError(_("This field cannot be blank."))
         return value
 
+    def validate(self, data):
+        data = super().validate(data)
+        values = dict(data)
+        for field in self._skip_validation_fields + ["password"]:
+            values.pop(field, None)
+        try:
+            password_validation.validate_password(data["password"], user=User(**values))
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": error.messages})
+        return data
+
     def create(self, validated_data):
         group_data = validated_data.pop("groups", None)
         org_user_data = validated_data.pop("organization_users", None)
@@ -285,10 +296,6 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         email_verified = validated_data.pop("email_verified", False)
 
         instance = self.instance or self.Meta.model(**validated_data)
-        try:
-            password_validation.validate_password(password, user=instance)
-        except DjangoValidationError as error:
-            raise serializers.ValidationError({"password": error.messages})
         instance.set_password(password)
         instance.full_clean()
         instance.save()
