@@ -9,9 +9,10 @@ from dj_rest_auth.serializers import (
     PasswordResetSerializer as BasePasswordResetSerializer,
 )
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils.module_loading import import_string
@@ -284,6 +285,10 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
         email_verified = validated_data.pop("email_verified", False)
 
         instance = self.instance or self.Meta.model(**validated_data)
+        try:
+            password_validation.validate_password(password, user=instance)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": error.messages})
         instance.set_password(password)
         instance.full_clean()
         instance.save()
@@ -475,6 +480,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _("New password cannot be the same as your old password.")
             )
+        password_validation.validate_password(value, user=self.context["user"])
         return value
 
     def save(self, **kwargs):
