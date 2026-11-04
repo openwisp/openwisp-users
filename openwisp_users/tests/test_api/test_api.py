@@ -417,7 +417,7 @@ class TestUsersApi(
                 "new_password": "test1234",
                 "confirm_password": "test1234",
             }
-            with self.assertNumQueries(8):
+            with self.assertNumQueries(9):
                 r = self.client.put(path, data, content_type="application/json")
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
@@ -507,6 +507,23 @@ class TestUsersApi(
         self.assertEqual(owner.first_name, "Tester")
         self.assertTrue(owner.check_password("tester123"))
         self.assertEqual(email.email, "owner@test.com")
+
+    def test_org_manager_cannot_change_owner_of_inactive_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2", is_active=False)
+        manager = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=org2, user=owner, is_admin=True)
+        self._create_org_user(organization=org1, user=owner)
+        self.client.force_login(manager)
+        response = self.client.patch(
+            reverse("users:user_detail", args=(owner.pk,)),
+            {"first_name": "changed"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
 
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))

@@ -160,10 +160,8 @@ class AbstractUser(BaseUser):
 
     @cached_property
     def is_owner_of_any_organization(self):
-        for value in self.organizations_dict.values():
-            if value["is_owner"]:
-                return True
-        return False
+        OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+        return OrganizationOwner.objects.filter(organization_user__user=self).exists()
 
     @property
     def organizations_dict(self):
