@@ -554,6 +554,189 @@ class TestUsersAdmin(
             content.index('class="form-row field-is_admin"'),
         )
 
+    def test_organizationuser_admin_logs_rejected_user_assignments(self):
+        managed_org1 = self._create_org(name="managed1", slug="managed1")
+        unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
+        org_admin = self._create_administrator([managed_org1])
+        unmanaged_user = self._create_user(
+            username="unmanaged-user", email="unmanaged-user@example.com"
+        )
+        self._create_org_user(organization=unmanaged_org, user=unmanaged_user)
+        managed_user = self._create_user(
+            username="managed", email="managed@example.com"
+        )
+        managed_org_user = self._create_org_user(
+            organization=managed_org1, user=managed_user
+        )
+        self.client.force_login(org_admin)
+        add_url = reverse(f"admin:{self.app_label}_organizationuser_add")
+        change_url = reverse(
+            f"admin:{self.app_label}_organizationuser_change",
+            args=[managed_org_user.pk],
+        )
+
+        for url in (add_url, change_url):
+            with self.subTest("Rejected unmanaged user", url=url):
+                with self.assertLogs("django.request", level="WARNING") as logs:
+                    response = self.client.post(
+                        url,
+                        {
+                            "user": str(unmanaged_user.pk),
+                            "organization": str(managed_org1.pk),
+                        },
+                    )
+                self.assertEqual(response.status_code, 403)
+                self.assertIn("Forbidden (Permission denied)", logs.output[0])
+                self.assertIn(str(org_admin.pk), logs.output[0])
+                self.assertNotIn(str(unmanaged_user.pk), logs.output[0])
+
+        for value in ("invalid", ""):
+            with self.subTest("Invalid user ID", value=value):
+                with self.assertNoLogs("django.request", level="WARNING"):
+                    response = self.client.post(
+                        add_url, {"user": value, "organization": str(managed_org1.pk)}
+                    )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("user", response.context["adminform"].form.errors)
+
+        with self.subTest("Nonexistent user ID"):
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    add_url,
+                    {"user": str(uuid.uuid4()), "organization": str(managed_org1.pk)},
+                )
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest("Permitted user"):
+            with self.assertNoLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    change_url,
+                    {
+                        "user": str(managed_user.pk),
+                        "organization": str(managed_org1.pk),
+                    },
+                )
+            self.assertEqual(response.status_code, 302)
+
+    def test_organizationuser_admin_scopes_submitted_user(self):
+        managed_org1 = self._create_org(name="managed", slug="managed")
+        managed_org2 = self._create_org(name="managed2", slug="managed2")
+        unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
+        org_admin = self._create_administrator([managed_org1, managed_org2])
+        unmanaged_org_admin = self._create_administrator(
+            [unmanaged_org],
+            username="unmanaged-admin",
+            email="unmanaged-admin@example.com",
+        )
+        unmanaged_user = self._create_user(
+            username="unmanaged-user", email="unmanaged-user@example.com"
+        )
+        self._create_org_user(organization=unmanaged_org, user=unmanaged_user)
+        superuser = self._create_admin(username="superuser", email="super@example.com")
+        self._create_org_user(organization=managed_org2, user=superuser)
+        managed_user = self._create_user(
+            username="managed-user", email="managed-user@example.com"
+        )
+        managed_org_user = self._create_org_user(
+            organization=managed_org1, user=managed_user
+        )
+        replacement = self._create_user(
+            username="replacement", email="replacement@example.com"
+        )
+        self._create_org_user(organization=managed_org2, user=replacement)
+        managed_org2_user = self._create_user(
+            username="managed-org2-user", email="managed-org2-user@example.com"
+        )
+        self._create_org_user(organization=managed_org2, user=managed_org2_user)
+        add_url = reverse(f"admin:{self.app_label}_organizationuser_add")
+        change_url = reverse(
+            f"admin:{self.app_label}_organizationuser_change",
+            args=[managed_org_user.pk],
+        )
+        self.client.force_login(org_admin)
+
+        def assert_user_rejected(url, target):
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    url, {"user": str(target.pk), "organization": str(managed_org1.pk)}
+                )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=target, organization=managed_org1
+                ).count(),
+                0,
+            )
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, managed_user)
+
+        with self.subTest("Cannot add an unmanaged user to managed org1"):
+            assert_user_rejected(add_url, unmanaged_user)
+
+        with self.subTest("Cannot reassign an organization user to an unmanaged user"):
+            assert_user_rejected(change_url, unmanaged_user)
+
+        with self.subTest("Cannot add an unmanaged organization owner to managed org1"):
+            assert_user_rejected(add_url, unmanaged_org_admin)
+
+        with self.subTest("Cannot reassign an organization user to an unmanaged owner"):
+            assert_user_rejected(change_url, unmanaged_org_admin)
+
+        with self.subTest("Cannot add a superuser to managed org1"):
+            assert_user_rejected(add_url, superuser)
+
+        with self.subTest("Cannot reassign an organization user to a superuser"):
+            assert_user_rejected(change_url, superuser)
+
+        with self.subTest("Edit an organization user in managed org1"):
+            # Saving without reassignment must preserve the existing user.
+            response = self.client.post(
+                change_url,
+                {"user": str(managed_user.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, managed_user)
+
+        with self.subTest("Reassign to user in managed org2"):
+            response = self.client.post(
+                change_url,
+                {"user": str(replacement.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, replacement)
+
+        with self.subTest("Add user from managed org2"):
+            response = self.client.post(
+                add_url,
+                {
+                    "user": str(managed_org2_user.pk),
+                    "organization": str(managed_org1.pk),
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=managed_org2_user, organization=managed_org1
+                ).count(),
+                1,
+            )
+
+        with self.subTest("Superuser may add an any user"):
+            self.client.force_login(superuser)
+            response = self.client.post(
+                add_url,
+                {"user": str(unmanaged_user.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=unmanaged_user, organization=managed_org1
+                ).count(),
+                1,
+            )
+
     def test_admin_change_user_is_superuser_editable(self):
         admin = self._create_admin()
         self.client.force_login(admin)
