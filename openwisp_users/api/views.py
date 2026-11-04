@@ -20,7 +20,11 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from swapper import load_model
 
-from openwisp_users.api.permissions import DjangoModelPermissions
+from openwisp_users.api.permissions import (
+    CanChangeUser,
+    CanChangeUserEmail,
+    DjangoModelPermissions,
+)
 from openwisp_users.auth import create_auth_token
 from openwisp_users.backends import UsersAuthenticationBackend
 from openwisp_utils.api.pagination import OpenWispPagination
@@ -150,6 +154,8 @@ class OrganizationDetailView(BaseOrganizationView, RetrieveUpdateDestroyAPIView)
 
 
 class BaseUserView(ProtectedAPIMixin):
+    permission_classes = ProtectedAPIMixin.permission_classes + (CanChangeUser,)
+
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
@@ -221,7 +227,11 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         if self.request.user.id == self.kwargs["pk"]:
             self.permission_classes = [IsAuthenticated]
         else:
-            self.permission_classes = [IsAuthenticated, DjangoModelPermissions]
+            self.permission_classes = [
+                IsAuthenticated,
+                DjangoModelPermissions,
+                CanChangeUser,
+            ]
         return super().get_permissions()
 
     def get_object(self):
@@ -241,6 +251,7 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
             "id": self.kwargs["pk"],
         }
         obj = get_object_or_404(qs, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
         return obj
 
     def get_serializer_context(self):
@@ -271,6 +282,7 @@ class PasswordChangeView(ProtectedAPIMixin, BasePasswordChangeView):
 
 
 class BaseEmailView(ProtectedAPIMixin, FilterByParent, GenericAPIView):
+    permission_classes = ProtectedAPIMixin.permission_classes + (CanChangeUserEmail,)
     model = EmailAddress
     serializer_class = EmailAddressSerializer
 

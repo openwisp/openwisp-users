@@ -37,7 +37,7 @@ from openwisp_utils.admin import CopyableFieldsAdmin
 
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
-from .utils import BaseAdmin
+from .utils import BaseAdmin, user_not_allowed_to_change_owner
 
 Group = load_model("openwisp_users", "Group")
 Organization = load_model("openwisp_users", "Organization")
@@ -45,15 +45,6 @@ OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 User = get_user_model()
 logger = logging.getLogger(__name__)
-
-
-def user_not_allowed_to_change_owner(user, obj):
-    return (
-        obj
-        and not user.is_superuser
-        and user.pk != obj.pk
-        and obj.is_owner_of_any_organization
-    )
 
 
 class EmailAddressInline(admin.StackedInline):

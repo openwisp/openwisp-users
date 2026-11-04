@@ -438,6 +438,76 @@ class TestUsersApi(
             self.assertEqual(r.data["status"], "Success")
             self.assertEqual(r.data["message"], "Password updated successfully")
 
+    def test_org_manager_cannot_change_owner_of_another_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        manager = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        owner = self._create_user(
+            username="owner", email="owner@test.com", password="tester123"
+        )
+        self._create_org_user(organization=org2, user=owner, is_admin=True)
+        self._create_org_user(organization=org1, user=owner)
+        self.client.force_login(manager)
+        path = reverse("users:user_detail", args=(owner.pk,))
+        error = (
+            "You do not have permission to edit or delete this user "
+            "because they are owner of an organization."
+        )
+
+        with self.subTest("Retrieve the owner"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest("Update the owner"):
+            response = self.client.patch(
+                path, {"first_name": "changed"}, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Change the owner's password"):
+            response = self.client.put(
+                reverse("users:change_password", args=(owner.pk,)),
+                {
+                    "current_password": None,
+                    "new_password": "changed123",
+                    "confirm_password": "changed123",
+                },
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        email = EmailAddress.objects.get(user=owner)
+        email_path = reverse("users:email_update", args=(owner.pk, email.pk))
+
+        with self.subTest("Update the owner's email"):
+            response = self.client.patch(
+                email_path,
+                {"email": "changed@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Delete the owner's email"):
+            response = self.client.delete(email_path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Delete the owner"):
+            response = self.client.delete(path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        owner.refresh_from_db()
+        email.refresh_from_db()
+        self.assertEqual(owner.first_name, "Tester")
+        self.assertTrue(owner.check_password("tester123"))
+        self.assertEqual(email.email, "owner@test.com")
+
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
         self.client.force_login(admin)
