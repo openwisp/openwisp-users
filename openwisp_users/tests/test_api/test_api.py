@@ -6,7 +6,7 @@ from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, timedelta
 from swapper import load_model
@@ -514,6 +514,27 @@ class TestUsersApi(
         )
         self.assertEqual(response.status_code, 403)
 
+    def test_change_password_enforces_password_validators(self):
+        user = self._create_user(
+            username="user1", password="tester123", email="user1@test.com"
+        )
+        password_updated = localdate() - timedelta(days=30)
+        User.objects.filter(pk=user.pk).update(password_updated=password_updated)
+        path = reverse("users:change_password", args=(user.pk,))
+        data = {
+            "current_password": None,
+            "new_password": "tester123",
+            "confirm_password": "tester123",
+        }
+        response = self.client.put(path, data, content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            str(response.data["new_password"][0]),
+            "You cannot re-use your current password. Enter a new password.",
+        )
+        user.refresh_from_db()
+        self.assertEqual(user.password_updated, password_updated)
+
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
         self.client.force_login(admin)
@@ -752,6 +773,19 @@ class TestUsersApi(
             self.assertTrue(email.primary)
             # ensure the email verification link is not sent
             self.assertEqual(len(mail.outbox), mail_sent)
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"}
+        ]
+    )
+    def test_create_user_enforces_password_validators(self):
+        path = reverse("users:user_list")
+        data = {"username": "tester", "email": "tester@test.com", "password": "short"}
+        response = self.client.post(path, data, content_type="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("This password is too short", str(response.data["password"][0]))
+        self.assertFalse(User.objects.filter(username="tester").exists())
 
     def test_post_with_empty_form_api_400(self):
         path = reverse("users:user_list")
