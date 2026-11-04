@@ -554,10 +554,7 @@ class TestUsersAdmin(
             content.index('class="form-row field-is_admin"'),
         )
 
-    @patch("openwisp_users.admin.logger.warning")
-    def test_organizationuser_admin_logs_rejected_user_assignments(
-        self, mocked_warning
-    ):
+    def test_organizationuser_admin_logs_rejected_user_assignments(self):
         managed_org1 = self._create_org(name="managed1", slug="managed1")
         unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
         org_admin = self._create_administrator([managed_org1])
@@ -578,56 +575,50 @@ class TestUsersAdmin(
             args=[managed_org_user.pk],
         )
 
-        with self.subTest("Rejected unmanaged user on add"):
-            self.client.post(
-                add_url,
-                {"user": str(unmanaged_user.pk), "organization": str(managed_org1.pk)},
-            )
-            mocked_warning.assert_called_once_with(
-                "Rejected organization membership %s with invalid user: "
-                "actor=%s membership=%r",
-                "addition",
-                org_admin.pk,
-                None,
-            )
+        for url in (add_url, change_url):
+            with self.subTest("Rejected unmanaged user", url=url):
+                with self.assertLogs("django.request", level="WARNING") as logs:
+                    response = self.client.post(
+                        url,
+                        {
+                            "user": str(unmanaged_user.pk),
+                            "organization": str(managed_org1.pk),
+                        },
+                    )
+                self.assertEqual(response.status_code, 403)
+                self.assertIn("Forbidden (Permission denied)", logs.output[0])
+                self.assertIn(str(org_admin.pk), logs.output[0])
+                self.assertNotIn(str(unmanaged_user.pk), logs.output[0])
 
-        mocked_warning.reset_mock()
-        with self.subTest("Rejected unmanaged user on change"):
-            self.client.post(
-                change_url,
-                {"user": str(unmanaged_user.pk), "organization": str(managed_org1.pk)},
-            )
-            mocked_warning.assert_called_once_with(
-                "Rejected organization membership %s with invalid user: "
-                "actor=%s membership=%r",
-                "change",
-                org_admin.pk,
-                str(managed_org_user.pk),
-            )
+        for value in ("invalid", ""):
+            with self.subTest("Invalid user ID", value=value):
+                with self.assertNoLogs("django.request", level="WARNING"):
+                    response = self.client.post(
+                        add_url, {"user": value, "organization": str(managed_org1.pk)}
+                    )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("user", response.context["adminform"].form.errors)
 
-        mocked_warning.reset_mock()
-        with self.subTest("Malformed user ID is logged without its value"):
-            self.client.post(
-                add_url, {"user": "invalid", "organization": str(managed_org1.pk)}
-            )
-            mocked_warning.assert_called_once_with(
-                "Rejected organization membership %s with invalid user: "
-                "actor=%s membership=%r",
-                "addition",
-                org_admin.pk,
-                None,
-            )
-        mocked_warning.reset_mock()
+        with self.subTest("Nonexistent user ID"):
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    add_url,
+                    {"user": str(uuid.uuid4()), "organization": str(managed_org1.pk)},
+                )
+            self.assertEqual(response.status_code, 403)
 
-        with self.subTest("Permitted user is not logged"):
-            self.client.post(
-                change_url,
-                {"user": str(managed_user.pk), "organization": str(managed_org1.pk)},
-            )
-            mocked_warning.assert_not_called()
+        with self.subTest("Permitted user"):
+            with self.assertNoLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    change_url,
+                    {
+                        "user": str(managed_user.pk),
+                        "organization": str(managed_org1.pk),
+                    },
+                )
+            self.assertEqual(response.status_code, 302)
 
-    @patch("openwisp_users.admin.logger.warning")
-    def test_organizationuser_admin_scopes_submitted_user(self, mocked_warning):
+    def test_organizationuser_admin_scopes_submitted_user(self):
         managed_org1 = self._create_org(name="managed", slug="managed")
         managed_org2 = self._create_org(name="managed2", slug="managed2")
         unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
@@ -665,12 +656,11 @@ class TestUsersAdmin(
         self.client.force_login(org_admin)
 
         def assert_user_rejected(url, target):
-            mocked_warning.reset_mock()
-            response = self.client.post(
-                url, {"user": str(target.pk), "organization": str(managed_org1.pk)}
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertIn("user", response.context["adminform"].form.errors)
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    url, {"user": str(target.pk), "organization": str(managed_org1.pk)}
+                )
+            self.assertEqual(response.status_code, 403)
             self.assertEqual(
                 OrganizationUser.objects.filter(
                     user=target, organization=managed_org1
@@ -679,7 +669,6 @@ class TestUsersAdmin(
             )
             managed_org_user.refresh_from_db()
             self.assertEqual(managed_org_user.user, managed_user)
-            self.assertEqual(mocked_warning.call_count, 1)
 
         with self.subTest("Cannot add an unmanaged user to managed org1"):
             assert_user_rejected(add_url, unmanaged_user)

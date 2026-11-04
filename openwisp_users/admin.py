@@ -14,7 +14,7 @@ from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm as BaseUserChangeForm
 from django.contrib.auth.forms import UserCreationForm as BaseUserCreationForm
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import OuterRef, Q, Subquery
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpResponseRedirect
@@ -671,29 +671,32 @@ class OrganizationUserAdmin(
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "user" and not request.user.is_superuser:
-            # Validate submitted user IDs against the manager's existing scope;
-            # otherwise a forged ID could grant access to another tenant's user.
-            kwargs["queryset"] = User.objects.filter(
+            # Filter only non-superusers belonging to organizations
+            # managed by the requester.
+            queryset = User.objects.filter(
                 id__in=OrganizationUser.objects.filter(
                     organization_id__in=request.user.organizations_managed
                 ).values_list("user_id"),
                 is_superuser=False,
             )
+            self._check_user(request, queryset)
+            kwargs["queryset"] = queryset
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        response = super().changeform_view(request, object_id, form_url, extra_context)
-        if request.method == "POST" and not request.user.is_superuser:
-            adminform = getattr(response, "context_data", {}).get("adminform")
-            if adminform and "user" in adminform.form.errors:
-                logger.warning(
-                    "Rejected organization membership %s with invalid user: "
-                    "actor=%s membership=%r",
-                    "change" if object_id else "addition",
-                    request.user.pk,
-                    object_id,
-                )
-        return response
+    def _check_user(self, request, queryset):
+        user_id = request.POST.get("user")
+        if request.method != "POST" or not user_id:
+            return
+        try:
+            # Detect a submitted user ID outside the requester's scope.
+            allowed = queryset.filter(pk=user_id).exists()
+        except (ValidationError, ValueError, TypeError, OverflowError):
+            return
+        if not allowed:
+            # Django logs this potentially malicious request as a warning.
+            raise PermissionDenied(
+                f"Rejected unavailable membership user: actor={request.user.pk}"
+            )
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields
