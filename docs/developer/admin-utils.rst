@@ -34,11 +34,13 @@ This class has two important attributes:
 Disabled Organization Write Protection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``MultitenantAdminMixin`` also blocks changes to any object belonging to a
-:ref:`disabled organization <users_disabled_organization>`, while still
-allowing it to be viewed and deleted. This also applies to superusers. For
-models whose organization is reached through a parent, the mixin follows
-``multitenant_parent`` to protect those objects too.
+When an organization is disabled, its data must remain available for
+inspection and cleanup but must not be modified. ``MultitenantAdminMixin``
+enforces this rule in the admin: users, including superusers, can view and
+delete objects belonging to a :ref:`disabled organization
+<users_disabled_organization>`, but cannot change them. For models linked
+to an organization through a parent, the mixin follows
+``multitenant_parent`` to find the organization.
 
 This is controlled by the ``disabled_organization_write_protection`` class
 attribute, which defaults to ``True``. Set it to ``False`` on a specific
@@ -58,19 +60,25 @@ The ``organization`` form field excludes disabled organizations for
 everyone, including superusers. An opted-out admin keeps the object's
 current disabled organization selectable so it can be saved.
 
-The same protection applies to **inlines** attached to a disabled object.
-The parent admin denies adding and changing inline rows, even when an
-inline does not use the mixin. Deleting an inline through the parent form
-requires permission to change the parent. Organization admin retains
-change permission to allow re-enabling the organization. For an editable
-parent such as User admin, ``MultitenantReadOnlyInlineFormSet`` protects
-disabled rows while allowing their deletion. Set
-``disabled_organization_write_protection = False`` on the parent admin or
-on an individual inline to opt out.
+An admin change form can also contain **inlines**, which edit related
+objects on the same page. When the parent belongs to a disabled
+organization, the mixin prevents adding or editing these rows, including
+rows whose inline does not use the mixin. Deleting a row through the form
+requires permission to change the parent. The organization admin keeps
+change permission so a superuser can re-enable the organization.
 
-Custom admin actions are also blocked for disabled-organization objects,
-except for deletion actions. To allow a specific lifecycle action while
-keeping the rest of the protection enabled, list its name in
+Some parents, such as a user, can remain editable while individual inline
+rows belong to disabled organizations. Use
+``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
+still allowing their deletion. To disable this protection for a particular
+parent admin or inline, set ``disabled_organization_write_protection =
+False`` on it.
+
+Admin actions can change several selected objects at once, so they also
+need the write protection. The mixin blocks actions when the selection
+contains an object belonging to a disabled organization, except for
+deletion actions. To allow a specific action while keeping the rest of the
+protection enabled, list its name in
 ``disabled_organization_action_exclusions``:
 
 .. code-block:: python
@@ -78,10 +86,11 @@ keeping the rest of the protection enabled, list its name in
     class DeviceAdmin(MultitenantAdminMixin, admin.ModelAdmin):
         disabled_organization_action_exclusions = ("deactivate_device",)
 
-The mixin resolves an object's organization from ``organization`` by
-default and follows ``multitenant_parent`` when configured. Admins using
-another relation can override ``get_object_organization()`` to return the
-related organization.
+The mixin needs to find an object's organization before it can check
+whether it is disabled. By default it uses the ``organization`` relation,
+or follows ``multitenant_parent`` when configured. If a model uses another
+relationship, override ``get_object_organization()`` on its admin to
+return the organization.
 
 ``MultitenantOrgFilter``
 ------------------------

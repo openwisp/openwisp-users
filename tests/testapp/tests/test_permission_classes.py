@@ -469,7 +469,7 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             response = self.client.delete(detail_url, **auth)
             self.assertEqual(response.status_code, 204)
 
-    def test_disabled_org_api_crud_both_roles(self):
+    def test_disabled_org_api_crud_by_manager_and_superuser(self):
         org = self._create_org(name="api-mixin-org-both")
         template = self._create_template(name="t-both", organization=org)
         org.is_active = False
@@ -595,30 +595,28 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         self.assertEqual(set(available), {active_tag, shared_tag})
         self.assertNotIn(disabled_tag, available)
         view = ShelfCreateView.as_view()
-        request = APIRequestFactory().post(
-            "/",
+
+        def create_shelf(data):
+            request = APIRequestFactory().post("/", data, format="json")
+            force_authenticate(request, user=self._get_admin())
+            return view(request)
+
+        response = create_shelf(
             {
                 "name": "rejected",
                 "organization": str(active_org.pk),
                 "tags": [str(disabled_tag.pk)],
-            },
-            format="json",
+            }
         )
-        force_authenticate(request, user=self._get_admin())
-        response = view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(Shelf.objects.filter(name="rejected").count(), 0)
-        request = APIRequestFactory().post(
-            "/",
+        response = create_shelf(
             {
                 "name": "accepted",
                 "organization": str(active_org.pk),
                 "tags": [str(active_tag.pk), str(shared_tag.pk)],
-            },
-            format="json",
+            }
         )
-        force_authenticate(request, user=self._get_admin())
-        response = view(request)
         self.assertEqual(response.status_code, 201)
         shelf = Shelf.objects.get(name="accepted")
         self.assertEqual(set(shelf.tags.all()), {active_tag, shared_tag})

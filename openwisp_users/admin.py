@@ -116,9 +116,11 @@ class OrganizationOwnerInline(admin.StackedInline):
 
 class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
     """
-    Keep rows belonging to a disabled organization valid on no-op saves while
-    making their editable fields read-only and preserving deletion when the
-    parent can be changed, as in User admin.
+    Make inline rows from disabled organizations read-only but deletable.
+
+    An editable parent, such as a user, may have rows from both active and
+    disabled organizations. Existing disabled rows must remain valid when the
+    parent form is saved, even though their fields cannot be changed.
     """
 
     organization_fk_field = "organization"
@@ -131,6 +133,7 @@ class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
         return organization
 
     def add_fields(self, form, index):
+        """Protect each existing disabled-organization row after fields are added."""
         super().add_fields(form, index)
         instance = getattr(form, "instance", None)
         organization_id = getattr(instance, f"{self.organization_fk_field}_id", None)
@@ -184,17 +187,16 @@ class OrganizationUserInline(admin.StackedInline):
         formset = super().get_formset(request, obj=obj, **kwargs)
         org_field = formset.form.base_fields["organization"]
         org_field.queryset = org_field.queryset.filter(is_active=True)
-        if request.user.is_superuser:
-            return formset
-        org_field.queryset = org_field.queryset.filter(
-            pk__in=request.user.organizations_managed
-        )
+        if not request.user.is_superuser:
+            org_field.queryset = org_field.queryset.filter(
+                pk__in=request.user.organizations_managed
+            )
         return formset
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """
-        Use the filtered endpoint because the stock autocomplete includes
-        disabled organizations.
+        Use an autocomplete widget that excludes disabled organizations from new
+        membership choices. The default admin endpoint includes them.
         """
         if db_field.name == "organization" and db_field.name in (
             self.get_autocomplete_fields(request)
@@ -205,7 +207,7 @@ class OrganizationUserInline(admin.StackedInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def has_add_permission(self, request, obj=None):
-        # Without an active managed organization, the add form cannot be used.
+        # Managers need an active organization to create a membership.
         if not request.user.is_superuser and not request.user.organizations_managed:
             return False
         return super().has_add_permission(request, obj)

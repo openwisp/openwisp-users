@@ -17,13 +17,13 @@ User = get_user_model()
 
 
 class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-    # Keep ShelfAdmin unchanged while testing the inline write-protection opt-out.
+    # Test an admin with disabled organization write protection turned off.
     disabled_organization_write_protection = False
     fields = ["name", "organization"]
     inlines = [BookInline]
 
 
-# Provide a mutating action to exercise the disabled organization guard.
+# Test an admin action that changes objects subject to the disabled organization guard.
 class ShelfActionAdmin(MultitenantAdminMixin, admin.ModelAdmin):
     actions = ["rename_selected"]
 
@@ -37,6 +37,12 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
     shelf_model = Shelf
     library_model = Library
     config_model = Config
+
+    def _action_request(self, data):
+        request = RequestFactory().post("/", data)
+        request.user = self._get_admin()
+        request._messages = CookieStorage(request)
+        return request
 
     def _create_multitenancy_test_env(self):
         org1 = self._create_org(name="org1")
@@ -90,19 +96,24 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
     def test_book_shelf_fk_queryset(self):
         data = self._create_multitenancy_test_env()
         url = reverse("admin:testapp_book_add")
-        cases = (
-            ("administrator", {data["s1"].pk}),
-            ("admin", {data["s1"].pk, data["s2"].pk}),
-        )
-        for username, expected_shelf_pks in cases:
-            with self.subTest(username=username):
-                self._login(username=username, password="tester")
-                response = self.client.get(url)
-                queryset = response.context["adminform"].form.fields["shelf"].queryset
-                self.assertEqual(
-                    set(queryset.values_list("pk", flat=True)), expected_shelf_pks
-                )
-                self._logout()
+        with self.subTest("administrator sees shelves of managed active organizations"):
+            self._login(username="administrator", password="tester")
+            response = self.client.get(url)
+            queryset = response.context["adminform"].form.fields["shelf"].queryset
+            self.assertEqual(
+                set(queryset.values_list("pk", flat=True)), {data["s1"].pk}
+            )
+            self._logout()
+
+        with self.subTest("superuser sees shelves of all active organizations"):
+            self._login(username="admin", password="tester")
+            response = self.client.get(url)
+            queryset = response.context["adminform"].form.fields["shelf"].queryset
+            self.assertEqual(
+                set(queryset.values_list("pk", flat=True)),
+                {data["s1"].pk, data["s2"].pk},
+            )
+            self._logout()
 
     @mock.patch.object(ShelfAdmin, "ordering", ("name",))
     def test_book_shelf_fk_autocomplete_view(self):
@@ -140,12 +151,9 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         shelf = self._create_shelf(name="action-guard-shelf", organization=org)
         org.is_active = False
         org.save()
-        request = RequestFactory().post(
-            "/",
+        request = self._action_request(
             {"action": "rename_selected", "_selected_action": [str(shelf.pk)]},
         )
-        request.user = self._get_admin()
-        request._messages = CookieStorage(request)
         model_admin = ShelfActionAdmin(Shelf, admin.site)
         self.assertTrue(model_admin.has_delete_permission(request, shelf))
         response = model_admin.response_action(
@@ -162,11 +170,9 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         class ShelfActionExemptionAdmin(ShelfActionAdmin):
             disabled_organization_action_exclusions = ("rename_selected",)
 
-        request = RequestFactory().post(
-            "/",
+        request = self._action_request(
             {"action": "rename_selected", "_selected_action": [str(shelf.pk)]},
         )
-        request.user = self._get_admin()
         model_admin = ShelfActionExemptionAdmin(Shelf, admin.site)
         model_admin.response_action(request, Shelf.objects.filter(pk=shelf.pk))
         shelf.refresh_from_db()
@@ -180,16 +186,13 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         model_admin = ShelfActionAdmin(Shelf, admin.site)
 
         def assert_rename_blocked(actions, index):
-            request = RequestFactory().post(
-                "/",
+            request = self._action_request(
                 {
                     "action": actions,
                     "index": index,
                     "_selected_action": [str(shelf.pk)],
                 },
             )
-            request.user = self._get_admin()
-            request._messages = CookieStorage(request)
             model_admin.response_action(request, Shelf.objects.all())
             shelf.refresh_from_db()
             self.assertEqual(shelf.name, "action-guard-shelf")
@@ -205,15 +208,12 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         first = self._create_shelf(name="first", organization=org)
         second = self._create_shelf(name="second", organization=org)
         third = self._create_shelf(name="third", organization=org)
-        request = RequestFactory().post(
-            "/",
+        request = self._action_request(
             {
                 "action": "rename_selected",
                 "_selected_action": [str(first.pk), str(second.pk), str(third.pk)],
             },
         )
-        request.user = self._get_admin()
-        request._messages = CookieStorage(request)
         model_admin = ShelfActionAdmin(Shelf, admin.site)
         with self.assertNumQueries(2):
             model_admin.response_action(request, Shelf.objects.all())
@@ -231,15 +231,12 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         book = self._create_book(name="action-book", organization=organization)
         first = self._create_library(name="first-library", book=book)
         second = self._create_library(name="second-library", book=book)
-        request = RequestFactory().post(
-            "/",
+        request = self._action_request(
             {
                 "action": "rename_selected",
                 "_selected_action": [str(first.pk), str(second.pk)],
             },
         )
-        request.user = self._get_admin()
-        request._messages = CookieStorage(request)
         model_admin = LibraryActionAdmin(Library, admin.site)
         with self.assertNumQueries(2):
             model_admin.response_action(request, Library.objects.all())
@@ -302,12 +299,9 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         library = self._create_library(name="resolver-library", book=book)
         org.is_active = False
         org.save()
-        request = RequestFactory().post(
-            "/",
+        request = self._action_request(
             {"action": "rename_selected", "_selected_action": [str(library.pk)]},
         )
-        request.user = self._get_admin()
-        request._messages = CookieStorage(request)
         model_admin = LibraryActionAdmin(Library, admin.site)
         self.assertEqual(model_admin.has_change_permission(request, library), False)
         model_admin.response_action(request, Library.objects.filter(pk=library.pk))

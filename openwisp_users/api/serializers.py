@@ -133,6 +133,11 @@ class OrganizationDetailSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
+        """Limit updates to a disabled organization to re-enabling or cleanup.
+
+        Compare values with the saved organization so a PUT can include
+        unchanged fields while re-enabling it or removing its owner.
+        """
         if self.instance and not self.instance.is_active:
             owner_data = data.get("owner") or {}
             owner_present = "owner" in data

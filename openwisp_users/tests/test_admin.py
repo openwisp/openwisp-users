@@ -2399,7 +2399,7 @@ class TestUsersAdmin(
         org = self._create_org(name="disabled-admin-org", is_active=False)
         path = reverse(f"admin:{self.app_label}_organization_change", args=[org.pk])
 
-        with self.subTest("Fields readonly except is_active, no 500"):
+        with self.subTest("disabled organization form only permits changing is_active"):
             response = self.client.get(path)
             self.assertEqual(response.status_code, 200)
             self.assertNotContains(
@@ -2408,7 +2408,7 @@ class TestUsersAdmin(
             self.assertContains(response, org.name)
             self.assertContains(response, 'name="is_active"')
 
-        with self.subTest("re-enabling works"):
+        with self.subTest("re-enabling disabled org works"):
             params = {
                 "is_active": "on",
                 "owner-TOTAL_FORMS": "0",
@@ -2567,7 +2567,7 @@ class TestUsersAdmin(
             f"admin:{self.app_label}_organizationuser_change", args=[org_user.pk]
         )
 
-        with self.subTest("Change blocked for superuser"):
+        with self.subTest("superuser can view but cannot change disabled membership"):
             # View access remains; only the write is rejected.
             response = self.client.get(change_path)
             self.assertEqual(response.status_code, 200)
@@ -2584,7 +2584,7 @@ class TestUsersAdmin(
             org_user.refresh_from_db()
             self.assertFalse(org_user.is_admin)
 
-        with self.subTest("Delete still allowed"):
+        with self.subTest("superuser can delete disabled membership"):
             delete_path = reverse(
                 f"admin:{self.app_label}_organizationuser_delete", args=[org_user.pk]
             )

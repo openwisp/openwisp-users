@@ -72,6 +72,18 @@ class TestOrganizationAutocompleteField(
             self.assertIn(option.text, visible)
             self.assertNotIn(option.text, hidden)
 
+    def _create_disabled_bio(self, username):
+        organization = self._create_org(name=f"disabled-{username}-org")
+        user = self._create_user(username=username, email=f"{username}@example.com")
+        bio = Bio.objects.create(
+            user=user, organization=organization, website="https://example.com"
+        )
+        organization.is_active = False
+        organization.save()
+        inline_prefix = Bio._meta.get_field("user").remote_field.get_accessor_name()
+        path = reverse(f"admin:{User._meta.app_label}_user_change", args=[user.pk])
+        return bio, inline_prefix, path, user, organization
+
     def test_book_add_form_organization_field(self):
         path = reverse("admin:testapp_book_add")
         org1 = self._create_org(name="org1")
@@ -172,7 +184,7 @@ class TestOrganizationAutocompleteField(
             self.assertEqual(org_select.first_selected_option.text, org1.name)
         self.logout()
 
-    def test_user_add_form_does_not_hang(self):
+    def test_user_add_form_initializes_organization_autocomplete(self):
         path = reverse(f"admin:{User._meta.app_label}_user_add")
         self.login(username=self.admin_username, password=self.admin_password)
         self.open(path)
@@ -183,20 +195,8 @@ class TestOrganizationAutocompleteField(
         )
         self.logout()
 
-    def _create_disabled_bio(self, username):
-        organization = self._create_org(name=f"disabled-{username}-org")
-        user = self._create_user(username=username, email=f"{username}@example.com")
-        bio = Bio.objects.create(
-            user=user, organization=organization, website="https://example.com"
-        )
-        organization.is_active = False
-        organization.save()
-        inline_prefix = Bio._meta.get_field("user").remote_field.get_accessor_name()
-        path = reverse(f"admin:{User._meta.app_label}_user_change", args=[user.pk])
-        return bio, inline_prefix, path, user, organization
-
     def test_user_admin_disabled_org_bio(self):
-        with self.subTest("saving user fields"):
+        with self.subTest("saving user preserves read-only disabled organization bio"):
             bio, inline_prefix, path, user, organization = self._create_disabled_bio(
                 "disabled-bio-save"
             )
@@ -231,7 +231,7 @@ class TestOrganizationAutocompleteField(
             self.assertEqual(bio.organization_id, organization.pk)
             self.logout()
 
-        with self.subTest("deleting the disabled-organization bio"):
+        with self.subTest("deleting disabled organization bio preserves user"):
             bio, inline_prefix, path, user, organization = self._create_disabled_bio(
                 "disabled-bio-delete"
             )

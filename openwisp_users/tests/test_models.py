@@ -485,12 +485,14 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.subTest("reassign the user of a disabled organization membership"):
             org = self._create_org(name="test-org-reassign-user")
             user = self._create_user(username="user6", email="user6@example.com")
-            other_user = self._create_user(username="user7", email="user7@example.com")
+            replacement_user = self._create_user(
+                username="user7", email="user7@example.com"
+            )
             org_user = self._create_org_user(organization=org, user=user)
             org.is_active = False
             org.save()
             org_user.refresh_from_db()
-            org_user.user = other_user
+            org_user.user = replacement_user
             with self.assertRaisesMessage(
                 ValidationError,
                 "Memberships of a disabled organization cannot be modified.",

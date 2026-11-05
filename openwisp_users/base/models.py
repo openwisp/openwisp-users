@@ -484,19 +484,20 @@ class BaseOrganization(models.Model):
     def save(self, *args, **kwargs):
         is_new = self._state.adding
         update_fields = kwargs.get("update_fields")
+        # An omitted is_active is not written, even if the instance differs
+        # from the database, so it must not trigger a status change signal.
+        check_status = not is_new and (
+            update_fields is None or "is_active" in update_fields
+        )
         previous_is_active = None
-        if not is_new and (update_fields is None or "is_active" in update_fields):
+        if check_status:
             previous_is_active = (
                 self.__class__.objects.filter(pk=self.pk)
                 .values_list("is_active", flat=True)
                 .first()
             )
         super().save(*args, **kwargs)
-        if (
-            not is_new
-            and (update_fields is None or "is_active" in update_fields)
-            and self.is_active != previous_is_active
-        ):
+        if check_status and self.is_active != previous_is_active:
             signal = organization_enabled if self.is_active else organization_disabled
             instance = copy.copy(self)
             transaction.on_commit(

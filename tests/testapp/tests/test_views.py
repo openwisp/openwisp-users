@@ -1,11 +1,12 @@
 from unittest.mock import patch
 
 from django.contrib.admin import site
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from swapper import load_model
 
 from openwisp_users.tests.utils import TestMultitenantAdminMixin
+from openwisp_users.views import AutocompleteJsonView, BaseAutocompleteJsonView
 from openwisp_utils.tests import capture_stderr
 
 Organization = load_model("openwisp_users", "Organization")
@@ -89,6 +90,30 @@ class TestAutocompleteJsonView(TestMultitenantAdminMixin, TestCase):
             ids = [option["id"] for option in response.json()["results"]]
             self.assertIn(str(org1.pk), ids)
             self.assertIn(str(org2.pk), ids)
+
+    def test_autocomplete_excludes_disabled_organization_proxy(self):
+        class OrganizationProxy(Organization):
+            class Meta:
+                proxy = True
+                app_label = "testapp"
+
+        active_org = self._create_org(name="active-proxy")
+        disabled_org = self._create_org(name="disabled-proxy", is_active=False)
+        request = RequestFactory().get("/", {"exclude_disabled": "true"})
+        request.user = self._get_admin()
+        view = AutocompleteJsonView()
+        view.request = request
+        with (
+            patch.object(view, "get_source_field_filter", return_value=None),
+            patch.object(
+                BaseAutocompleteJsonView,
+                "get_queryset",
+                return_value=OrganizationProxy.objects.filter(
+                    pk__in=[active_org.pk, disabled_org.pk]
+                ),
+            ),
+        ):
+            self.assertEqual(list(view.get_queryset()), [active_org])
 
     def test_autocomplete_view_for_inline_admin(self):
         admin = self._get_admin()

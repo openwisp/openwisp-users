@@ -190,13 +190,7 @@ configuration.
 **Full python path**: ``openwisp_users.api.mixins.ProtectedAPIMixin``.
 
 This mixin provides a set of authentication and permission classes that
-are commonly used across various OpenWISP modules API views, including
-``DisabledOrgReadOnly`` (see above).
-
-If a view overrides ``permission_classes`` entirely instead of extending
-``ProtectedAPIMixin.permission_classes``, it will not inherit
-``DisabledOrgReadOnly`` (or any future addition to the mixin's defaults)
-automatically, and must re-declare it explicitly if the guard is needed.
+are commonly used across various OpenWISP modules API views.
 
 Usage example:
 

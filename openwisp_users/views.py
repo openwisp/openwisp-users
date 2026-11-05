@@ -35,7 +35,7 @@ class AutocompleteJsonView(BaseAutocompleteJsonView):
         if not self.request.user.is_superuser and org_lookup:
             qs = qs.filter(**{org_lookup: self.request.user.organizations_managed})
         if (
-            qs.model == Organization
+            issubclass(qs.model, Organization)
             and self.request.GET.get("exclude_disabled") == "true"
         ):
             qs = qs.filter(is_active=True)

@@ -156,6 +156,12 @@ class MultitenantAdminMixin(object):
         return actions
 
     def _guard_action(self, action):
+        """
+        Block an action if a selected object belongs to a disabled organization.
+
+        Delete actions and explicitly excluded actions are not wrapped.
+        """
+
         @wraps(action)
         def guarded(model_admin, request, queryset):
             checked_queryset = queryset
@@ -201,10 +207,14 @@ class MultitenantAdminMixin(object):
 
     def _edit_form(self, request, form, obj=None):
         """
-        Filter form fields by organization and exclude disabled choices.
+        Restrict organization and related-object choices to the user's scope.
 
-        An opted-out admin keeps the object's current disabled organization
-        selectable so the existing object can still be saved.
+        Non-superusers can select only organizations they manage and related
+        objects from those organizations, subject to shared-object settings.
+        Disabled organizations and their related objects are excluded.
+
+        If the admin disables write protection, the object's current disabled
+        organization remains selectable so the existing object can be saved.
         """
         fields = form.base_fields
         user = request.user

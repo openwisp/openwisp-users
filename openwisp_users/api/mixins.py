@@ -185,10 +185,11 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def filter_fields(self):
         """
-        Restrict the querysets of writable relational fields so users can
-        only select active organizations they manage, and related objects
-        belonging to those organizations (including shared objects when
-        ``include_shared`` is set).
+        Limit submitted relationships and renderd choices in the browsable API.
+
+        Users can select active organizations within their permitted scope and
+        related objects belonging to those organizations. Shared objects are
+        included according to the user's role and ``include_shared``.
         """
         user = self.context["request"].user
         organization_filter = None
@@ -206,20 +207,19 @@ class FilterSerializerByOrganization(OrgLookup):
         field.error_messages["does_not_exist"] = DISABLED_ORGANIZATION_ERROR_MESSAGE
         view = self.context.get("view")
         organization = getattr(self.instance, "organization", None)
-        if (
+        # An opted-out view must accept the existing disabled organization
+        # when updating the object, without accepting other disabled choices.
+        keep_current = (
             getattr(view, "allow_disabled_organization_writes", False)
             and organization is not None
             and not organization.is_active
-        ):
+        )
+        if keep_current:
             queryset |= field.queryset.filter(pk=organization.pk)
         if organization_filter is not None:
             field.allow_null = False
             allowed_organizations = Q(pk__in=organization_filter)
-            if (
-                getattr(view, "allow_disabled_organization_writes", False)
-                and organization is not None
-                and not organization.is_active
-            ):
+            if keep_current:
                 allowed_organizations |= Q(pk=organization.pk)
             # Keep the existing disabled organization available only for an
             # opted-out update, without allowing other unmanaged organizations.
@@ -235,10 +235,12 @@ class FilterSerializerByOrganization(OrgLookup):
             return
         conditions = Q(**{f"{self.org_field}__is_active": True})
         if organization_filter is None:
+            # Superusers and anonymous users have no organization scope here.
             conditions |= Q(**{f"{self.org_field}__isnull": True})
         else:
             conditions &= Q(**{self.organization_lookup: organization_filter})
             if self.include_shared:
+                # Some serializers also allow objects shared systemwide.
                 conditions |= Q(**{f"{self.org_field}__isnull": True})
         field.queryset = queryset.filter(conditions)
 
@@ -250,6 +252,11 @@ class FilterSerializerByOrganization(OrgLookup):
             self.filter_fields()
 
     def bind(self, field_name, parent):
+        """Apply request-based restrictions when this serializer is nested.
+
+        A nested serializer can be initialized before its parent supplies the
+        request context, so its relation fields must be filtered again on bind.
+        """
         super().bind(field_name, parent)
         if "request" in self.context:
             self.filter_fields()
