@@ -1578,6 +1578,23 @@ class TestUsersAdmin(
         self.assertEqual(active_user.is_active, True)
         self.assertEqual(active_user.expiration_date, localdate() - timedelta(days=1))
         self.assertContains(response, "Successfully activated 1 user.")
+        # Integrations can prefetch relations on the admin queryset; iterator()
+        # requires an explicit chunk size when processing those querysets.
+        with self.subTest("admin queryset with prefetch"):
+            User.objects.filter(pk=user.pk).update(is_active=False)
+            model_admin = django_admin.site._registry[User]
+            get_queryset = model_admin.get_queryset
+            with patch.object(
+                model_admin,
+                "get_queryset",
+                side_effect=lambda request: get_queryset(request).prefetch_related(
+                    "groups"
+                ),
+            ):
+                response = self.client.post(path, post_data, follow=True)
+            user.refresh_from_db()
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(user.is_active)
 
     def test_action_active_clears_expired_expiration_date(self):
         path = reverse(f"admin:{self.app_label}_user_changelist")
