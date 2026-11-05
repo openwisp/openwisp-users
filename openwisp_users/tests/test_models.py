@@ -497,6 +497,18 @@ class TestUsers(TestOrganizationMixin, TestCase):
             ):
                 org_user.full_clean()
 
+    def test_membership_rejects_stale_active_organization(self):
+        org = self._create_org(name="stale-membership")
+        user = self._create_user()
+        org_user = self._create_org_user(organization=org, user=user)
+        Organization.objects.filter(pk=org.pk).update(is_active=False)
+        org_user.is_admin = True
+        with self.assertRaisesMessage(
+            ValidationError,
+            "Memberships of a disabled organization cannot be modified.",
+        ):
+            org_user.full_clean()
+
     def test_organization_owner_clean_disabled_organization(self):
         with self.subTest("assign an owner to a disabled organization"):
             org = self._create_org(name="disabled-org-owner")

@@ -17,7 +17,7 @@ User = get_user_model()
 
 
 class ShelfDisabledOrgWriteAllowedAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-    # Test the opt-out separately so ShelfAdmin's default remains covered.
+    # Keep ShelfAdmin unchanged while testing the inline write-protection opt-out.
     disabled_organization_write_protection = False
     fields = ["name", "organization"]
     inlines = [BookInline]
@@ -104,16 +104,25 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
                 )
                 self._logout()
 
+    @mock.patch.object(ShelfAdmin, "ordering", ("name",))
     def test_book_shelf_fk_autocomplete_view(self):
         data = self._create_multitenancy_test_env()
         self._test_multitenant_admin(
-            url=self._get_autocomplete_view_path("testapp", "book", "shelf"),
+            url=reverse("admin:autocomplete")
+            + "?app_label=testapp&model_name=book&field_name=shelf",
             visible=[data["s1"].name],
             hidden=[data["s2"].name],
             administrator=True,
             # Keep disabled organizations hidden even for superusers.
             superuser_hidden=[data["s3_inactive"].name],
         )
+        self.client.force_login(self._get_admin())
+        response = self.client.get(
+            reverse("admin:ow-auto-filter"),
+            {"app_label": "testapp", "model_name": "book", "field_name": "shelf"},
+        )
+        ids = [option["id"] for option in response.json()["results"]]
+        self.assertIn(str(data["s3_inactive"].pk), ids)
 
     def test_shelf_disabled_organization_admin_guard(self):
         org = self._get_org()
@@ -190,6 +199,51 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
 
         with self.subTest("second action is rename and first is exempt delete"):
             assert_rename_blocked(["delete_selected", "rename_selected"], "1")
+
+    def test_action_checks_multiple_organizations_without_extra_queries(self):
+        org = self._get_org()
+        first = self._create_shelf(name="first", organization=org)
+        second = self._create_shelf(name="second", organization=org)
+        third = self._create_shelf(name="third", organization=org)
+        request = RequestFactory().post(
+            "/",
+            {
+                "action": "rename_selected",
+                "_selected_action": [str(first.pk), str(second.pk), str(third.pk)],
+            },
+        )
+        request.user = self._get_admin()
+        request._messages = CookieStorage(request)
+        model_admin = ShelfActionAdmin(Shelf, admin.site)
+        with self.assertNumQueries(2):
+            model_admin.response_action(request, Shelf.objects.all())
+        self.assertEqual(Shelf.objects.filter(name="renamed-shelf").count(), 3)
+
+    def test_parent_linked_action_checks_organizations_without_extra_queries(self):
+        class LibraryActionAdmin(LibraryParentAdmin):
+            actions = ["rename_selected"]
+
+            @admin.action(permissions=["change"])
+            def rename_selected(self, request, queryset):
+                queryset.update(name="renamed-library")
+
+        organization = self._get_org()
+        book = self._create_book(name="action-book", organization=organization)
+        first = self._create_library(name="first-library", book=book)
+        second = self._create_library(name="second-library", book=book)
+        request = RequestFactory().post(
+            "/",
+            {
+                "action": "rename_selected",
+                "_selected_action": [str(first.pk), str(second.pk)],
+            },
+        )
+        request.user = self._get_admin()
+        request._messages = CookieStorage(request)
+        model_admin = LibraryActionAdmin(Library, admin.site)
+        with self.assertNumQueries(2):
+            model_admin.response_action(request, Library.objects.all())
+        self.assertEqual(Library.objects.filter(name="renamed-library").count(), 2)
 
     def test_disabled_organization_action_checks_selection(self):
         org = self._get_org()

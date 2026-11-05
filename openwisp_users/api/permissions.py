@@ -1,3 +1,5 @@
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.permissions import (
@@ -6,6 +8,7 @@ from rest_framework.permissions import (
 from swapper import load_model
 
 Organization = load_model("openwisp_users", "Organization")
+logger = logging.getLogger(__name__)
 
 
 class ObjectOrganizationMixin(object):
@@ -113,6 +116,11 @@ class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
             organization = self.get_object_organization(view, obj)
         except AttributeError:
             # Do not fail open on a bad relation path; unrelated views opt out.
+            logger.exception(
+                "Invalid organization_field %r on %s",
+                getattr(view, "organization_field", "organization"),
+                view.__class__.__name__,
+            )
             return False
         return organization is None or (
             isinstance(organization, Organization) and organization.is_active

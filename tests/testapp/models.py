@@ -73,7 +73,7 @@ class Library(models.Model):
         return self.name
 
 
-class Bio(OrgMixin):
+class Bio(ShareableOrgMixin):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bios"
     )

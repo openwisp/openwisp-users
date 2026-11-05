@@ -117,7 +117,8 @@ class OrganizationOwnerInline(admin.StackedInline):
 class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
     """
     Keep rows belonging to a disabled organization valid on no-op saves while
-    making their editable fields read-only and preserving deletion.
+    making their editable fields read-only and preserving deletion when the
+    parent can be changed, as in User admin.
     """
 
     organization_fk_field = "organization"

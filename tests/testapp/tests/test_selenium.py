@@ -261,6 +261,36 @@ class TestOrganizationAutocompleteField(
             self.assertEqual(organization.is_active, False)
             self.logout()
 
+    def test_dynamic_nullable_organization_inline_saves_shared_value(self):
+        user = self._create_user(username="shared-bio", email="shared-bio@example.com")
+        inline_prefix = Bio._meta.get_field("user").remote_field.get_accessor_name()
+        path = reverse(f"admin:{User._meta.app_label}_user_change", args=[user.pk])
+        self.login(username=self.admin_username, password=self.admin_password)
+        self.open(path)
+        self.find_element(By.CSS_SELECTOR, f"#{inline_prefix}-group .add-row a").click()
+        self.find_element(By.ID, f"id_{inline_prefix}-0-website").send_keys(
+            "https://example.com"
+        )
+        self.find_element(
+            By.ID, f"select2-id_{inline_prefix}-0-organization-container"
+        ).click()
+        self.find_element(
+            By.XPATH,
+            "//li[contains(@class, 'select2-results__option') and "
+            "normalize-space()='Shared systemwide (no organization)']",
+        ).click()
+        save_button = self.find_element(By.NAME, "_save")
+        self.web_driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center'});", save_button
+        )
+        save_button.click()
+        WebDriverWait(self.web_driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".messagelist .success"))
+        )
+        bio = Bio.objects.get(user=user, website="https://example.com")
+        self.assertEqual(bio.organization_id, None)
+        self.logout()
+
     def test_dynamic_organization_inline_normalizes_shared_value_on_submit(self):
         # OrganizationUser.organization is a required field, so selecting
         # "Shared systemwide (no organization)" on an inline row must be

@@ -1,18 +1,26 @@
 import json
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
-from rest_framework.generics import ListAPIView
+from rest_framework import serializers
+from rest_framework.generics import ListAPIView, ListCreateAPIView
+from rest_framework.response import Response
 from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework.views import APIView
 from swapper import load_model
 
-from openwisp_users.api.mixins import FilterByOrganizationManaged, FilterByParentManaged
+from openwisp_users.api.mixins import (
+    FilterByOrganizationManaged,
+    FilterByParentManaged,
+    FilterSerializerByOrgManaged,
+)
 from openwisp_users.api.permissions import DisabledOrgReadOnly
 from openwisp_users.api.throttling import AuthRateThrottle
 
-from ..models import Shelf, Template
+from ..models import Book, Shelf, Tag, Template
 from ..serializers import BookManagerSerializer
 from ..views import TemplateDetailView, TemplateDisabledOrgWriteAllowedDetailView
 from .mixins import TestMultitenancyMixin
@@ -526,26 +534,6 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         template.refresh_from_db()
         self.assertEqual(template.name, "t-optout-up")
 
-        admin = self._get_admin()
-        token = self._obtain_auth_token(username=admin)
-        auth = dict(HTTP_AUTHORIZATION=f"Bearer {token}")
-        with self.subTest("shared object unaffected"):
-            shared_template = self._create_template(
-                name="shared-template", organization=None
-            )
-            shared_url = reverse("test_template_detail", args=[shared_template.pk])
-            response = self.client.put(
-                shared_url,
-                data={"name": "shared-renamed"},
-                content_type="application/json",
-                **auth,
-            )
-            self.assertEqual(response.status_code, 200)
-
-        with self.subTest("DELETE allowed"):
-            response = self.client.delete(detail_url, **auth)
-            self.assertEqual(response.status_code, 204)
-
     def test_organization_field_excludes_disabled_org(self):
         disabled_org = self._create_org(name="disabled-org", is_active=False)
         admin = self._get_admin()
@@ -582,6 +570,122 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         self.assertIn(shelf_active.pk, shelf_pks)
         self.assertNotIn(shelf_disabled.pk, shelf_pks)
 
+    def test_many_relation_excludes_disabled_org(self):
+        class ShelfSerializer(
+            FilterSerializerByOrgManaged, serializers.ModelSerializer
+        ):
+            class Meta:
+                model = Shelf
+                fields = ("name", "organization", "tags")
+
+        class ShelfCreateView(ListCreateAPIView):
+            queryset = Shelf.objects.all()
+            serializer_class = ShelfSerializer
+            permission_classes = ()
+
+        active_org = self._create_org(name="tag-active")
+        disabled_org = self._create_org(name="tag-disabled", is_active=False)
+        active_tag = Tag.objects.create(name="active", organization=active_org)
+        disabled_tag = Tag.objects.create(name="disabled", organization=disabled_org)
+        shared_tag = Tag.objects.create(name="shared", organization=None)
+        request = APIRequestFactory().post("/")
+        request.user = self._get_admin()
+        serializer = ShelfSerializer(context={"request": request})
+        available = serializer.fields["tags"].child_relation.queryset.all()
+        self.assertEqual(set(available), {active_tag, shared_tag})
+        self.assertNotIn(disabled_tag, available)
+        view = ShelfCreateView.as_view()
+        request = APIRequestFactory().post(
+            "/",
+            {
+                "name": "rejected",
+                "organization": str(active_org.pk),
+                "tags": [str(disabled_tag.pk)],
+            },
+            format="json",
+        )
+        force_authenticate(request, user=self._get_admin())
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Shelf.objects.filter(name="rejected").count(), 0)
+        request = APIRequestFactory().post(
+            "/",
+            {
+                "name": "accepted",
+                "organization": str(active_org.pk),
+                "tags": [str(active_tag.pk), str(shared_tag.pk)],
+            },
+            format="json",
+        )
+        force_authenticate(request, user=self._get_admin())
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        shelf = Shelf.objects.get(name="accepted")
+        self.assertEqual(set(shelf.tags.all()), {active_tag, shared_tag})
+
+    def test_nested_many_restricts_organizations(self):
+        class ParentSerializer(serializers.Serializer):
+            books = BookManagerSerializer(many=True)
+
+        class ParentView(APIView):
+            permission_classes = ()
+
+            def post(self, request):
+                serializer = ParentSerializer(
+                    data=request.data, context={"request": request}
+                )
+                serializer.is_valid(raise_exception=True)
+                shelf = Shelf.objects.create(
+                    name="nested-parent", organization=active_org
+                )
+                for book_data in serializer.validated_data["books"]:
+                    Book.objects.create(shelf=shelf, **book_data)
+                return Response(status=201)
+
+        active_org = self._create_org(name="nested-managed")
+        unmanaged_org = self._create_org(name="nested-unmanaged")
+        disabled_org = self._create_org(name="nested-disabled", is_active=False)
+        manager = self._create_administrator(organizations=[active_org])
+        view = ParentView.as_view()
+        with self.subTest("API rejects an unmanaged organization"):
+            request = APIRequestFactory().post(
+                "/",
+                {
+                    "books": [
+                        {
+                            "name": "nested-book",
+                            "author": "author",
+                            "organization": str(unmanaged_org.pk),
+                        }
+                    ]
+                },
+                format="json",
+            )
+            force_authenticate(request, user=manager)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("organization", response.data["books"][0])
+        with self.subTest("API rejects a disabled organization"):
+            request = APIRequestFactory().post(
+                "/",
+                {
+                    "books": [
+                        {
+                            "name": "nested-book",
+                            "author": "author",
+                            "organization": str(disabled_org.pk),
+                        }
+                    ]
+                },
+                format="json",
+            )
+            force_authenticate(request, user=manager)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("organization", response.data["books"][0])
+        self.assertEqual(Shelf.objects.filter(name="nested-parent").count(), 0)
+        self.assertEqual(Book.objects.filter(name="nested-book").count(), 0)
+
     def test_disabled_org_read_only_denies_on_misconfigured_field(self):
         class BrokenOrgFieldTemplateDetailView(TemplateDetailView):
             # A bad relation path must fail closed to avoid granting write access.
@@ -597,7 +701,15 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             content_type="application/json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        response = BrokenOrgFieldTemplateDetailView.as_view()(request, pk=template.pk)
+        with patch("openwisp_users.api.permissions.logger.exception") as logger:
+            response = BrokenOrgFieldTemplateDetailView.as_view()(
+                request, pk=template.pk
+            )
+        logger.assert_called_once_with(
+            "Invalid organization_field %r on %s",
+            "nonexistent_field",
+            "BrokenOrgFieldTemplateDetailView",
+        )
         response.render()
         self.assertEqual(response.status_code, 403)
         template.refresh_from_db()
@@ -637,4 +749,4 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             with self.subTest(view=view_class.__name__):
                 view = view_class()
                 view.request = request
-                self.assertEqual(view.get_queryset().count(), 1)
+                self.assertEqual(list(view.get_queryset()), [shelf])

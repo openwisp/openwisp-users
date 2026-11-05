@@ -59,8 +59,12 @@ everyone, including superusers. An opted-out admin keeps the object's
 current disabled organization selectable so it can be saved.
 
 The same protection applies to **inlines** attached to a disabled object.
-The parent admin denies adding and changing inline rows but keeps deletion
-available, even when an inline does not use the mixin. Set
+The parent admin denies adding and changing inline rows, even when an
+inline does not use the mixin. Deleting an inline through the parent form
+requires permission to change the parent. Organization admin retains
+change permission to allow re-enabling the organization. For an editable
+parent such as User admin, ``MultitenantReadOnlyInlineFormSet`` protects
+disabled rows while allowing their deletion. Set
 ``disabled_organization_write_protection = False`` on the parent admin or
 on an individual inline to opt out.
 

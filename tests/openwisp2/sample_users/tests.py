@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.urls import reverse
+from swapper import load_model
 
 from openwisp_users.tests.test_accounts import TestAccountView as BaseTestAccountView
 from openwisp_users.tests.test_admin import (
@@ -123,7 +125,24 @@ class TestMultitenantAdmin(BaseTestMultitenantAdmin):
 
 
 class TestUsers(BaseTestUsers):
-    pass
+    def test_disabled_owner_rejects_extended_field_change(self):
+        organization = self._create_org(name="extended-owner")
+        user = self._create_user()
+        membership = self._create_org_user(organization=organization, user=user)
+        owner = self._create_org_owner(
+            organization=organization, organization_user=membership
+        )
+        organization.is_active = False
+        organization.save()
+        owner.full_clean()
+        owner.details = "changed"
+        with self.assertRaises(ValidationError):
+            owner.full_clean()
+        owner.delete()
+        owner_model = load_model("openwisp_users", "OrganizationOwner")
+        self.assertEqual(
+            owner_model.objects.filter(organization=organization).count(), 0
+        )
 
 
 class AuthenticationTests(BaseAuthenticationTests):

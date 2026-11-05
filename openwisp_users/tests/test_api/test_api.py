@@ -17,6 +17,7 @@ from ... import settings as app_settings
 from ...api.serializers import (
     OrganizationUserSerializer,
     OrgUserCustomPrimarykeyRelatedField,
+    SuperUserListSerializer,
 )
 from ..utils import TestOrganizationMixin
 
@@ -42,6 +43,40 @@ class TestUsersApi(
         serializer = OrganizationUserSerializer()
         self.assertEqual(list(serializer.fields), ["organization", "is_admin"])
         self.assertEqual(serializer.fields["is_admin"].label, "Organization manager")
+
+    def test_create_user_rejects_organization_disabled_after_validation(self):
+        organization = self._create_org(name="disabled-after-validation")
+        data = {
+            "username": "late-disabled",
+            "email": "late-disabled@example.com",
+            "password": "password",
+            "organization_users": {
+                "is_admin": False,
+                "organization": str(organization.pk),
+            },
+        }
+        original_is_valid = SuperUserListSerializer.is_valid
+
+        def disable_after_validation(serializer, **kwargs):
+            result = original_is_valid(serializer, **kwargs)
+            Organization.objects.filter(pk=organization.pk).update(is_active=False)
+            return result
+
+        with mock.patch.object(
+            SuperUserListSerializer, "is_valid", disable_after_validation
+        ):
+            response = self.client.post(
+                reverse("users:user_list"), data, content_type="application/json"
+            )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {"__all__": ["Cannot add users to a disabled organization."]},
+        )
+        self.assertEqual(User.objects.filter(username="late-disabled").count(), 0)
+        self.assertEqual(
+            OrganizationUser.objects.filter(organization=organization).count(), 0
+        )
 
     # Tests for Organization Model API endpoints
     def test_organization_list_api(self):

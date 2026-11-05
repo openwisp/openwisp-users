@@ -181,7 +181,19 @@ class TestDisabledOrgMixin(TestOrganizationMixin):
         if role == "org_admin":
             if organization is None:
                 raise ValueError('role "org_admin" requires organization=')
-            return self._create_administrator(organizations=[organization], **kwargs)
+            if kwargs:
+                return self._create_administrator(
+                    organizations=[organization], **kwargs
+                )
+            administrator = User.objects.filter(username="administrator").first()
+            if administrator is None:
+                return self._create_administrator(organizations=[organization])
+            OrganizationUser.objects.update_or_create(
+                user=administrator,
+                organization=organization,
+                defaults={"is_admin": True},
+            )
+            return administrator
         raise ValueError(f"Unknown role: {role!r}")
 
 

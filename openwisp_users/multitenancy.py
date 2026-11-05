@@ -1,6 +1,8 @@
+from functools import wraps
+
 from django.contrib import messages
-from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
@@ -55,7 +57,11 @@ class MultitenantAdminMixin(object):
         if user.is_superuser:
             # Autocomplete requests exclude objects associated with
             # disabled organizations.
-            if "field_name" in request.GET and hasattr(self.model, "organization"):
+            if (
+                request.resolver_match
+                and request.resolver_match.url_name == "autocomplete"
+                and hasattr(self.model, "organization")
+            ):
                 active_or_shared = Q(organization__is_active=True) | Q(
                     organization=None
                 )
@@ -106,8 +112,9 @@ class MultitenantAdminMixin(object):
 
     def get_inline_instances(self, request, obj=None):
         """
-        Disable add/change for inlines on objects from disabled organizations
-        while keeping delete.
+        Disable add/change for inlines on objects from disabled organizations.
+        Inline deletion through the form also requires parent change permission.
+        Organization admin retains change permission to allow re-enabling.
         """
         inlines = super().get_inline_instances(request, obj)
         if obj is None or not self.disabled_organization_write_protection:
@@ -135,62 +142,54 @@ class MultitenantAdminMixin(object):
                 return False
         return super().has_add_permission(request, *args, **kwargs)
 
-    def response_action(self, request, queryset):
-        """
-        Prevent actions from changing objects of disabled organizations.
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not self.disabled_organization_write_protection:
+            return actions
+        exclusions = self.get_disabled_organization_action_exclusions()
+        for name, (action, action_name, description) in actions.items():
+            if name not in exclusions:
+                actions[name] = (self._guard_action(action), action_name, description)
+        return actions
 
-        Django resolves the action and selected objects only during dispatch.
-        Mirror that resolution first so the guard checks the actual action and
-        targets, while allowing exempt cleanup actions and active objects.
-        """
-        # The changelist can submit action selectors from both ends of the page.
-        try:
-            action_index = int(request.POST.get("index", 0))
-        except ValueError:
-            action_index = 0
-        # Validate the same action Django will execute, including its exemptions.
-        data = request.POST.copy()
-        data.pop(ACTION_CHECKBOX_NAME, None)
-        data.pop("index", None)
-        try:
-            data.update({"action": data.getlist("action")[action_index]})
-        except IndexError:
-            pass
-        action_form = self.action_form(data, auto_id=None)
-        action_form.fields["action"].choices = self.get_action_choices(request)
-        if not action_form.is_valid():
-            return super().response_action(request, queryset)
-        action = action_form.cleaned_data["action"]
-        select_across = action_form.cleaned_data["select_across"]
-        # Django receives the full filtered queryset and narrows it on dispatch.
-        selected = request.POST.getlist(ACTION_CHECKBOX_NAME)
-        if not select_across:
-            if not selected:
-                # With no selected objects and select_across false, Django
-                # warns and exits without executing the action. Delegate so
-                # it can provide that response; there are no targets to guard.
-                return super().response_action(request, queryset)
-            checked_queryset = queryset.filter(pk__in=selected)
-        else:
+    def _guard_action(self, action):
+        @wraps(action)
+        def guarded(model_admin, request, queryset):
             checked_queryset = queryset
-        if (
-            self.disabled_organization_write_protection
-            and action not in self.get_disabled_organization_action_exclusions()
-            and any(
+            if (
+                type(self).get_object_organization
+                is MultitenantAdminMixin.get_object_organization
+            ):
+                path = "organization"
+                if not hasattr(self.model, "organization") and self.multitenant_parent:
+                    path = f"{self.multitenant_parent}__organization"
+                model = self.model
+                try:
+                    for part in path.split("__"):
+                        field = model._meta.get_field(part)
+                        if not (field.many_to_one or field.one_to_one):
+                            break
+                        model = field.related_model
+                    else:
+                        checked_queryset = queryset.select_related(path)
+                except FieldDoesNotExist:
+                    pass
+            if any(
                 organization is not None and not organization.is_active
                 for organization in (
                     self.get_object_organization(obj)
                     for obj in checked_queryset.iterator()
                 )
-            )
-        ):
-            self.message_user(
-                request,
-                _("Actions cannot modify objects of disabled organizations."),
-                messages.ERROR,
-            )
-            return HttpResponseRedirect(request.get_full_path())
-        return super().response_action(request, queryset)
+            ):
+                self.message_user(
+                    request,
+                    _("Actions cannot modify objects of disabled organizations."),
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+            return action(model_admin, request, queryset)
+
+        return guarded
 
     def get_disabled_organization_action_exclusions(self):
         return {"delete_selected", "delete_selected_overridden"}.union(

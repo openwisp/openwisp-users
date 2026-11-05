@@ -2474,7 +2474,9 @@ class TestUsersAdmin(
                 "owner-0-organization": f"{org.pk}",
             }
             params.update(self._get_org_edit_form_inline_params(admin, org))
-            self.client.post(path, params, follow=True)
+            response = self.client.post(path, params)
+            self.assertEqual(response.status_code, 302)
+            self.assertNotContains(self.client.get(response.url), "errorlist")
             self.assertEqual(
                 OrganizationOwner.objects.filter(organization=org).count(), 0
             )
@@ -2507,7 +2509,9 @@ class TestUsersAdmin(
                 "owner-0-id": f"{org_owner.pk}",
             }
             params.update(self._get_org_edit_form_inline_params(admin, org))
-            self.client.post(path, params, follow=True)
+            response = self.client.post(path, params)
+            self.assertEqual(response.status_code, 302)
+            self.assertNotContains(self.client.get(response.url), "errorlist")
             org_owner.refresh_from_db()
             self.assertEqual(org_owner.organization_user, org_user1)
 

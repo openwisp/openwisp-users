@@ -534,6 +534,11 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
+        """Reject disabled-organization membership changes and owner demotion.
+
+        Unchanged memberships remain valid, including in disabled organizations.
+        Moving a membership also requires its previous organization to be active.
+        """
         original = None
         if not self._state.adding:
             original = (
@@ -549,7 +554,9 @@ class BaseOrganizationUser(models.Model):
         )
 
         if changed and self.organization_id is not None:
-            if not self.organization.is_active:
+            if not self.organization.__class__.objects.filter(
+                pk=self.organization_id, is_active=True
+            ).exists():
                 if self._state.adding:
                     raise ValidationError(
                         _("Cannot add users to a disabled organization.")
@@ -597,6 +604,11 @@ class BaseOrganizationOwner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def clean(self):
+        """Reject changes involving disabled organizations and non-member owners.
+
+        An unchanged owner remains valid in a disabled organization. Moving an
+        owner also requires the previous organization to be active.
+        """
         original = None
         if self.pk:
             original = (
@@ -604,13 +616,15 @@ class BaseOrganizationOwner(models.Model):
                 .filter(pk=self.pk)
                 .first()
             )
-        changed = (
-            original is None
-            or original.organization_id != self.organization_id
-            or original.organization_user_id != self.organization_user_id
+        changed = original is None or any(
+            getattr(original, field.attname) != getattr(self, field.attname)
+            for field in self._meta.concrete_fields
+            if field.editable and not field.primary_key
         )
         if changed and (
-            not self.organization.is_active
+            not self.organization.__class__.objects.filter(
+                pk=self.organization_id, is_active=True
+            ).exists()
             or (
                 original
                 and original.organization_id != self.organization_id

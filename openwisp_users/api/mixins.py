@@ -135,10 +135,6 @@ class FilterByParent(OrgLookup):
         parent_queryset = self.get_parent_queryset()
         if not self.request.user.is_superuser:
             parent_queryset = self.get_organization_queryset(parent_queryset)
-        if getattr(
-            self, "select_related_organization", True
-        ) and self._organization_relation_is_valid(parent_queryset.model):
-            parent_queryset = parent_queryset.select_related(self.org_field)
         try:
             assert parent_queryset.exists()
         except (AssertionError, ValidationError):
@@ -225,10 +221,14 @@ class FilterSerializerByOrganization(OrgLookup):
                 and not organization.is_active
             ):
                 allowed_organizations |= Q(pk=organization.pk)
+            # Keep the existing disabled organization available only for an
+            # opted-out update, without allowing other unmanaged organizations.
             queryset = queryset.filter(allowed_organizations)
         field.queryset = queryset
 
     def _filter_related_field(self, field, organization_filter):
+        # DRF stores a many-valued relation queryset on its child field.
+        field = getattr(field, "child_relation", field)
         queryset = getattr(field, "queryset", None)
         # Read-only and non-relational fields do not expose a queryset.
         if queryset is None:
@@ -253,6 +253,13 @@ class FilterSerializerByOrganization(OrgLookup):
         super().bind(field_name, parent)
         if "request" in self.context:
             self.filter_fields()
+
+    def to_internal_value(self, data):
+        # A many=True child may bind before the root has request context, so
+        # restrict its fields now, before DRF validates submitted relations.
+        if "request" in self.context:
+            self.filter_fields()
+        return super().to_internal_value(data)
 
 
 class FilterSerializerByOrgMembership(FilterSerializerByOrganization):
