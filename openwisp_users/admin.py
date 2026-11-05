@@ -286,7 +286,7 @@ class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
             unauthorized_users = []
             has_more_unauthorized_users = False
             checked_pks = []
-            for obj in queryset.iterator():
+            for obj in queryset.iterator(chunk_size=1000):
                 if not modeladmin.has_change_permission(request, obj):
                     if len(unauthorized_users) < 10:
                         unauthorized_users.append(obj)
