@@ -68,15 +68,13 @@ class Command(BaseCommand):
             if normalize_field(field)["name"] not in exclude_fields
         ]
         # Fetch all user data using select_related and prefetch_related
-        queryset = (
-            User.objects.select_related(
-                *app_settings.EXPORT_USERS_COMMAND_CONFIG.get("select_related", []),
-            )
-            .prefetch_related(
-                *app_settings.EXPORT_USERS_COMMAND_CONFIG.get("prefetch_related", []),
-            )
-            .order_by("date_joined")
-        )
+        queryset = User.objects.prefetch_related(
+            *app_settings.EXPORT_USERS_COMMAND_CONFIG.get("prefetch_related", []),
+        ).order_by("date_joined")
+        if select_related := app_settings.EXPORT_USERS_COMMAND_CONFIG.get(
+            "select_related"
+        ):
+            queryset = queryset.select_related(*select_related)
 
         # Prepare a CSV writer
         filename = options.get("filename")

@@ -4,7 +4,6 @@ import smtplib
 import uuid
 from unittest.mock import patch
 
-import django
 from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
@@ -169,7 +168,7 @@ class TestUsersAdmin(
         response = self.client.post(reverse(f"admin:{self.app_label}_user_add"), params)
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 0)
-        self.assertContains(response, "errors field-email")
+        self.assertContains(response, 'id="id_email_error"')
         self.assertEqual(len(mail.outbox), 0)
 
     def test_admin_change_user_auto_email(self):
@@ -243,7 +242,7 @@ class TestUsersAdmin(
         queryset = User.objects.filter(username="testchange")
         self.assertEqual(queryset.count(), 0)
         self.assertEqual(len(mail.outbox), 0)
-        self.assertContains(response, "errors field-email")
+        self.assertContains(response, 'id="id_email_error"')
 
     def test_admin_change_user_page_get_invalid_UUID(self):
         admin = self._create_admin()
@@ -310,13 +309,9 @@ class TestUsersAdmin(
             )
             self.assertContains(
                 response,
-                (
-                    '<ul class="errorlist"{}><li>'
-                    "You cannot re-use your current password. "
-                    "Enter a new password.</li></ul>"
-                ).format(
-                    ' id="id_password2_error"' if django.VERSION >= (5, 2) else ""
-                ),
+                '<ul class="errorlist" id="id_password2_error"><li>'
+                "You cannot re-use your current password. "
+                "Enter a new password.</li></ul>",
             )
         with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
             response = self.client.post(
@@ -563,6 +558,189 @@ class TestUsersAdmin(
             content.index('class="form-row field-organization"'),
             content.index('class="form-row field-is_admin"'),
         )
+
+    def test_organizationuser_admin_logs_rejected_user_assignments(self):
+        managed_org1 = self._create_org(name="managed1", slug="managed1")
+        unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
+        org_admin = self._create_administrator([managed_org1])
+        unmanaged_user = self._create_user(
+            username="unmanaged-user", email="unmanaged-user@example.com"
+        )
+        self._create_org_user(organization=unmanaged_org, user=unmanaged_user)
+        managed_user = self._create_user(
+            username="managed", email="managed@example.com"
+        )
+        managed_org_user = self._create_org_user(
+            organization=managed_org1, user=managed_user
+        )
+        self.client.force_login(org_admin)
+        add_url = reverse(f"admin:{self.app_label}_organizationuser_add")
+        change_url = reverse(
+            f"admin:{self.app_label}_organizationuser_change",
+            args=[managed_org_user.pk],
+        )
+
+        for url in (add_url, change_url):
+            with self.subTest("Rejected unmanaged user", url=url):
+                with self.assertLogs("django.request", level="WARNING") as logs:
+                    response = self.client.post(
+                        url,
+                        {
+                            "user": str(unmanaged_user.pk),
+                            "organization": str(managed_org1.pk),
+                        },
+                    )
+                self.assertEqual(response.status_code, 403)
+                self.assertIn("Forbidden (Permission denied)", logs.output[0])
+                self.assertIn(str(org_admin.pk), logs.output[0])
+                self.assertNotIn(str(unmanaged_user.pk), logs.output[0])
+
+        for value in ("invalid", ""):
+            with self.subTest("Invalid user ID", value=value):
+                with self.assertNoLogs("django.request", level="WARNING"):
+                    response = self.client.post(
+                        add_url, {"user": value, "organization": str(managed_org1.pk)}
+                    )
+                self.assertEqual(response.status_code, 200)
+                self.assertIn("user", response.context["adminform"].form.errors)
+
+        with self.subTest("Nonexistent user ID"):
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    add_url,
+                    {"user": str(uuid.uuid4()), "organization": str(managed_org1.pk)},
+                )
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest("Permitted user"):
+            with self.assertNoLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    change_url,
+                    {
+                        "user": str(managed_user.pk),
+                        "organization": str(managed_org1.pk),
+                    },
+                )
+            self.assertEqual(response.status_code, 302)
+
+    def test_organizationuser_admin_scopes_submitted_user(self):
+        managed_org1 = self._create_org(name="managed", slug="managed")
+        managed_org2 = self._create_org(name="managed2", slug="managed2")
+        unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
+        org_admin = self._create_administrator([managed_org1, managed_org2])
+        unmanaged_org_admin = self._create_administrator(
+            [unmanaged_org],
+            username="unmanaged-admin",
+            email="unmanaged-admin@example.com",
+        )
+        unmanaged_user = self._create_user(
+            username="unmanaged-user", email="unmanaged-user@example.com"
+        )
+        self._create_org_user(organization=unmanaged_org, user=unmanaged_user)
+        superuser = self._create_admin(username="superuser", email="super@example.com")
+        self._create_org_user(organization=managed_org2, user=superuser)
+        managed_user = self._create_user(
+            username="managed-user", email="managed-user@example.com"
+        )
+        managed_org_user = self._create_org_user(
+            organization=managed_org1, user=managed_user
+        )
+        replacement = self._create_user(
+            username="replacement", email="replacement@example.com"
+        )
+        self._create_org_user(organization=managed_org2, user=replacement)
+        managed_org2_user = self._create_user(
+            username="managed-org2-user", email="managed-org2-user@example.com"
+        )
+        self._create_org_user(organization=managed_org2, user=managed_org2_user)
+        add_url = reverse(f"admin:{self.app_label}_organizationuser_add")
+        change_url = reverse(
+            f"admin:{self.app_label}_organizationuser_change",
+            args=[managed_org_user.pk],
+        )
+        self.client.force_login(org_admin)
+
+        def assert_user_rejected(url, target):
+            with self.assertLogs("django.request", level="WARNING"):
+                response = self.client.post(
+                    url, {"user": str(target.pk), "organization": str(managed_org1.pk)}
+                )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=target, organization=managed_org1
+                ).count(),
+                0,
+            )
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, managed_user)
+
+        with self.subTest("Cannot add an unmanaged user to managed org1"):
+            assert_user_rejected(add_url, unmanaged_user)
+
+        with self.subTest("Cannot reassign an organization user to an unmanaged user"):
+            assert_user_rejected(change_url, unmanaged_user)
+
+        with self.subTest("Cannot add an unmanaged organization owner to managed org1"):
+            assert_user_rejected(add_url, unmanaged_org_admin)
+
+        with self.subTest("Cannot reassign an organization user to an unmanaged owner"):
+            assert_user_rejected(change_url, unmanaged_org_admin)
+
+        with self.subTest("Cannot add a superuser to managed org1"):
+            assert_user_rejected(add_url, superuser)
+
+        with self.subTest("Cannot reassign an organization user to a superuser"):
+            assert_user_rejected(change_url, superuser)
+
+        with self.subTest("Edit an organization user in managed org1"):
+            # Saving without reassignment must preserve the existing user.
+            response = self.client.post(
+                change_url,
+                {"user": str(managed_user.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, managed_user)
+
+        with self.subTest("Reassign to user in managed org2"):
+            response = self.client.post(
+                change_url,
+                {"user": str(replacement.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            managed_org_user.refresh_from_db()
+            self.assertEqual(managed_org_user.user, replacement)
+
+        with self.subTest("Add user from managed org2"):
+            response = self.client.post(
+                add_url,
+                {
+                    "user": str(managed_org2_user.pk),
+                    "organization": str(managed_org1.pk),
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=managed_org2_user, organization=managed_org1
+                ).count(),
+                1,
+            )
+
+        with self.subTest("Superuser may add an any user"):
+            self.client.force_login(superuser)
+            response = self.client.post(
+                add_url,
+                {"user": str(unmanaged_user.pk), "organization": str(managed_org1.pk)},
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                OrganizationUser.objects.filter(
+                    user=unmanaged_user, organization=managed_org1
+                ).count(),
+                1,
+            )
 
     def test_admin_change_user_is_superuser_editable(self):
         admin = self._create_admin()
@@ -1148,7 +1326,9 @@ class TestUsersAdmin(
         res = self.client.post(reverse(f"admin:{self.app_label}_user_add"), params)
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 0)
-        self.assertContains(res, "errors field-organization")
+        self.assertContains(
+            res, f'id="id_{self.app_label}_organizationuser-0-organization_error"'
+        )
 
     def test_admin_user_add_form(self):
         self.client.force_login(self._get_admin())
@@ -1255,7 +1435,9 @@ class TestUsersAdmin(
         res = self.client.post(
             reverse(f"admin:{self.app_label}_user_add"), params, follow=True
         )
-        self.assertNotContains(res, "errors field-organization")
+        self.assertNotContains(
+            res, f'id="id_{self.app_label}_organizationuser-0-organization_error"'
+        )
         self.assertNotContains(res, "Please correct the errors below.")
         queryset = User.objects.filter(username="testadd")
         self.assertEqual(queryset.count(), 1)
@@ -1496,6 +1678,327 @@ class TestUsersAdmin(
             required_perms=["change"],
             extra_payload={"confirmation": True},
         )
+
+    def test_bulk_user_action_lists_first_ten_users_without_permission(self):
+        org = self._get_org()
+        operator = self._create_administrator([org])
+        users = []
+        for index in range(12):
+            user = self._create_user(
+                username=f"bulk-owner-{index}", email=f"bulk-owner-{index}@example.com"
+            )
+            self._create_org_user(user=user, organization=org)
+            owner_org = self._create_org(
+                name=f"Owner organization {index}", slug=f"owner-organization-{index}"
+            )
+            organization_user = self._create_org_user(user=user, organization=owner_org)
+            self._create_org_owner(
+                organization_user=organization_user, organization=owner_org
+            )
+            users.append(user)
+        self.client.force_login(operator)
+
+        def user_link(user):
+            url = reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+            return f'<a href="{url}">{user.username}</a>'
+
+        def get_denial_message(selected_users):
+            response = self.client.post(
+                reverse(f"admin:{self.app_label}_user_changelist"),
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [user.pk for user in selected_users],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+            return str(list(response.context["messages"])[0])
+
+        with self.subTest("single username without a conjunction or ellipsis"):
+            message = get_denial_message(users[:1])
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"this user: {user_link(users[0])}.",
+            )
+
+        with self.subTest("natural conjunction for three usernames"):
+            message = get_denial_message(users[:3])
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users[:3]]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {user_links[0]}, {user_links[1]} and {user_links[2]}.",
+            )
+
+        with self.subTest("lists exactly ten usernames without an ellipsis"):
+            message = get_denial_message(users[:10])
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users[:10]]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {', '.join(user_links[:-1])} and {user_links[-1]}.",
+            )
+
+        with self.subTest("truncated list of more than ten usernames"):
+            user_admin = django_admin.site._registry[User]
+            # Add a spy on UserAdmin.has_change_permission to verify early return when
+            # there are more than 11 offending users.
+            with patch.object(
+                user_admin,
+                "has_change_permission",
+                wraps=user_admin.has_change_permission,
+            ) as permission_check:
+                message = get_denial_message(users)
+            object_checks = [
+                call for call in permission_check.call_args_list if len(call.args) > 1
+            ]
+            self.assertEqual(len(object_checks), 11)
+            ordered_users = User.objects.filter(
+                pk__in=[user.pk for user in users]
+            ).order_by("-date_joined")
+            user_links = [user_link(user) for user in ordered_users]
+            self.assertEqual(
+                message,
+                "No users were updated because you do not have permission to modify "
+                f"these users: {', '.join(user_links[:10])} …",
+            )
+
+        with self.subTest("username is escaped in the link"):
+            User.objects.filter(pk=users[0].pk).update(
+                username='<script>alert("x")</script>'
+            )
+            message = get_denial_message(users[:1])
+            self.assertIn("&lt;script&gt;", message)
+            self.assertNotIn("<script>", message)
+        self.assertEqual(
+            User.objects.filter(
+                pk__in=[user.pk for user in users], is_active=True
+            ).count(),
+            12,
+        )
+
+    def test_org_admin_cannot_bulk_activate_or_deactivate_owner(self):
+        org = self._get_org()
+        owner = self._create_administrator(
+            [org], username="owner", email="owner@example.com"
+        )
+        org_admin = self._create_administrator([org])
+        org_user = self._create_user(username="member", email="member@example.com")
+        self._create_org_user(user=org_user, organization=org)
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+        expiration_date = localdate() - timedelta(days=1)
+
+        def assert_denied(action, selected, before, after, confirmed=False):
+            owner.refresh_from_db()
+            org_user.refresh_from_db()
+            self.assertEqual(owner.is_active, before)
+            self.assertEqual(org_user.is_active, before)
+            self.client.force_login(org_admin)
+            post_data = {"action": action, "_selected_action": selected}
+            if confirmed:
+                post_data["confirmation"] = "Confirm"
+            response = self.client.post(path, post_data, follow=True)
+            owner.refresh_from_db()
+            org_user.refresh_from_db()
+            self.assertEqual(owner.is_active, after)
+            self.assertEqual(org_user.is_active, after)
+            self.assertEqual(owner.expiration_date, expiration_date)
+            self.assertEqual(org_user.expiration_date, expiration_date)
+            self.assertRedirects(response, path)
+            owner_url = reverse(f"admin:{self.app_label}_user_change", args=[owner.pk])
+            self.assertContains(
+                response,
+                "No users were updated because you do not have permission to modify "
+                f'this user: <a href="{owner_url}">owner</a>.',
+            )
+            self.assertNotContains(response, "Successfully")
+
+        User.objects.filter(pk__in=[owner.pk, org_user.pk]).update(
+            is_active=True, expiration_date=expiration_date
+        )
+        with self.subTest("deactivating an owner before confirmation"):
+            assert_denied(
+                action="make_inactive", selected=[owner.pk], before=True, after=True
+            )
+
+        with self.subTest("deactivating an owner after confirmation"):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk],
+                before=True,
+                after=True,
+                confirmed=True,
+            )
+
+        with self.subTest("deactivating an owner and member before confirmation"):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk, org_user.pk],
+                before=True,
+                after=True,
+            )
+
+        with self.subTest("deactivating an owner and member after confirmation"):
+            assert_denied(
+                action="make_inactive",
+                selected=[owner.pk, org_user.pk],
+                before=True,
+                after=True,
+                confirmed=True,
+            )
+
+        User.objects.filter(pk__in=[owner.pk, org_user.pk]).update(is_active=False)
+        with self.subTest("activating an owner before confirmation"):
+            assert_denied(
+                action="make_active", selected=[owner.pk], before=False, after=False
+            )
+
+        with self.subTest("activating an owner after confirmation"):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk],
+                before=False,
+                after=False,
+                confirmed=True,
+            )
+
+        with self.subTest("activating an owner and member before confirmation"):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk, org_user.pk],
+                before=False,
+                after=False,
+            )
+
+        with self.subTest("activating an owner and member after confirmation"):
+            assert_denied(
+                action="make_active",
+                selected=[owner.pk, org_user.pk],
+                before=False,
+                after=False,
+                confirmed=True,
+            )
+
+    def test_owner_and_superuser_can_bulk_change_owner_active_status(self):
+        organization = self._get_org()
+        owner = self._create_administrator(
+            [organization], username="owner", email="owner@example.com"
+        )
+        member = self._create_user(username="member", email="member@example.com")
+        self._create_org_user(user=member, organization=organization)
+        superuser = self._create_admin()
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+
+        def assert_allowed(actor, action, expected_active):
+            self.client.force_login(actor)
+            response = self.client.post(
+                path,
+                {
+                    "action": action,
+                    "_selected_action": [owner.pk, member.pk],
+                    "confirmation": "Confirm",
+                },
+            )
+            owner.refresh_from_db()
+            member.refresh_from_db()
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(owner.is_active, expected_active)
+            self.assertEqual(member.is_active, expected_active)
+
+        with self.subTest("owner can deactivate themselves and a member"):
+            assert_allowed(actor=owner, action="make_inactive", expected_active=False)
+
+        with self.subTest("superuser can activate an owner and a member"):
+            assert_allowed(actor=superuser, action="make_active", expected_active=True)
+
+        with self.subTest("superuser can deactivate an owner and a member"):
+            assert_allowed(
+                actor=superuser, action="make_inactive", expected_active=False
+            )
+
+        User.objects.filter(pk=owner.pk).update(is_active=True)
+        owner.refresh_from_db()
+        with self.subTest("active owner can activate a member alongside themselves"):
+            self.assertEqual(owner.is_active, True)
+            self.assertEqual(member.is_active, False)
+            assert_allowed(actor=owner, action="make_active", expected_active=True)
+
+    def test_bulk_user_actions_exclude_other_organizations(self):
+        org1 = self._get_org()
+        org2 = self._create_org(name="organization 2", slug="organization-2")
+        org_admin = self._create_administrator([org1])
+        org1_user = self._create_user(username="member", email="member@example.com")
+        org2_user = self._create_user(username="user2", email="user2@example.com")
+        self._create_org_user(user=org1_user, organization=org1)
+        self._create_org_user(user=org2_user, organization=org2)
+        path = reverse(f"admin:{self.app_label}_user_changelist")
+        self.client.force_login(org_admin)
+
+        with self.subTest("deactivation excludes a user from another organization"):
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [org1_user.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            org1_user.refresh_from_db()
+            org2_user.refresh_from_db()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(org1_user.is_active, False)
+            self.assertEqual(org2_user.is_active, True)
+            self.assertNotContains(response, "No users were updated")
+            self.assertNotContains(response, org2_user.username)
+
+        User.objects.filter(pk=org2_user.pk).update(is_active=False)
+        with self.subTest("activation excludes a user from another organization"):
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_active",
+                    "_selected_action": [org1_user.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            org1_user.refresh_from_db()
+            org2_user.refresh_from_db()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(org1_user.is_active, True)
+            self.assertEqual(org2_user.is_active, False)
+            self.assertNotContains(response, "No users were updated")
+            self.assertNotContains(response, org2_user.username)
+
+        with self.subTest("denial does not disclose an unmanaged user"):
+            owner = self._create_administrator(
+                [org1], username="owner", email="owner@example.com"
+            )
+            owner_org = self._create_org(name="Owner org", slug="owner-org")
+            membership = self._create_org_user(user=owner, organization=owner_org)
+            self._create_org_owner(organization_user=membership, organization=owner_org)
+            response = self.client.post(
+                path,
+                {
+                    "action": "make_inactive",
+                    "_selected_action": [owner.pk, org2_user.pk],
+                    "confirmation": "Confirm",
+                },
+                follow=True,
+            )
+            self.assertContains(response, "this user:")
+            message = str(list(response.context["messages"])[0])
+            self.assertIn(f">{owner.username}</a>", message)
+            self.assertNotContains(response, org2_user.username)
 
     def test_action_confirmation_page(self):
         user = User.objects.create(

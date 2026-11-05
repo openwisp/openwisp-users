@@ -66,7 +66,9 @@ class TestUsersApi(
     def test_organization_post_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(6):
+        # for Django <= 5.2, which calls Field.pre_save() once per insert
+        expected_queries = 6 if django.VERSION < (6, 0) else 7
+        with self.assertNumQueries(expected_queries):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
@@ -576,8 +578,7 @@ class TestUsersApi(
         self.assertEqual(EmailAddress.objects.filter(user=user1).count(), 1)
         path = reverse("users:email_list", args=(user1.pk,))
         data = {"email": "newemail@test.com"}
-        expected_queries = 9 if django.VERSION < (5, 2) else 15
-        with self.assertNumQueries(expected_queries):
+        with self.assertNumQueries(15):
             response = self.client.post(path, data, content_type="application/json")
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["email"], "newemail@test.com")
@@ -604,8 +605,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse("users:email_update", args=(user1.pk, email_id))
         data = {"email": "emailchange@test.com", "primary": True}
-        expected_queries = 11 if django.VERSION < (5, 2) else 17
-        with self.assertNumQueries(expected_queries):
+        with self.assertNumQueries(17):
             response = self.client.put(path, data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["email"], "emailchange@test.com")
@@ -615,8 +615,7 @@ class TestUsersApi(
         email_id = EmailAddress.objects.get(user=user1).id
         path = reverse("users:email_update", args=(user1.pk, email_id))
         data = {"email": "changemail@test.com"}
-        expected_queries = 11 if django.VERSION < (5, 2) else 17
-        with self.assertNumQueries(expected_queries):
+        with self.assertNumQueries(17):
             response = self.client.patch(path, data, content_type="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -945,7 +944,9 @@ class TestUsersApi(
     def test_organization_slug_post_custom_validation_api(self):
         path = reverse("users:organization_list")
         data = {"name": "test-org", "slug": "test-org"}
-        with self.assertNumQueries(6):
+        # for Django <= 5.2, which calls Field.pre_save() once per insert
+        expected_queries = 6 if django.VERSION < (6, 0) else 7
+        with self.assertNumQueries(expected_queries):
             r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(Organization.objects.count(), 2)
