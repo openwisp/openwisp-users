@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import re
 import smtplib
 import uuid
@@ -554,6 +555,9 @@ class TestUsersAdmin(
             content.index('class="form-row field-is_admin"'),
         )
 
+    # Downstream deps may disable this logger in their dev env settings,
+    # leading to false positives, to prevent that, we override it here.
+    @patch.object(logging.getLogger("django.request"), "disabled", False)
     def test_organizationuser_admin_logs_rejected_user_assignments(self):
         managed_org1 = self._create_org(name="managed1", slug="managed1")
         unmanaged_org = self._create_org(name="unmanaged", slug="unmanaged")
@@ -618,6 +622,9 @@ class TestUsersAdmin(
                 )
             self.assertEqual(response.status_code, 302)
 
+    # Downstream deps may disable this logger in their dev env settings,
+    # leading to false positives, to prevent that, we override it here.
+    @patch.object(logging.getLogger("django.request"), "disabled", False)
     def test_organizationuser_admin_scopes_submitted_user(self):
         managed_org1 = self._create_org(name="managed", slug="managed")
         managed_org2 = self._create_org(name="managed2", slug="managed2")
