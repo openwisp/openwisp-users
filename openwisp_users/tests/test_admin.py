@@ -2613,7 +2613,15 @@ class TestUsersAdmin(
         res = self.client.post(
             reverse(f"admin:{self.app_label}_user_add"), params, follow=True
         )
-        self.assertContains(res, "errors field-organization")
+        formset = next(
+            inline.formset
+            for inline in res.context["inline_admin_formsets"]
+            if inline.formset.model == OrganizationUser
+        )
+        self.assertEqual(
+            formset.errors[0]["organization"],
+            ["Select a valid choice. That choice is not one of the available choices."],
+        )
         self.assertEqual(User.objects.filter(username="disableduserinline").count(), 0)
 
     def test_user_inline_org_picker_sets_exclude_disabled_parameter(self):

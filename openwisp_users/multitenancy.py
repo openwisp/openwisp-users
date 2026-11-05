@@ -142,8 +142,11 @@ class MultitenantAdminMixin(object):
                 return False
         return super().has_add_permission(request, *args, **kwargs)
 
-    def get_actions(self, request):
-        actions = super().get_actions(request)
+    def get_actions(self, request, action_location=None):
+        # TODO: Remove when dropping support Django 5.2
+        # Django <= 6.0 does not accept action_location
+        kwargs = {"action_location": action_location} if action_location else {}
+        actions = super().get_actions(request, **kwargs)
         if not self.disabled_organization_write_protection:
             return actions
         exclusions = self.get_disabled_organization_action_exclusions()
