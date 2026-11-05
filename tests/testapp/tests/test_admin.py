@@ -9,7 +9,7 @@ from swapper import load_model
 from openwisp_users.tests.utils import TestOrganizationMixin
 
 from ..admin import BookmarkInline
-from ..models import Book, Bookmark, Template
+from ..models import Book, Bookmark, Shelf, Template
 
 Organization = load_model("openwisp_users", "Organization")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
@@ -69,6 +69,38 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         self.assertEqual(form.instance.pk, bookmark.pk)
         self.assertEqual(form.fields["book"].disabled, True)
         self.assertEqual(form.fields["book"].queryset.filter(pk=book.pk).exists(), True)
+
+    def test_inline_with_nullable_organization_path_remains_editable(self):
+        class NullableBookmarkFormSet(BookmarkInline.formset):
+            organization_lookup = "book__shelf__organization"
+
+        class NullableBookmarkInline(BookmarkInline):
+            formset = NullableBookmarkFormSet
+
+        admin_user = self._create_admin()
+        organization = self._create_org(name="bookmark-org")
+        user = self._create_user(
+            username="nullable-bookmark-user", email="nullable-bookmark@example.com"
+        )
+        book = Book.objects.create(
+            name="Book without shelf", author="Test author", organization=organization
+        )
+        bookmark = Bookmark.objects.create(user=user, book=book)
+        request = RequestFactory().get(
+            reverse(f"admin:{self.app_label}_user_change", args=[user.pk])
+        )
+        request.user = admin_user
+        inline = NullableBookmarkInline(User, admin.site)
+        formset = inline.get_formset(request, user)(instance=user, prefix="bookmarks")
+        form = formset.forms[0]
+        self.assertEqual(form.instance.pk, bookmark.pk)
+        self.assertEqual(form.fields["book"].disabled, False)
+        book.shelf = Shelf.objects.create(name="Shared shelf")
+        book.save()
+        formset = inline.get_formset(request, user)(instance=user, prefix="bookmarks")
+        form = formset.forms[0]
+        self.assertEqual(form.instance.pk, bookmark.pk)
+        self.assertEqual(form.fields["book"].disabled, False)
 
 
 class TestTemplateAdmin(TestOrganizationMixin, TestCase):

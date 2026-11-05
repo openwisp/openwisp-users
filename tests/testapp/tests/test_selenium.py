@@ -32,12 +32,8 @@ class TestOrganizationAutocompleteField(
     @classmethod
     def setUpClass(cls):
         openwisp_users_admin.UserAdmin.inlines.append(BioInline)
+        cls.addClassCleanup(openwisp_users_admin.UserAdmin.inlines.remove, BioInline)
         super().setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        openwisp_users_admin.UserAdmin.inlines.remove(BioInline)
-        super().tearDownClass()
 
     def setUp(self):
         self.admin = self._create_admin(
@@ -228,6 +224,7 @@ class TestOrganizationAutocompleteField(
             user.refresh_from_db()
             self.assertEqual(user.notes, "Updated notes")
             self.assertEqual(Bio.objects.filter(pk=bio.pk).count(), 1)
+            bio.refresh_from_db()
             self.assertEqual(bio.organization_id, organization.pk)
             self.logout()
 
@@ -258,6 +255,7 @@ class TestOrganizationAutocompleteField(
             self.assertEqual(Bio.objects.filter(pk=bio.pk).count(), 0)
             user.refresh_from_db()
             self.assertEqual(user.username, "disabled-bio-delete")
+            organization.refresh_from_db()
             self.assertEqual(organization.is_active, False)
             self.logout()
 

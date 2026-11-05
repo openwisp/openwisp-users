@@ -72,12 +72,13 @@ rows belong to disabled organizations. Use
 ``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
 still allowing their deletion. To disable this protection for a particular
 parent admin or inline, set ``disabled_organization_write_protection =
-False`` on it.
+False`` on it. This does not disable the formset's own field protection.
 
 Admin actions can change several selected objects at once, so they also
 need the write protection. The mixin blocks actions when the selection
-contains an object belonging to a disabled organization, except for
-deletion actions. To allow a specific action while keeping the rest of the
+contains an object belonging to a disabled organization. The actions
+``delete_selected`` and ``delete_selected_overridden`` are excluded by
+default. To allow another cleanup action while keeping the rest of the
 protection enabled, list its name in
 ``disabled_organization_action_exclusions``:
 

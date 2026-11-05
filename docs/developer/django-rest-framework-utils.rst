@@ -158,6 +158,12 @@ are not organization-scoped must opt out explicitly.
     plain ``ModelSerializer`` can still create an object for a disabled
     organization.
 
+    Some endpoints create an object under a parent identified in the URL,
+    such as a book under a shelf. If the new object gets its organization
+    from that parent, the request may not include an ``organization``
+    field for the serializer to check. The view must check that the parent
+    belongs to an active organization before saving the new object.
+
 A view can opt out of this guard by setting
 ``allow_disabled_organization_writes = True``:
 

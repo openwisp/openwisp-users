@@ -129,6 +129,8 @@ class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
     def get_organization(self, instance):
         organization = instance
         for relation in self.organization_lookup.split("__"):
+            if organization is None:
+                return None
             organization = getattr(organization, relation)
         return organization
 
@@ -139,7 +141,8 @@ class MultitenantReadOnlyInlineFormSet(BaseInlineFormSet):
         organization_id = getattr(instance, f"{self.organization_fk_field}_id", None)
         if not (instance and instance.pk and organization_id):
             return
-        if self.get_organization(instance).is_active:
+        organization = self.get_organization(instance)
+        if organization is None or organization.is_active:
             return
         organization_field = form.fields.get(self.organization_fk_field)
         if organization_field is not None:
