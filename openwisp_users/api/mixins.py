@@ -34,6 +34,11 @@ class OrgLookup:
         return f"{self.org_field}__in"
 
     def _organization_relation_is_valid(self, model):
+        """Check the path can be joined safely and ends at the Organization model.
+
+        Invalid paths must reach the permission check instead of causing a
+        ``select_related`` error before it can deny the write.
+        """
         for part in self.org_field.split("__"):
             try:
                 field = model._meta.get_field(part)
@@ -185,7 +190,7 @@ class FilterSerializerByOrganization(OrgLookup):
 
     def filter_fields(self):
         """
-        Limit submitted relationships and renderd choices in the browsable API.
+        Limit submitted relationships and rendered choices in the browsable API.
 
         Users can select active organizations within their permitted scope and
         related objects belonging to those organizations. Shared objects are
@@ -202,6 +207,11 @@ class FilterSerializerByOrganization(OrgLookup):
                 self._filter_related_field(field, organization_filter)
 
     def _filter_organization_field(self, field, organization_filter):
+        """Limit organization choices without breaking opted-out updates.
+
+        Such updates may keep their current disabled organization, but cannot
+        select another disabled organization or create an object in one.
+        """
         # Keep disabled organizations out of writable relation fields.
         queryset = field.queryset.filter(is_active=True)
         field.error_messages["does_not_exist"] = DISABLED_ORGANIZATION_ERROR_MESSAGE

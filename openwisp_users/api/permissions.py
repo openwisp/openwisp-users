@@ -100,6 +100,9 @@ class DisabledOrgReadOnly(ObjectOrganizationMixin, BasePermission):
     """
     Keep disabled-organization objects read-only while allowing reads and
     deletion. Views can opt out with ``allow_disabled_organization_writes``.
+
+    DRF does not run object permissions on creation, so create views must
+    separately reject disabled organizations.
     """
 
     message = _(

@@ -85,6 +85,11 @@ class CustomPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
         return instance.user.username
 
     def get_queryset(self):
+        """Keep the current owner selectable when re-enabling an organization.
+
+        Other memberships of disabled organizations remain unavailable, so a
+        request cannot assign a different owner while the organization is disabled.
+        """
         user = self.context["request"].user
         if user.is_superuser:
             queryset = OrganizationUser.objects.all()
@@ -263,6 +268,11 @@ class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
     }
 
     def get_queryset(self):
+        """Allow existing disabled memberships to resolve for removal.
+
+        New memberships still require an active organization, and model
+        validation blocks changes to existing disabled memberships.
+        """
         user = self.context["request"].user
         if user.is_superuser:
             queryset = Organization.objects.all()
@@ -442,6 +452,11 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
         }
 
     def update(self, instance, validated_data):
+        """Apply the membership operation sent with a user update.
+
+        For an existing membership, omitting ``is_admin`` leaves it unchanged,
+        changing the value updates it, and resending the same value removes it.
+        """
         org_user_data = dict()
         if validated_data.get("organization_users"):
             org_user_data = validated_data.pop("organization_users")
@@ -455,10 +470,6 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             except OrganizationUser.DoesNotExist:
                 pass
             if org_user:
-                # Explicit contract for an existing membership:
-                # - is_admin omitted: leave the membership unchanged
-                # - is_admin sent and changed: update it;
-                # - is_admin sent unchanged -> remove the membership
                 if "is_admin" in org_user_data:
                     if org_user.is_admin != org_user_data["is_admin"]:
                         org_user.is_admin = org_user_data["is_admin"]

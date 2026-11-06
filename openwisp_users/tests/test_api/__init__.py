@@ -130,6 +130,11 @@ class TestDisabledOrgApiMixin(TestDisabledOrgMixin):
         unchanged_field="name",
         organization=None,
     ):
+        """Run roles and operations in order against the same object.
+
+        Place successful deletion after every check that needs the object,
+        including checks performed by subsequent roles.
+        """
         organization = organization or getattr(obj, "organization", None)
         specs = {
             "org_admin": {

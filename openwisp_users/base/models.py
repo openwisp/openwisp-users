@@ -482,6 +482,11 @@ class BaseOrganization(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
+        """Signal saved status changes after commit, so listeners see committed data.
+
+        New organizations do not emit a status signal. Each signal receives a
+        snapshot of its transition, even if the status changes again before commit.
+        """
         is_new = self._state.adding
         update_fields = kwargs.get("update_fields")
         # An omitted is_active is not written, even if the instance differs
