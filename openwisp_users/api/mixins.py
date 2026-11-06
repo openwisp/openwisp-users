@@ -244,28 +244,35 @@ class FilterSerializerByOrganization(OrgLookup):
                 conditions |= Q(**{f"{self.org_field}__isnull": True})
         field.queryset = queryset.filter(conditions)
 
+    def _filter_fields_once(self):
+        """Wait for request context and avoid adding the same filters repeatedly.
+
+        A nested list reuses its child serializer for every item, so filtering
+        on every validation would make its queries grow with the list.
+        """
+        request = self.context.get("request")
+        if request is None or getattr(self, "_filtered_request", None) is request:
+            return
+        self.filter_fields()
+        self._filtered_request = request
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # only filter related fields if the serializer
-        # is being initiated during an HTTP request
-        if "request" in self.context:
-            self.filter_fields()
+        self._filter_fields_once()
 
     def bind(self, field_name, parent):
         """Apply request-based restrictions when this serializer is nested.
 
         A nested serializer can be initialized before its parent supplies the
-        request context, so its relation fields must be filtered again on bind.
+        request context, so its relation fields may first be filtered on bind.
         """
         super().bind(field_name, parent)
-        if "request" in self.context:
-            self.filter_fields()
+        self._filter_fields_once()
 
     def to_internal_value(self, data):
         # A many=True child may bind before the root has request context, so
         # restrict its fields now, before DRF validates submitted relations.
-        if "request" in self.context:
-            self.filter_fields()
+        self._filter_fields_once()
         return super().to_internal_value(data)
 
 
