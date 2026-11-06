@@ -164,6 +164,17 @@ class MultitenantAdminMixin(object):
 
         @wraps(action)
         def guarded(model_admin, request, queryset):
+            # The default User model has no organization field, so scanning
+            # selected users cannot find a disabled organization.
+            # Keep the scan if an integration defines an organization or resolver.
+            if (
+                self.model is User
+                and type(self).get_object_organization
+                is MultitenantAdminMixin.get_object_organization
+                and not hasattr(self.model, "organization")
+                and not self.multitenant_parent
+            ):
+                return action(model_admin, request, queryset)
             db_path = None
             if (
                 type(self).get_object_organization

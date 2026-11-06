@@ -7,6 +7,7 @@ from django.contrib.messages.storage.cookie import CookieStorage
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
+from openwisp_users.admin import UserAdmin
 from openwisp_users.multitenancy import MultitenantAdminMixin
 
 from ..admin import BookInline, LibraryParentAdmin, ShelfAdmin
@@ -243,6 +244,33 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
                 )
                 shelf.refresh_from_db()
                 self.assertEqual(shelf.name, "renamed-shelf")
+
+    def test_user_action_does_not_scan_users_without_organization(self):
+        user = self._create_user()
+        model_admin = UserAdmin(User, admin.site)
+        request = self._action_request({})
+        action = mock.Mock(return_value=None)
+        queryset = User.objects.filter(pk=user.pk)
+        with mock.patch.object(User, "from_db", wraps=User.from_db) as from_db:
+            model_admin._guard_action(action)(model_admin, request, queryset)
+        from_db.assert_not_called()
+        action.assert_called_once_with(model_admin, request, queryset)
+
+    def test_user_action_respects_custom_organization_resolver(self):
+        class ScopedUserAdmin(UserAdmin):
+            def get_object_organization(self, obj):
+                return organization
+
+        user = self._create_user()
+        organization = self._create_org(name="disabled-user-scope", is_active=False)
+        model_admin = ScopedUserAdmin(User, admin.site)
+        request = self._action_request({})
+        action = mock.Mock(return_value=None)
+        response = model_admin._guard_action(action)(
+            model_admin, request, User.objects.filter(pk=user.pk)
+        )
+        self.assertEqual(response.status_code, 302)
+        action.assert_not_called()
 
     def test_parent_linked_action_checks_organizations_without_extra_queries(self):
         class LibraryActionAdmin(LibraryParentAdmin):

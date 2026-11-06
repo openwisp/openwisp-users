@@ -57,6 +57,16 @@ belonging to disabled organizations. Use
 ``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
 still allowing deletion.
 
+For an inline linked through another object, set the field on the inline
+model and the path from that field to the organization. For example, a
+bookmark linked to a book can use:
+
+.. code-block:: python
+
+    class BookmarkInlineFormSet(MultitenantReadOnlyInlineFormSet):
+        organization_fk_field = "book"
+        organization_lookup = "book__organization"
+
 Admin Actions
 +++++++++++++
 
@@ -90,10 +100,16 @@ or inline. The default is ``True``:
 
 An opted-out admin keeps the object's current disabled organization
 selectable so it can be saved. The opt-out does not disable field
-protection provided by ``MultitenantReadOnlyInlineFormSet``.
+protection provided by ``MultitenantReadOnlyInlineFormSet``. An inline
+opt-out also does not grant permission to change the parent, which must
+allow the form submission separately.
 
-If an object uses a different relationship to its organization, override
-``get_object_organization()`` on its admin to return the organization.
+Use ``multitenant_parent`` when the organization is reached through a
+parent object. For other relationships, override
+``get_object_organization()`` to return the organization. This override
+only controls write protection: also restrict the admin queryset and form
+choices to the requester's organizations and exclude disabled
+organizations from write choices.
 
 ``MultitenantOrgFilter``
 ------------------------
