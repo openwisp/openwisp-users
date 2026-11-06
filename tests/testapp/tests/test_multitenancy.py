@@ -216,8 +216,33 @@ class TestMultitenancy(TestMultitenancyMixin, TestCase):
         )
         model_admin = ShelfActionAdmin(Shelf, admin.site)
         with self.assertNumQueries(2):
-            model_admin.response_action(request, Shelf.objects.all())
+            with mock.patch.object(Shelf, "from_db", wraps=Shelf.from_db) as from_db:
+                model_admin.response_action(request, Shelf.objects.all())
+        from_db.assert_not_called()
         self.assertEqual(Shelf.objects.filter(name="renamed-shelf").count(), 3)
+
+    def test_action_with_prefetched_queryset(self):
+        class CustomResolverAdmin(ShelfActionAdmin):
+            def get_object_organization(self, obj):
+                return obj.organization
+
+        organization = self._get_org()
+        shelf = self._create_shelf(name="prefetched-shelf", organization=organization)
+        for admin_class in (ShelfActionAdmin, CustomResolverAdmin):
+            with self.subTest(admin_class=admin_class.__name__):
+                Shelf.objects.filter(pk=shelf.pk).update(name="prefetched-shelf")
+                request = self._action_request(
+                    {"action": "rename_selected", "_selected_action": [str(shelf.pk)]}
+                )
+                model_admin = admin_class(Shelf, admin.site)
+                model_admin.response_action(
+                    request,
+                    Shelf.objects.select_related("organization").prefetch_related(
+                        "tags"
+                    ),
+                )
+                shelf.refresh_from_db()
+                self.assertEqual(shelf.name, "renamed-shelf")
 
     def test_parent_linked_action_checks_organizations_without_extra_queries(self):
         class LibraryActionAdmin(LibraryParentAdmin):

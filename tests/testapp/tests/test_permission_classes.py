@@ -645,16 +645,22 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
         disabled_org = self._create_org(name="nested-disabled", is_active=False)
         manager = self._create_administrator(organizations=[active_org])
         view = ParentView.as_view()
+        valid_book = {
+            "name": "managed-book",
+            "author": "author",
+            "organization": str(active_org.pk),
+        }
         with self.subTest("API rejects an unmanaged organization"):
             request = APIRequestFactory().post(
                 "/",
                 {
                     "books": [
+                        valid_book,
                         {
                             "name": "nested-book",
                             "author": "author",
                             "organization": str(unmanaged_org.pk),
-                        }
+                        },
                     ]
                 },
                 format="json",
@@ -662,17 +668,18 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             force_authenticate(request, user=manager)
             response = view(request)
             self.assertEqual(response.status_code, 400)
-            self.assertIn("organization", response.data["books"][0])
+            self.assertIn("organization", response.data["books"][1])
         with self.subTest("API rejects a disabled organization"):
             request = APIRequestFactory().post(
                 "/",
                 {
                     "books": [
+                        valid_book,
                         {
                             "name": "nested-book",
                             "author": "author",
                             "organization": str(disabled_org.pk),
-                        }
+                        },
                     ]
                 },
                 format="json",
@@ -680,9 +687,52 @@ class TestPermissionClasses(TestMultitenancyMixin, TestCase):
             force_authenticate(request, user=manager)
             response = view(request)
             self.assertEqual(response.status_code, 400)
-            self.assertIn("organization", response.data["books"][0])
+            self.assertIn("organization", response.data["books"][1])
         self.assertEqual(Shelf.objects.filter(name="nested-parent").count(), 0)
-        self.assertEqual(Book.objects.filter(name="nested-book").count(), 0)
+        self.assertEqual(
+            Book.objects.filter(name__in=("managed-book", "nested-book")).count(), 0
+        )
+
+    def test_nested_many_relation_filters_do_not_accumulate(self):
+        class ParentSerializer(serializers.Serializer):
+            books = BookManagerSerializer(many=True)
+
+        organization = self._create_org(name="nested-filter-org")
+        shelf = Shelf.objects.create(name="nested-shelf", organization=organization)
+        manager = self._create_administrator(organizations=[organization])
+        for user in (self._get_admin(), manager):
+            with self.subTest(user=user.username):
+                request = APIRequestFactory().post("/")
+                request.user = user
+                queries = []
+                for count in (1, 10):
+                    serializer = ParentSerializer(
+                        data={
+                            "books": [
+                                {
+                                    "name": f"book-{index}",
+                                    "author": "author",
+                                    "organization": str(organization.pk),
+                                    "shelf": str(shelf.pk),
+                                }
+                                for index in range(count)
+                            ]
+                        },
+                        context={"request": request},
+                    )
+                    self.assertTrue(serializer.is_valid(), serializer.errors)
+                    fields = serializer.fields["books"].child.fields
+                    queries.append(
+                        {
+                            name: fields[name].queryset.query.sql_with_params()
+                            for name in ("organization", "shelf")
+                        }
+                    )
+                self.assertEqual(
+                    queries[0],
+                    queries[1],
+                    "Relation restrictions must not grow with the number of items",
+                )
 
     def test_disabled_org_read_only_denies_on_misconfigured_field(self):
         class BrokenOrgFieldTemplateDetailView(TemplateDetailView):
