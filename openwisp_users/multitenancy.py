@@ -156,15 +156,15 @@ class MultitenantAdminMixin(object):
         return actions
 
     def _guard_action(self, action):
-        """
-        Block an action if a selected object belongs to a disabled organization.
+        """Block actions that select objects from disabled organizations.
 
-        Delete actions and explicitly excluded actions are not wrapped.
+        Admin actions check change permission without an object, so the
+        selection needs its own guard. Delete and excluded actions bypass it.
         """
 
         @wraps(action)
         def guarded(model_admin, request, queryset):
-            checked_queryset = queryset
+            db_path = None
             if (
                 type(self).get_object_organization
                 is MultitenantAdminMixin.get_object_organization
@@ -176,20 +176,28 @@ class MultitenantAdminMixin(object):
                 try:
                     for part in path.split("__"):
                         field = model._meta.get_field(part)
-                        if not (field.many_to_one or field.one_to_one):
+                        if not (
+                            field.concrete and (field.many_to_one or field.one_to_one)
+                        ):
                             break
                         model = field.related_model
                     else:
-                        checked_queryset = queryset.select_related(path)
+                        db_path = path
                 except FieldDoesNotExist:
                     pass
-            if any(
-                organization is not None and not organization.is_active
-                for organization in (
-                    self.get_object_organization(obj)
-                    for obj in checked_queryset.iterator()
+            if db_path is not None:
+                blocked = queryset.filter(**{f"{db_path}__is_active": False}).exists()
+            else:
+                blocked = any(
+                    organization is not None and not organization.is_active
+                    for organization in (
+                        self.get_object_organization(obj)
+                        # Prefetching requires an explicit chunk_size;
+                        # 2000 matches Django's iterator default.
+                        for obj in queryset.iterator(chunk_size=2000)
+                    )
                 )
-            ):
+            if blocked:
                 self.message_user(
                     request,
                     _("Actions cannot modify objects of disabled organizations."),
