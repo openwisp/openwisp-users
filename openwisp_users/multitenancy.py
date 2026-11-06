@@ -1,5 +1,10 @@
+from functools import wraps
+
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Q
+from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from swapper import load_model
 
@@ -20,6 +25,9 @@ class MultitenantAdminMixin(object):
 
     multitenant_shared_relations = None
     multitenant_parent = None
+    # Set False on subclasses that allow writes to disabled-organization objects.
+    disabled_organization_write_protection = True
+    disabled_organization_action_exclusions = ()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,30 +55,205 @@ class MultitenantAdminMixin(object):
         if self.model == User:
             return self.multitenant_behaviour_for_user_admin(request)
         if user.is_superuser:
+            # Autocomplete requests exclude objects associated with
+            # disabled organizations.
+            if (
+                request.resolver_match
+                and request.resolver_match.url_name == "autocomplete"
+                and hasattr(self.model, "organization")
+            ):
+                active_or_shared = Q(organization__is_active=True) | Q(
+                    organization=None
+                )
+                return qs.filter(active_or_shared)
             return qs
         if hasattr(self.model, "organization"):
-            return qs.filter(organization__in=user.organizations_managed)
+            return qs.filter(
+                organization__in=user.organizations_managed,
+                organization__is_active=True,
+            )
         if self.model.__name__ == "Organization":
-            return qs.filter(pk__in=user.organizations_managed)
+            return qs.filter(pk__in=user.organizations_managed, is_active=True)
         elif not self.multitenant_parent:
             return qs
         else:
             qsarg = "{0}__organization__in".format(self.multitenant_parent)
-            return qs.filter(**{qsarg: user.organizations_managed})
+            active_qsarg = "{0}__organization__is_active".format(
+                self.multitenant_parent
+            )
+            return qs.filter(**{qsarg: user.organizations_managed, active_qsarg: True})
 
-    def _edit_form(self, request, form):
+    def get_object_organization(self, obj):
         """
-        Modifies the form querysets as follows;
-        if current user is not superuser:
-            * show only relevant organizations
-            * show only relations associated to relevant organizations
-              or shared relations
-            * do not allow organization field to be empty (shared org)
-        else show everything
+        Resolve an object's organization, including through
+        ``multitenant_parent``.
+        """
+        if self.model.__name__ == "Organization":
+            return obj
+        organization = getattr(obj, "organization", None)
+        if organization is None and self.multitenant_parent:
+            parent = obj
+            for attr in self.multitenant_parent.split("__"):
+                parent = getattr(parent, attr, None)
+                if parent is None:
+                    break
+            organization = getattr(parent, "organization", None)
+        return organization
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Block changes to disabled organizations unless the admin opts out.
+        """
+        if self.disabled_organization_write_protection and obj is not None:
+            organization = self.get_object_organization(obj)
+            if organization is not None and not organization.is_active:
+                return False
+        return super().has_change_permission(request, obj)
+
+    def get_inline_instances(self, request, obj=None):
+        """
+        Disable add/change for inlines on objects from disabled organizations.
+        Inline deletion through the form also requires parent change permission.
+        Organization admin retains change permission to allow re-enabling.
+        """
+        inlines = super().get_inline_instances(request, obj)
+        if obj is None or not self.disabled_organization_write_protection:
+            return inlines
+        organization = self.get_object_organization(obj)
+        if organization is None or organization.is_active:
+            return inlines
+        for inline in inlines:
+            if getattr(inline, "disabled_organization_write_protection", True):
+                inline.has_add_permission = lambda request, obj=None: False
+                inline.has_change_permission = lambda request, obj=None: False
+        return inlines
+
+    def has_add_permission(self, request, *args, **kwargs):
+        """
+        Hide unusable add forms when no active organization is managed.
+        """
+        if (
+            not request.user.is_superuser
+            and self.model != User
+            and not request.user.organizations_managed
+        ):
+            # The form requires an organization, so it cannot work without one.
+            if hasattr(self.model, "organization") or self.multitenant_parent:
+                return False
+        return super().has_add_permission(request, *args, **kwargs)
+
+    def get_actions(self, request, action_location=None):
+        # TODO: Remove when dropping support Django 5.2
+        # Django <= 6.0 does not accept action_location
+        kwargs = {"action_location": action_location} if action_location else {}
+        actions = super().get_actions(request, **kwargs)
+        if not self.disabled_organization_write_protection:
+            return actions
+        exclusions = self.get_disabled_organization_action_exclusions()
+        for name, (action, action_name, description) in actions.items():
+            if name not in exclusions:
+                actions[name] = (self._guard_action(action), action_name, description)
+        return actions
+
+    def _guard_action(self, action):
+        """Block actions that select objects from disabled organizations.
+
+        Admin actions check change permission without an object, so the
+        selection needs its own guard. Delete and excluded actions bypass it.
+        """
+
+        @wraps(action)
+        def guarded(model_admin, request, queryset):
+            # The default User model has no organization field, so scanning
+            # selected users cannot find a disabled organization.
+            # Keep the scan if an integration defines an organization or resolver.
+            if (
+                self.model is User
+                and type(self).get_object_organization
+                is MultitenantAdminMixin.get_object_organization
+                and not hasattr(self.model, "organization")
+                and not self.multitenant_parent
+            ):
+                return action(model_admin, request, queryset)
+            db_path = None
+            if (
+                type(self).get_object_organization
+                is MultitenantAdminMixin.get_object_organization
+            ):
+                path = "organization"
+                if not hasattr(self.model, "organization") and self.multitenant_parent:
+                    path = f"{self.multitenant_parent}__organization"
+                model = self.model
+                try:
+                    for part in path.split("__"):
+                        field = model._meta.get_field(part)
+                        if not (
+                            field.concrete and (field.many_to_one or field.one_to_one)
+                        ):
+                            break
+                        model = field.related_model
+                    else:
+                        db_path = path
+                except FieldDoesNotExist:
+                    pass
+            if db_path is not None:
+                blocked = queryset.filter(**{f"{db_path}__is_active": False}).exists()
+            else:
+                blocked = any(
+                    organization is not None and not organization.is_active
+                    for organization in (
+                        self.get_object_organization(obj)
+                        # Prefetching requires an explicit chunk_size;
+                        # 2000 matches Django's iterator default.
+                        for obj in queryset.iterator(chunk_size=2000)
+                    )
+                )
+            if blocked:
+                self.message_user(
+                    request,
+                    _("Actions cannot modify objects of disabled organizations."),
+                    messages.ERROR,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+            return action(model_admin, request, queryset)
+
+        return guarded
+
+    def get_disabled_organization_action_exclusions(self):
+        return {"delete_selected", "delete_selected_overridden"}.union(
+            self.disabled_organization_action_exclusions
+        )
+
+    def _edit_form(self, request, form, obj=None):
+        """
+        Restrict organization and related-object choices to the user's scope.
+
+        Non-superusers can select only organizations they manage and related
+        objects from those organizations, subject to shared-object settings.
+        Disabled organizations and their related objects are excluded.
+
+        If the admin disables write protection, the object's current disabled
+        organization remains selectable so the existing object can be saved.
         """
         fields = form.base_fields
         user = request.user
         org_field = fields.get("organization")
+        keep_disabled_org_pk = None
+        if not self.disabled_organization_write_protection and obj is not None:
+            organization = self.get_object_organization(obj)
+            if organization is not None and not organization.is_active:
+                keep_disabled_org_pk = organization.pk
+        if org_field:
+            allowed = Q(is_active=True)
+            if keep_disabled_org_pk is not None:
+                allowed |= Q(pk=keep_disabled_org_pk)
+            org_field.queryset = org_field.queryset.filter(allowed)
+        active_or_shared = Q(organization__is_active=True) | Q(organization=None)
+        for field_name in self.multitenant_shared_relations:
+            if field_name not in fields:
+                continue
+            field = fields[field_name]
+            field.queryset = field.queryset.filter(active_or_shared)
         if user.is_superuser and org_field and not org_field.required:
             org_field.empty_label = SHARED_SYSTEMWIDE_LABEL
         elif not user.is_superuser:
@@ -78,14 +261,14 @@ class MultitenantAdminMixin(object):
             # organizations relation;
             # may be readonly and not present in field list
             if org_field:
-                org_field.queryset = org_field.queryset.filter(pk__in=orgs_pk)
+                managed = Q(pk__in=orgs_pk)
+                if keep_disabled_org_pk is not None:
+                    managed |= Q(pk=keep_disabled_org_pk)
+                org_field.queryset = org_field.queryset.filter(managed)
                 org_field.empty_label = None
                 org_field.required = True
-            # other relations
             q = Q(organization__in=orgs_pk) | Q(organization=None)
             for field_name in self.multitenant_shared_relations:
-                # each relation may be readonly
-                # and not present in field list
                 if field_name not in fields:
                     continue
                 field = fields[field_name]
@@ -93,11 +276,11 @@ class MultitenantAdminMixin(object):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        self._edit_form(request, form)
+        self._edit_form(request, form, obj)
         return form
 
     def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj=None, **kwargs)
+        formset = super().get_formset(request, obj, **kwargs)
         self._edit_form(request, formset.form)
         return formset
 

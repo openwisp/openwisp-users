@@ -1,3 +1,4 @@
+import copy
 import logging
 import uuid
 from smtplib import SMTPException
@@ -22,6 +23,7 @@ from swapper import load_model
 from openwisp_utils.admin_theme.email import send_email
 
 from .. import settings as app_settings
+from ..signals import organization_disabled, organization_enabled
 from ..utils import throttle_email_batch
 
 logger = logging.getLogger(__name__)
@@ -479,6 +481,36 @@ class BaseOrganization(models.Model):
     class Meta:
         abstract = True
 
+    def save(self, *args, **kwargs):
+        """Signal saved status changes after commit, so listeners see committed data.
+
+        New organizations do not emit a status signal. Each signal receives a
+        snapshot of its transition, even if the status changes again before commit.
+        """
+        is_new = self._state.adding
+        update_fields = kwargs.get("update_fields")
+        # An omitted is_active is not written, even if the instance differs
+        # from the database, so it must not trigger a status change signal.
+        check_status = not is_new and (
+            update_fields is None or "is_active" in update_fields
+        )
+        previous_is_active = None
+        if check_status:
+            previous_is_active = (
+                self.__class__.objects.using(kwargs.get("using") or self._state.db)
+                .filter(pk=self.pk)
+                .values_list("is_active", flat=True)
+                .first()
+            )
+        super().save(*args, **kwargs)
+        if check_status and self.is_active != previous_is_active:
+            signal = organization_enabled if self.is_active else organization_disabled
+            instance = copy.copy(self)
+            transaction.on_commit(
+                lambda: signal.send(sender=self.__class__, instance=instance),
+                using=self._state.db,
+            )
+
     def add_user(self, user, is_admin=False, **kwargs):
         """
         We override this method from the upstream dependency to
@@ -486,14 +518,16 @@ class BaseOrganization(models.Model):
         automatically via a signal receiver.
         Without this change, the add_user method would throw IntegrityError.
         """
-
         if not self.users.all().exists():
             is_admin = True
 
         OrganizationUser = load_model("openwisp_users", "OrganizationUser")
-        return OrganizationUser.objects.create(
-            user=user, organization=self, is_admin=is_admin
+        org_user = OrganizationUser(
+            user=user, organization=self, is_admin=is_admin, **kwargs
         )
+        org_user.full_clean()
+        org_user.save()
+        return org_user
 
 
 class BaseOrganizationUser(models.Model):
@@ -508,6 +542,45 @@ class BaseOrganizationUser(models.Model):
         abstract = True
 
     def clean(self):
+        """Reject disabled-organization membership changes and owner demotion.
+
+        Unchanged memberships remain valid, including in disabled organizations.
+        Moving a membership also requires its previous organization to be active.
+        """
+        original = None
+        if not self._state.adding:
+            original = (
+                self.__class__.objects.select_related("organization")
+                .filter(pk=self.pk)
+                .first()
+            )
+
+        changed = original is None or any(
+            getattr(original, field.attname) != getattr(self, field.attname)
+            for field in self._meta.concrete_fields
+            if field.editable and not field.primary_key
+        )
+
+        if changed and self.organization_id is not None:
+            if not self.organization.__class__.objects.filter(
+                pk=self.organization_id, is_active=True
+            ).exists():
+                if self._state.adding:
+                    raise ValidationError(
+                        _("Cannot add users to a disabled organization.")
+                    )
+                raise ValidationError(
+                    _("Memberships of a disabled organization cannot be modified.")
+                )
+            if (
+                original
+                and original.organization_id != self.organization_id
+                and not original.organization.is_active
+            ):
+                raise ValidationError(
+                    _("Memberships of a disabled organization cannot be modified.")
+                )
+
         if (
             not self._state.adding
             and self.user.is_owner(self.organization_id)
@@ -539,7 +612,37 @@ class BaseOrganizationOwner(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     def clean(self):
-        if self.organization_user.organization.pk != self.organization.pk:
+        """Reject changes involving disabled organizations and non-member owners.
+
+        An unchanged owner remains valid in a disabled organization. Moving an
+        owner also requires the previous organization to be active.
+        """
+        original = None
+        if self.pk:
+            original = (
+                self.__class__.objects.select_related("organization")
+                .filter(pk=self.pk)
+                .first()
+            )
+        changed = original is None or any(
+            getattr(original, field.attname) != getattr(self, field.attname)
+            for field in self._meta.concrete_fields
+            if field.editable and not field.primary_key
+        )
+        if changed and (
+            not self.organization.__class__.objects.filter(
+                pk=self.organization_id, is_active=True
+            ).exists()
+            or (
+                original
+                and original.organization_id != self.organization_id
+                and not original.organization.is_active
+            )
+        ):
+            raise ValidationError(
+                _("Cannot assign an owner to a disabled organization.")
+            )
+        if self.organization_user.organization_id != self.organization_id:
             raise ValidationError(
                 {
                     "organization_user": _(

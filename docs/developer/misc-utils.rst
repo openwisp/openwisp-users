@@ -311,3 +311,36 @@ Add the validator to the ``AUTH_PASSWORD_VALIDATORS`` Django setting:
             "NAME": "openwisp_users.password_validation.PasswordReuseValidator",
         },
     ]
+
+Signals
+-------
+
+.. include:: /partials/signals-note.rst
+
+``organization_disabled``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Path**: ``openwisp_users.signals.organization_disabled``
+
+**Arguments**:
+
+- ``instance``: the organization instance that was disabled
+
+Emitted after an organization's ``is_active`` field changes from ``True``
+to ``False`` and the change has been committed to the database.
+
+This signal is not emitted when an organization is created.
+
+``organization_enabled``
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Path**: ``openwisp_users.signals.organization_enabled``
+
+**Arguments**:
+
+- ``instance``: the organization instance that was enabled
+
+Emitted after an organization's ``is_active`` field changes from ``False``
+to ``True`` and the change has been committed to the database.
+
+This signal is not emitted when an organization is created.
