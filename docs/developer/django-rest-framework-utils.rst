@@ -319,7 +319,10 @@ These serializers do not allow non-superusers to create shared objects.
 These serializers also exclude :ref:`disabled organizations
 <users_disabled_organization>` from the ``organization`` field for all
 users, including superusers. Submitting a disabled organization's primary
-key returns a validation error.
+key returns a validation error, except when updating an existing object
+through a view with ``allow_disabled_organization_writes = True``. Such an
+update may retain the object's current disabled organization. Creation in
+or reassignment to another disabled organization remains invalid.
 
 Usage example:
 

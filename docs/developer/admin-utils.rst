@@ -34,17 +34,49 @@ This class has two important attributes:
 Disabled Organization Write Protection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When an organization is disabled, its data must remain available for
-inspection and cleanup but must not be modified. ``MultitenantAdminMixin``
-enforces this rule in the admin: users, including superusers, can view and
-delete objects belonging to a :ref:`disabled organization
-<users_disabled_organization>`, but cannot change them. For models linked
-to an organization through a parent, the mixin follows
-``multitenant_parent`` to find the organization.
+``MultitenantAdminMixin`` protects objects belonging to a :ref:`disabled
+organization <users_disabled_organization>`, including objects linked
+through ``multitenant_parent``:
 
-This is controlled by the ``disabled_organization_write_protection`` class
-attribute, which defaults to ``True``. Set it to ``False`` on a specific
-``ModelAdmin`` to opt out:
+- Superusers can view and delete the objects, but cannot change them.
+  Non-superusers cannot access objects in disabled organizations through
+  this mixin, even if they have the model's view or delete permission.
+- Organization and related-object choices exclude disabled organizations.
+- The organization admin allows superusers to re-enable the organization.
+
+Inlines
++++++++
+
+When the parent belongs to a disabled organization, the mixin prevents
+adding or editing its inline rows, even if the inline does not use the
+mixin. Deleting an inline row through the form requires permission to
+change the parent.
+
+An editable parent, such as a user, can also have individual inline rows
+belonging to disabled organizations. Use
+``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
+still allowing deletion.
+
+Admin Actions
++++++++++++++
+
+Actions are blocked if any selected object belongs to a disabled
+organization. The built-in ``delete_selected`` and
+``delete_selected_overridden`` actions are excluded by default. To allow
+another cleanup action, list its name in
+``disabled_organization_action_exclusions``:
+
+.. code-block:: python
+
+    class DeviceAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+        disabled_organization_action_exclusions = ("deactivate_device",)
+
+Customization
++++++++++++++
+
+For a cleanup operation that needs to bypass write protection, set
+``disabled_organization_write_protection = False`` on its ``ModelAdmin``
+or inline. The default is ``True``:
 
 .. code-block:: python
 
@@ -56,42 +88,12 @@ attribute, which defaults to ``True``. Set it to ``False`` on a specific
         disabled_organization_write_protection = False
         # other attributes
 
-The ``organization`` form field excludes disabled organizations for
-everyone, including superusers. An opted-out admin keeps the object's
-current disabled organization selectable so it can be saved.
+An opted-out admin keeps the object's current disabled organization
+selectable so it can be saved. The opt-out does not disable field
+protection provided by ``MultitenantReadOnlyInlineFormSet``.
 
-An admin change form can also contain **inlines**, which edit related
-objects on the same page. When the parent belongs to a disabled
-organization, the mixin prevents adding or editing these rows, including
-rows whose inline does not use the mixin. Deleting a row through the form
-requires permission to change the parent. The organization admin keeps
-change permission so a superuser can re-enable the organization.
-
-Some parents, such as a user, can remain editable while individual inline
-rows belong to disabled organizations. Use
-``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
-still allowing their deletion. To disable this protection for a particular
-parent admin or inline, set ``disabled_organization_write_protection =
-False`` on it. This does not disable the formset's own field protection.
-
-Admin actions can change several selected objects at once, so they also
-need the write protection. The mixin blocks actions when the selection
-contains an object belonging to a disabled organization. The actions
-``delete_selected`` and ``delete_selected_overridden`` are excluded by
-default. To allow another cleanup action while keeping the rest of the
-protection enabled, list its name in
-``disabled_organization_action_exclusions``:
-
-.. code-block:: python
-
-    class DeviceAdmin(MultitenantAdminMixin, admin.ModelAdmin):
-        disabled_organization_action_exclusions = ("deactivate_device",)
-
-The mixin needs to find an object's organization before it can check
-whether it is disabled. By default it uses the ``organization`` relation,
-or follows ``multitenant_parent`` when configured. If a model uses another
-relationship, override ``get_object_organization()`` on its admin to
-return the organization.
+If an object uses a different relationship to its organization, override
+``get_object_organization()`` on its admin to return the organization.
 
 ``MultitenantOrgFilter``
 ------------------------
