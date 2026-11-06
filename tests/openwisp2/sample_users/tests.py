@@ -1,8 +1,13 @@
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.test import RequestFactory
+from django.test.utils import isolate_apps
 from django.urls import reverse
 from swapper import load_model
 
+from openwisp_users.admin import OrganizationAdmin, OrganizationUserInline
 from openwisp_users.tests.test_accounts import TestAccountView as BaseTestAccountView
 from openwisp_users.tests.test_admin import (
     TestBasicUsersIntegration as BaseTestBasicUsersIntegration,
@@ -35,6 +40,8 @@ from openwisp_users.tests.test_middlewares import (
     TestPasswordExpirationMiddleware as BaseTestPasswordExpirationMiddleware,
 )
 from openwisp_users.tests.test_models import TestUsers as BaseTestUsers
+
+from .models import Group, Organization, OrganizationInlineModel
 
 additional_fields = [
     ("social_security_number", "123-45-6789"),
@@ -92,6 +99,115 @@ class TestUsersAdmin(GetEditFormInlineMixin, BaseTestUsersAdmin):
     app_label = "sample_users"
     _additional_user_fields = additional_fields
 
+    def test_disabled_organization_inline_rejects_posted_changes(self):
+        """The sample adds an organization inline without multitenancy protection.
+
+        Verify the parent admin blocks forged add and change requests for that
+        inline when the organization is disabled.
+        """
+        self.client.force_login(self._get_admin())
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                organization = self._create_org(
+                    name=f"disabled-inline-{existing}", is_active=False
+                )
+                if existing:
+                    row = OrganizationInlineModel.objects.create(
+                        organization=organization, details="original"
+                    )
+                data = {
+                    "is_active": "",
+                    "owner-TOTAL_FORMS": "0",
+                    "owner-INITIAL_FORMS": "0",
+                    "organizationinlinemodel-TOTAL_FORMS": "1",
+                    "organizationinlinemodel-INITIAL_FORMS": str(int(existing)),
+                    "organizationinlinemodel-0-organization": str(organization.pk),
+                    "organizationinlinemodel-0-details": "tampered",
+                }
+                if existing:
+                    data["organizationinlinemodel-0-id"] = str(row.pk)
+                response = self.client.post(
+                    reverse(
+                        "admin:sample_users_organization_change", args=[organization.pk]
+                    ),
+                    data,
+                )
+                self.assertEqual(response.status_code, 302)
+                rows = OrganizationInlineModel.objects.filter(organization=organization)
+                self.assertEqual(rows.count(), int(existing))
+                if existing:
+                    row.refresh_from_db()
+                    self.assertEqual(row.details, "original")
+                organization.refresh_from_db()
+                self.assertFalse(organization.is_active)
+
+    def test_disabled_membership_inline_protects_extension_field(self):
+        """A downstream inline may expose fields added to the membership model.
+
+        The sample's swapped membership adds ``details``; verify a forged change
+        to that field is ignored when its organization is disabled.
+        """
+
+        class ExtendedMembershipInline(OrganizationUserInline):
+            fields = (*OrganizationUserInline.fields, "details")
+
+        organization = self._create_org(name="extended-membership-inline")
+        user = self._create_user()
+        membership = self._create_org_user(
+            organization=organization, user=user, details="original"
+        )
+        organization.is_active = False
+        organization.save()
+        request = RequestFactory().post(
+            reverse("admin:sample_users_user_change", args=[user.pk])
+        )
+        request.user = self._get_admin()
+        inline = ExtendedMembershipInline(type(user), admin.site)
+        formset = inline.get_formset(request, user)(
+            instance=user,
+            prefix="memberships",
+            data={
+                "memberships-TOTAL_FORMS": "1",
+                "memberships-INITIAL_FORMS": "1",
+                "memberships-0-id": str(membership.pk),
+                "memberships-0-user": str(user.pk),
+                "memberships-0-organization": str(organization.pk),
+                "memberships-0-details": "tampered",
+            },
+        )
+        self.assertTrue(formset.forms[0].fields["details"].disabled)
+        self.assertTrue(formset.is_valid(), formset.errors)
+        formset.save()
+        membership.refresh_from_db()
+        self.assertEqual(membership.details, "original")
+
+    @isolate_apps("openwisp2.sample_users")
+    def test_disabled_organization_m2m_field_is_readonly(self):
+        """An extended organization can add editable many-to-many fields.
+
+        Use an isolated subclass of the sample model to verify those fields are
+        read-only when disabled, while the organization can still be re-enabled.
+        """
+
+        class ExtendedOrganization(Organization):
+            groups = models.ManyToManyField(Group, blank=True)
+
+            class Meta:
+                app_label = "sample_users"
+
+        organization = ExtendedOrganization(is_active=False)
+        request = RequestFactory().get(reverse("admin:sample_users_organization_add"))
+        request.user = self._get_admin()
+        model_admin = OrganizationAdmin(ExtendedOrganization, admin.site)
+        for active in (True, False):
+            with self.subTest(active=active):
+                organization.is_active = active
+                form = model_admin.get_form(
+                    request, organization, fields=("is_active", "groups")
+                )
+                self.assertEqual("groups" in form.base_fields, active)
+                self.assertIn("is_active", form.base_fields)
+
 
 class TestUserPasswordExpiration(BaseTestUserPasswordExpiration):
     pass
@@ -125,6 +241,39 @@ class TestMultitenantAdmin(BaseTestMultitenantAdmin):
 
 
 class TestUsers(BaseTestUsers):
+    def test_add_user_preserves_extension_field(self):
+        """The sample membership adds ``details`` to the built-in fields.
+
+        Verify the organization's public ``add_user`` method saves values for
+        fields added by downstream membership models.
+        """
+        organization = self._create_org(name="extended-add-user")
+        membership = organization.add_user(self._create_user(), details="original")
+        membership.refresh_from_db()
+        self.assertEqual(membership.details, "original")
+
+    def test_disabled_membership_rejects_extension_field_change(self):
+        """Membership validation must cover fields added by downstream models.
+
+        The sample's swapped membership adds ``details``; changing it must fail
+        validation after the organization is disabled.
+        """
+        organization = self._create_org(name="extended-membership")
+        membership = self._create_org_user(
+            organization=organization, details="original"
+        )
+        organization.is_active = False
+        organization.save()
+        membership.full_clean()
+        membership.details = "changed"
+        with self.assertRaisesMessage(
+            ValidationError,
+            "Memberships of a disabled organization cannot be modified.",
+        ):
+            membership.full_clean()
+        membership.refresh_from_db()
+        self.assertEqual(membership.details, "original")
+
     def test_disabled_owner_rejects_extended_field_change(self):
         organization = self._create_org(name="extended-owner")
         user = self._create_user()
