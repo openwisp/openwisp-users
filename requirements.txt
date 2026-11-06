@@ -6,4 +6,4 @@ django-phonenumber-field>=9.0.0,<9.1.0
 phonenumbers>=9.0.41,<9.1.0
 openwisp-utils[rest,celery] @ https://github.com/openwisp/openwisp-utils/archive/refs/heads/1.4.tar.gz
 packaging
-django-sesame>=3.2.3,<3.3.0
+django-sesame>=3.2.5,<3.3.0
