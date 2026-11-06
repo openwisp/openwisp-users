@@ -165,7 +165,9 @@ are not organization-scoped must opt out explicitly.
     belongs to an active organization before saving the new object.
 
 A view can opt out of this guard by setting
-``allow_disabled_organization_writes = True``:
+``allow_disabled_organization_writes = True``. An opted-out view must
+separately block unrelated writes and allow only cleanup operations for
+disabled organizations:
 
 .. code-block:: python
 

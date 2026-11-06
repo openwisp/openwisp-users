@@ -497,7 +497,8 @@ class BaseOrganization(models.Model):
         previous_is_active = None
         if check_status:
             previous_is_active = (
-                self.__class__.objects.filter(pk=self.pk)
+                self.__class__.objects.using(kwargs.get("using") or self._state.db)
+                .filter(pk=self.pk)
                 .values_list("is_active", flat=True)
                 .first()
             )
@@ -506,7 +507,8 @@ class BaseOrganization(models.Model):
             signal = organization_enabled if self.is_active else organization_disabled
             instance = copy.copy(self)
             transaction.on_commit(
-                lambda: signal.send(sender=self.__class__, instance=instance)
+                lambda: signal.send(sender=self.__class__, instance=instance),
+                using=self._state.db,
             )
 
     def add_user(self, user, is_admin=False, **kwargs):

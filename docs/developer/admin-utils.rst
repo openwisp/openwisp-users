@@ -96,7 +96,9 @@ Customization
 
 For a cleanup operation that needs to bypass write protection, set
 ``disabled_organization_write_protection = False`` on its ``ModelAdmin``
-or inline. The default is ``True``:
+or inline. The default is ``True``. The opt-out permits all writes, so the
+integration must separately block unrelated form, inline, and action
+writes:
 
 .. code-block:: python
 

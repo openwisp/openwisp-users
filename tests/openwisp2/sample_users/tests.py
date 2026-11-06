@@ -141,6 +141,50 @@ class TestUsersAdmin(GetEditFormInlineMixin, BaseTestUsersAdmin):
                 organization.refresh_from_db()
                 self.assertFalse(organization.is_active)
 
+    def test_disabling_organization_blocks_inline_changes(self):
+        """The sample adds an inline without its own write protection.
+
+        Verify the parent blocks inline additions and changes in the same
+        request that disables the organization, while allowing deletion.
+        """
+        self.client.force_login(self._get_admin())
+        for operation in ("add", "change", "delete"):
+            with self.subTest(operation=operation):
+                existing = operation != "add"
+                organization = self._create_org(name=f"disable-with-inline-{operation}")
+                if existing:
+                    row = OrganizationInlineModel.objects.create(
+                        organization=organization, details="original"
+                    )
+                data = {
+                    "name": organization.name,
+                    "slug": organization.slug,
+                    "owner-TOTAL_FORMS": "0",
+                    "owner-INITIAL_FORMS": "0",
+                    "organizationinlinemodel-TOTAL_FORMS": "1",
+                    "organizationinlinemodel-INITIAL_FORMS": str(int(existing)),
+                    "organizationinlinemodel-0-organization": str(organization.pk),
+                    "organizationinlinemodel-0-details": "tampered",
+                }
+                if existing:
+                    data["organizationinlinemodel-0-id"] = str(row.pk)
+                if operation == "delete":
+                    data["organizationinlinemodel-0-DELETE"] = "on"
+                response = self.client.post(
+                    reverse(
+                        "admin:sample_users_organization_change", args=[organization.pk]
+                    ),
+                    data,
+                )
+                self.assertEqual(response.status_code, 302)
+                organization.refresh_from_db()
+                self.assertFalse(organization.is_active)
+                rows = OrganizationInlineModel.objects.filter(organization=organization)
+                self.assertEqual(rows.count(), int(operation == "change"))
+                if operation == "change":
+                    row.refresh_from_db()
+                    self.assertEqual(row.details, "original")
+
     def test_disabled_membership_inline_protects_extension_field(self):
         """A downstream inline may expose fields added to the membership model.
 

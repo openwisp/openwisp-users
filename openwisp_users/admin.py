@@ -736,6 +736,21 @@ class OrganizationAdmin(
                 if isinstance(inline, OrganizationOwnerInline):
                     inlines.remove(inline)
                     break
+        # Inline permissions are calculated before the organization is saved.
+        # If this submission disables it, block inline additions and changes too.
+        elif (
+            self.disabled_organization_write_protection
+            and request.method == "POST"
+            and obj.is_active
+            and "is_active" not in self.get_readonly_fields(request, obj)
+            and not forms.CheckboxInput().value_from_datadict(
+                request.POST, request.FILES, "is_active"
+            )
+        ):
+            for inline in inlines:
+                if getattr(inline, "disabled_organization_write_protection", True):
+                    inline.has_add_permission = lambda request, obj=None: False
+                    inline.has_change_permission = lambda request, obj=None: False
         return inlines
 
     def has_change_permission(self, request, obj=None):
