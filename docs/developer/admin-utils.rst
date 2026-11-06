@@ -67,6 +67,16 @@ bookmark linked to a book can use:
         organization_fk_field = "book"
         organization_lookup = "book__organization"
 
+
+    class BookmarkInline(MultitenantAdminMixin, admin.StackedInline):
+        model = Bookmark
+        formset = BookmarkInlineFormSet
+        fields = ("book",)
+        multitenant_shared_relations = ["book"]
+
+The formset protects existing rows. The inline mixin also filters book
+choices for new and editable rows, excluding disabled organizations.
+
 Admin Actions
 +++++++++++++
 
