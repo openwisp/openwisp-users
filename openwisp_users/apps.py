@@ -113,6 +113,11 @@ class OpenwispUsersConfig(AppConfig):
             sender=Organization,
             dispatch_uid="handle_org_is_active_change",
         )
+        post_save.connect(
+            self.invalidate_org_membership_cache,
+            sender=Organization,
+            dispatch_uid="invalidate_org_membership_cache",
+        )
 
         for model in [OrganizationUser, OrganizationOwner]:
             for signal, name in signal_tuples:
@@ -174,19 +179,30 @@ class OpenwispUsersConfig(AppConfig):
             record_password_based_login(request, False)
 
     @classmethod
-    def handle_org_is_active_change(cls, instance, **kwargs):
+    def handle_org_is_active_change(cls, instance, using, **kwargs):
         if instance._state.adding:
             # If it's a new organization, we don't need to update any cache
             return
         Organization = instance._meta.model
         try:
-            old_instance = Organization.objects.only("is_active").get(pk=instance.pk)
+            old_instance = (
+                Organization.objects.using(using).only("is_active").get(pk=instance.pk)
+            )
         except Organization.DoesNotExist:
             return
+        instance._is_active_changed = instance.is_active != old_instance.is_active
+
+    @classmethod
+    def invalidate_org_membership_cache(cls, instance, using, **kwargs):
+        if not getattr(instance, "_is_active_changed", False):
+            return
+        instance._is_active_changed = False
         from .tasks import invalidate_org_membership_cache
 
-        if instance.is_active != old_instance.is_active:
-            invalidate_org_membership_cache.delay(instance.pk)
+        pk = instance.pk
+        transaction.on_commit(
+            lambda: invalidate_org_membership_cache.delay(pk), using=using
+        )
 
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
