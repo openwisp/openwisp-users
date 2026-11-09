@@ -247,6 +247,10 @@ class TestUsers(TestOrganizationMixin, TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             org.save()
         self.assertEqual(user1.is_member(org), False)
+        org.is_active = True
+        with self.captureOnCommitCallbacks(execute=True):
+            org.save()
+        self.assertEqual(user1.is_member(org), True)
 
     @patch("openwisp_users.tasks.invalidate_org_membership_cache.delay")
     def test_org_status_change_invalidates_cache_after_commit(self, mocked_delay):
