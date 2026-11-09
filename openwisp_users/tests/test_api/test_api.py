@@ -482,6 +482,19 @@ class TestUsersApi(
 
         email = EmailAddress.objects.get(user=owner)
         email_path = reverse("users:email_update", args=(owner.pk, email.pk))
+        manager.user_permissions.add(
+            *Permission.objects.filter(codename="add_emailaddress")
+        )
+
+        with self.subTest("Add an email to the owner"):
+            response = self.client.post(
+                reverse("users:email_list", args=(owner.pk,)),
+                {"email": "added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+            self.assertEqual(EmailAddress.objects.filter(user=owner).count(), 1)
 
         with self.subTest("Update the owner's email"):
             response = self.client.patch(
