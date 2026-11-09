@@ -98,7 +98,7 @@ class TestUsersApi(
             "email": "testorg@test.com",
             "url": "",
         }
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(7):
             r = self.client.put(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["name"], "test org change")
