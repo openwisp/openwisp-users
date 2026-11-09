@@ -1,9 +1,11 @@
 from django.utils.translation import gettext_lazy as _
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.permissions import (
     DjangoModelPermissions as BaseDjangoModelPermissions,
 )
 from swapper import load_model
+
+from ..utils import user_not_allowed_to_change_owner
 
 Organization = load_model("openwisp_users", "Organization")
 
@@ -93,6 +95,30 @@ class IsOrganizationOwner(BaseOrganizationPermission):
 
     def validate_membership(self, user, org):
         return org and (user.is_superuser or user.is_owner(org))
+
+
+class CanChangeUser(BasePermission):
+    message = _(
+        "You do not have permission to edit or delete this user "
+        "because they are owner of an organization."
+    )
+
+    def has_object_permission(self, request, view, obj):
+        return request.method in SAFE_METHODS or not user_not_allowed_to_change_owner(
+            request.user, obj
+        )
+
+
+class CanChangeUserEmail(CanChangeUser):
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS or request.user.is_superuser:
+            return True
+        return super().has_object_permission(
+            request, view, view.get_parent_queryset().first()
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return super().has_object_permission(request, view, obj.user)
 
 
 class DjangoModelPermissions(ObjectOrganizationMixin, BaseDjangoModelPermissions):

@@ -415,7 +415,7 @@ class TestUsersApi(
                 "new_password": "test1234",
                 "confirm_password": "test1234",
             }
-            with self.assertNumQueries(8):
+            with self.assertNumQueries(9):
                 r = self.client.put(path, data, content_type="application/json")
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
@@ -435,6 +435,82 @@ class TestUsersApi(
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
             self.assertEqual(r.data["message"], "Password updated successfully")
+
+    def test_org_manager_cannot_change_owner_of_another_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(
+            username="owner", email="owner@test.com", password="tester123"
+        )
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self._create_org_user(organization=org1, user=org2_owner)
+        self.assertEqual(org2.owner.organization_user.user_id, org2_owner.pk)
+        self.client.force_login(org1_admin)
+        path = reverse("users:user_detail", args=(org2_owner.pk,))
+        error = (
+            "You do not have permission to edit or delete this user "
+            "because they are owner of an organization."
+        )
+
+        with self.subTest("Org1 admin can retrieve the org2 owner shared with org1"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest("Org1 admin cannot update the org2 owner"):
+            response = self.client.patch(
+                path, {"first_name": "changed"}, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Org1 admin cannot change the org2 owner's password"):
+            response = self.client.put(
+                reverse("users:change_password", args=(org2_owner.pk,)),
+                {
+                    "current_password": None,
+                    "new_password": "changed123",
+                    "confirm_password": "changed123",
+                },
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Browsable API renders the org2 owner's password page"):
+            response = self.client.get(
+                reverse("users:change_password", args=(org2_owner.pk,)),
+                HTTP_ACCEPT="text/html",
+            )
+            self.assertEqual(response.status_code, 405)
+
+        with self.subTest("Org1 admin cannot delete the org2 owner"):
+            response = self.client.delete(path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        org2_owner.refresh_from_db()
+        self.assertEqual(org2_owner.first_name, "Tester")
+        self.assertTrue(org2_owner.check_password("tester123"))
+
+    def test_org_manager_cannot_change_owner_of_inactive_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2", is_active=False)
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self._create_org_user(organization=org1, user=org2_owner)
+        self.client.force_login(org1_admin)
+        response = self.client.patch(
+            reverse("users:user_detail", args=(org2_owner.pk,)),
+            {"first_name": "changed"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
 
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
@@ -460,6 +536,103 @@ class TestUsersApi(
         self.assertEqual(other_user.check_password("tester"), True)
 
     # Tests for users email update endpoints
+    def test_org_manager_cannot_change_owner_email(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self._create_org_user(organization=org1, user=org2_owner)
+        org1_admin.user_permissions.add(
+            *Permission.objects.filter(codename__endswith="emailaddress")
+        )
+        self.client.force_login(org1_admin)
+        email = EmailAddress.objects.get(user=org2_owner)
+        email_path = reverse("users:email_update", args=(org2_owner.pk, email.pk))
+        error = (
+            "You do not have permission to edit or delete this user "
+            "because they are owner of an organization."
+        )
+
+        with self.subTest("Add an email to the owner"):
+            response = self.client.post(
+                reverse("users:email_list", args=(org2_owner.pk,)),
+                {"email": "added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+            self.assertEqual(EmailAddress.objects.filter(user=org2_owner).count(), 1)
+
+        with self.subTest("Update the owner's email"):
+            response = self.client.patch(
+                email_path,
+                {"email": "changed@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Delete the owner's email"):
+            response = self.client.delete(email_path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        email.refresh_from_db()
+        self.assertEqual(email.email, "owner@test.com")
+
+    def test_manager_and_owner_can_change_allowed_emails(self):
+        org = self._create_org(name="org1", slug="org1")
+        owner_org = self._create_org(name="org2", slug="org2")
+        manager = self._create_administrator(
+            organizations=[org], username="manager", email="manager@test.com"
+        )
+        member = self._create_user(username="member", email="member@test.com")
+        self._create_org_user(organization=org, user=member)
+        owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=owner_org, user=owner, is_admin=True)
+        email_permissions = Permission.objects.filter(codename__endswith="emailaddress")
+        manager.user_permissions.add(*email_permissions)
+        owner.user_permissions.add(*email_permissions)
+
+        with self.subTest("Manager creates and updates a member's email"):
+            self.client.force_login(manager)
+            response = self.client.post(
+                reverse("users:email_list", args=(member.pk,)),
+                {"email": "member-added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 201)
+            email = EmailAddress.objects.get(user=member, email="member-added@test.com")
+            response = self.client.patch(
+                reverse("users:email_update", args=(member.pk, email.pk)),
+                {"email": "member-updated@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            email.refresh_from_db()
+            self.assertEqual(email.email, "member-updated@test.com")
+
+        with self.subTest("Owner creates and updates their own email"):
+            self.client.force_login(owner)
+            response = self.client.post(
+                reverse("users:email_list", args=(owner.pk,)),
+                {"email": "owner-added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 201)
+            email = EmailAddress.objects.get(user=owner, email="owner-added@test.com")
+            response = self.client.patch(
+                reverse("users:email_update", args=(owner.pk, email.pk)),
+                {"email": "owner-updated@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            email.refresh_from_db()
+            self.assertEqual(email.email, "owner-updated@test.com")
+
     def test_get_email_list_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         path = reverse("users:email_list", args=(user1.pk,))
