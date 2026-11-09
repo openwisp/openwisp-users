@@ -211,10 +211,6 @@ Organization Owners
 An organization owner is a user designated as the owner of a particular
 organization. This owner cannot be deleted or edited by other
 administrators; only superusers have permission to perform these actions.
-This applies to both the admin interface and the :doc:`REST API
-<rest-api>`, including changes to the owner's details, password and email
-addresses, and also when the owned organization is inactive. Owners can
-still edit their own account.
 
 By default, the first manager of an organization is designated as the
 owner of that organization.

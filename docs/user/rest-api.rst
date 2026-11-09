@@ -95,13 +95,6 @@ List of Endpoints
 For complete parameter details, see the :ref:`users_live_documentation`
 and the :ref:`users_browsable_web_interface` of each endpoint.
 
-.. note::
-
-    The endpoints that change or delete a user, change a user's password,
-    or add, change or remove a user's email addresses return ``403`` when
-    the target user is an :ref:`organization owner <organization_owners>`,
-    unless the request is made by a superuser or by the owner.
-
 .. _user_password_reset:
 
 Request Password Reset
