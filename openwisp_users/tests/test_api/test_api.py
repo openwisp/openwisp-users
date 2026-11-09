@@ -14,7 +14,7 @@ from swapper import load_model
 from openwisp_utils.tests import AssertNumQueriesSubTestMixin
 
 from ... import settings as app_settings
-from ...api.serializers import OrganizationUserSerializer, SuperUserListSerializer
+from ...api.serializers import OrganizationUserSerializer
 from ..utils import TestOrganizationMixin
 
 Organization = load_model("openwisp_users", "Organization")
@@ -781,14 +781,33 @@ class TestUsersApi(
     )
     def test_create_user_enforces_password_validators(self):
         path = reverse("users:user_list")
-        data = {"username": "tester", "email": "tester@test.com", "password": "short"}
-        serializer = SuperUserListSerializer(data=data)
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("password", serializer.errors)
-        response = self.client.post(path, data, content_type="application/json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("This password is too short", str(response.data["password"][0]))
-        self.assertFalse(User.objects.filter(username="tester").exists())
+        org = self._create_org(name="org1")
+        manager = self._create_administrator(
+            organizations=[org], username="manager", email="manager@test.com"
+        )
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "short",
+            "organization_users": {"is_admin": False, "organization": org.pk},
+        }
+
+        with self.subTest("Superuser"):
+            response = self.client.post(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["password"][0])
+            )
+            self.assertFalse(User.objects.filter(username="tester").exists())
+
+        with self.subTest("Organization manager"):
+            self.client.force_login(manager)
+            response = self.client.post(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["password"][0])
+            )
+            self.assertFalse(User.objects.filter(username="tester").exists())
 
     def test_post_with_empty_form_api_400(self):
         path = reverse("users:user_list")
