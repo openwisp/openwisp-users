@@ -161,6 +161,8 @@ class AbstractUser(BaseUser):
     @cached_property
     def is_owner_of_any_organization(self):
         OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
+        # Query ownership directly because organizations_dict excludes inactive
+        # organizations, which can still have owners.
         return OrganizationOwner.objects.filter(organization_user__user=self).exists()
 
     @property
