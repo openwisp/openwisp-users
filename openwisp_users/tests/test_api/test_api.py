@@ -481,6 +481,13 @@ class TestUsersApi(
             self.assertEqual(response.status_code, 403)
             self.assertEqual(response.data["detail"], error)
 
+        with self.subTest("Browsable API renders the org2 owner's password page"):
+            response = self.client.get(
+                reverse("users:change_password", args=(org2_owner.pk,)),
+                HTTP_ACCEPT="text/html",
+            )
+            self.assertEqual(response.status_code, 405)
+
         with self.subTest("Org1 admin cannot delete the org2 owner"):
             response = self.client.delete(path)
             self.assertEqual(response.status_code, 403)

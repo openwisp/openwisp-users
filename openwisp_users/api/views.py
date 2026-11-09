@@ -254,13 +254,10 @@ class ChangePasswordView(BaseUserView, UpdateAPIView):
         self.check_object_permissions(self.request, obj)
         return obj
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["user"] = self.get_object()
-        return context
-
     def update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        context = self.get_serializer_context()
+        context["user"] = self.get_object()
+        serializer = self.get_serializer(data=request.data, context=context)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(
