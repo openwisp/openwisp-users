@@ -10,6 +10,7 @@ from dj_rest_auth.serializers import (
 )
 from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -471,7 +472,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         else:
             if self.initial_data.get("new_password"):
                 to_change_user = self.context["user"]
-                if not to_change_user.check_password(value):
+                if not check_password(value, to_change_user.password):
                     raise serializers.ValidationError(
                         _(
                             "Your old password was entered incorrectly."

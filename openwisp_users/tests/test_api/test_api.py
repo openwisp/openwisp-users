@@ -4,6 +4,7 @@ import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -277,16 +278,35 @@ class TestUsersApi(
     # Test Change Password endpoints
     def test_with_wrong_password(self):
         user1 = self._create_user(is_staff=True)
+        user1.password = make_password("tester", hasher="pbkdf2_sha1")
+        user1.save(update_fields=["password"])
         self.client.force_login(user1)
         path = reverse("users:change_password", args=(user1.pk,))
-        data = {"current_password": "wrong", "new_password": "super1234"}
-        with self.assertNumQueries(5):
+
+        with self.subTest("Wrong current password is rejected"):
+            data = {"current_password": "wrong", "new_password": "super1234"}
+            with self.assertNumQueries(5):
+                r = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(r.status_code, 400)
+            self.assertEqual(
+                r.data["current_password"][0][:],
+                "Your old password was entered incorrectly. Please enter it again.",
+            )
+
+        with self.subTest("Rejected change keeps the password hash and session"):
+            old_hash = user1.password
+            data = {
+                "current_password": "tester",
+                "new_password": "change123",
+                "confirm_password": "change321",
+            }
             r = self.client.put(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(
-            r.data["current_password"][0][:],
-            "Your old password was entered incorrectly. Please enter it again.",
-        )
+            self.assertEqual(r.status_code, 400)
+            user1.refresh_from_db()
+            self.assertEqual(
+                user1.password, old_hash, "Rejected change must not rewrite the hash"
+            )
+            self.assertTrue(auth.get_user(self.client).is_authenticated)
 
     def test_old_password_with_empty_new_password(self):
         user = self._get_user()
