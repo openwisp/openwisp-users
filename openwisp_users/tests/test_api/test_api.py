@@ -534,25 +534,49 @@ class TestUsersApi(
         )
         self.assertEqual(response.status_code, 403)
 
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "openwisp_users.password_validation.PasswordReuseValidator"},
+            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+        ]
+    )
     def test_change_password_enforces_password_validators(self):
         user = self._create_user(
             username="user1", password="tester123", email="user1@test.com"
         )
         password_updated = localdate() - timedelta(days=30)
         User.objects.filter(pk=user.pk).update(password_updated=password_updated)
-        path = reverse("users:change_password", args=(user.pk,))
-        data = {
-            "current_password": None,
-            "new_password": "tester123",
-            "confirm_password": "tester123",
-        }
-        response = self.client.put(path, data, content_type="application/json")
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            str(response.data["new_password"][0]),
-            "You cannot re-use your current password. Enter a new password.",
-        )
         user.refresh_from_db()
+        password_hash = user.password
+        path = reverse("users:change_password", args=(user.pk,))
+
+        with self.subTest("Reused password is rejected"):
+            data = {
+                "current_password": None,
+                "new_password": "tester123",
+                "confirm_password": "tester123",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "You cannot re-use your current password. Enter a new password.",
+                response.data["new_password"],
+            )
+
+        with self.subTest("Distinct short password is rejected"):
+            data = {
+                "current_password": None,
+                "new_password": "short1",
+                "confirm_password": "short1",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["new_password"][0])
+            )
+
+        user.refresh_from_db()
+        self.assertEqual(user.password, password_hash)
         self.assertEqual(user.password_updated, password_updated)
 
     def _login_expired_admin(self):
