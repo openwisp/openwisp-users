@@ -38,6 +38,25 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "<h1>Revert test_group_v1</h1>")
+        version = Version.objects.get_for_object(test_group).first()
+        Group.objects.filter(pk=test_group.pk).update(name="test_group_v2")
+        r = self.client.post(
+            reverse(
+                f"admin:{self.app_label}_group_revision",
+                args=(test_group.id, version.pk),
+            ),
+            {"name": "test_group_v1"},
+        )
+        self.assertEqual(r.status_code, 302)
+        test_group.refresh_from_db()
+        self.assertEqual(test_group.name, "test_group_v1")
+        test_group.delete()
+        r = self.client.post(
+            reverse(f"admin:{self.app_label}_group_recover", args=(version.pk,)),
+            {"name": "test_group_v1"},
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Group.objects.filter(name="test_group_v1").exists())
 
     def test_version_admin_revision_views_superuser_only(self):
         administrator = self._create_administrator([self._create_org()])

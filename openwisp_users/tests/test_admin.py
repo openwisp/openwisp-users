@@ -1541,6 +1541,7 @@ class TestUsersAdmin(
             self.assertEqual(response.status_code, 403)
 
         with self.subTest("Superuser can access revision views"):
+            User.objects.filter(pk=user.pk).delete()
             self.client.force_login(self._get_admin())
             for url in [
                 reverse(
