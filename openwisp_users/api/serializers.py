@@ -9,9 +9,11 @@ from dj_rest_auth.serializers import (
     PasswordResetSerializer as BasePasswordResetSerializer,
 )
 from django.conf import settings
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import Permission
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils.module_loading import import_string
@@ -275,6 +277,17 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             raise serializers.ValidationError(_("This field cannot be blank."))
         return value
 
+    def validate(self, data):
+        data = super().validate(data)
+        values = dict(data)
+        for field in self._skip_validation_fields + ["password"]:
+            values.pop(field, None)
+        try:
+            password_validation.validate_password(data["password"], user=User(**values))
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"password": error.messages})
+        return data
+
     def create(self, validated_data):
         group_data = validated_data.pop("groups", None)
         org_user_data = validated_data.pop("organization_users", None)
@@ -457,7 +470,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         else:
             if self.initial_data.get("new_password"):
                 to_change_user = self.context["user"]
-                if not to_change_user.check_password(value):
+                if not check_password(value, to_change_user.password):
                     raise serializers.ValidationError(
                         _(
                             "Your old password was entered incorrectly."
@@ -473,6 +486,7 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 _("New password cannot be the same as your old password.")
             )
+        password_validation.validate_password(value, user=self.context["user"])
         return value
 
     def save(self, **kwargs):

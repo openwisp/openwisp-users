@@ -9,6 +9,7 @@ import django
 from django.apps import apps as django_apps
 from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Permission
 from django.core import mail
 from django.core.exceptions import ValidationError
@@ -284,6 +285,8 @@ class TestUsersAdmin(
 
     def test_admin_change_user_reuse_password(self):
         admin = self._create_admin(password="tester")
+        admin.password = make_password("tester", hasher="pbkdf2_sha1")
+        admin.save(update_fields=["password"])
         self.client.force_login(admin)
         path = reverse("admin:auth_user_password_change", args=[admin.pk])
         data = {"password1": "tester", "password2": "tester"}
@@ -312,6 +315,13 @@ class TestUsersAdmin(
                     ' id="id_password2_error"' if django.VERSION >= (5, 2) else ""
                 ),
             )
+        old_hash = admin.password
+        admin.refresh_from_db()
+        self.assertEqual(
+            admin.password,
+            old_hash,
+            "Rejected password reuse must not rewrite the password hash",
+        )
         with override_settings(AUTH_PASSWORD_VALIDATORS=[]):
             response = self.client.post(
                 path,
