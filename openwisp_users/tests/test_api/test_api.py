@@ -282,6 +282,7 @@ class TestUsersApi(
         user1.save(update_fields=["password"])
         self.client.force_login(user1)
         path = reverse("users:change_password", args=(user1.pk,))
+        password_hash = user1.password
 
         with self.subTest("Wrong current password is rejected"):
             data = {"current_password": "wrong", "new_password": "super1234"}
@@ -292,9 +293,11 @@ class TestUsersApi(
                 r.data["current_password"][0][:],
                 "Your old password was entered incorrectly. Please enter it again.",
             )
+            user1.refresh_from_db()
+            self.assertEqual(user1.password, password_hash)
+            self.assertEqual(auth.get_user(self.client).is_authenticated, True)
 
         with self.subTest("Rejected change keeps the password hash and session"):
-            old_hash = user1.password
             data = {
                 "current_password": "tester",
                 "new_password": "change123",
@@ -304,9 +307,11 @@ class TestUsersApi(
             self.assertEqual(r.status_code, 400)
             user1.refresh_from_db()
             self.assertEqual(
-                user1.password, old_hash, "Rejected change must not rewrite the hash"
+                user1.password,
+                password_hash,
+                "Rejected change must not rewrite the hash",
             )
-            self.assertTrue(auth.get_user(self.client).is_authenticated)
+            self.assertEqual(auth.get_user(self.client).is_authenticated, True)
 
     def test_old_password_with_empty_new_password(self):
         user = self._get_user()
@@ -579,6 +584,18 @@ class TestUsersApi(
         self.assertEqual(user.password, password_hash)
         self.assertEqual(user.password_updated, password_updated)
 
+        with self.subTest("Compliant password is accepted"):
+            data = {
+                "current_password": None,
+                "new_password": "accepted123",
+                "confirm_password": "accepted123",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 200)
+            user.refresh_from_db()
+            self.assertNotEqual(user.password, password_hash)
+            self.assertEqual(user.check_password("accepted123"), True)
+
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
         self.client.force_login(admin)
@@ -825,6 +842,7 @@ class TestUsersApi(
     )
     def test_create_user_enforces_password_validators(self):
         path = reverse("users:user_list")
+        superuser = self._get_admin()
         org = self._create_org(name="org1")
         manager = self._create_administrator(
             organizations=[org], username="manager", email="manager@test.com"
@@ -843,6 +861,46 @@ class TestUsersApi(
                 "This password is too short", str(response.data["password"][0])
             )
             self.assertFalse(User.objects.filter(username="tester").exists())
+
+        with self.subTest("Superuser can create user with compliant password"):
+            self.client.force_login(superuser)
+            valid_data = {
+                "username": "superuser-created",
+                "email": "superuser-created@test.com",
+                "password": "accepted123",
+                "organization_users": {
+                    "is_admin": False,
+                    "organization": org.pk,
+                },
+            }
+            response = self.client.post(
+                path, valid_data, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(
+                User.objects.filter(username="superuser-created").exists(), True
+            )
+
+        with self.subTest(
+            "Organization manager can create user with compliant password"
+        ):
+            self.client.force_login(manager)
+            valid_data = {
+                "username": "manager-created",
+                "email": "manager-created@test.com",
+                "password": "accepted123",
+                "organization_users": {
+                    "is_admin": False,
+                    "organization": org.pk,
+                },
+            }
+            response = self.client.post(
+                path, valid_data, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(
+                User.objects.filter(username="manager-created").exists(), True
+            )
 
         with self.subTest("Organization manager"):
             self.client.force_login(manager)
