@@ -31,6 +31,13 @@ This class has two important attributes:
   <https://github.com/openwisp/openwisp-firmware-upgrader/search?q=multitenant_parent>`_
   for a real-world example.
 
+.. note::
+
+    When ``django-reversion`` is enabled, only superusers can restore
+    revisions, recover deleted objects or view the list of deleted
+    objects. Organization managers cannot use these views, even for
+    objects of the organizations they manage.
+
 ``MultitenantOrgFilter``
 ------------------------
 

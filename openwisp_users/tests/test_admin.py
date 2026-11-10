@@ -3,9 +3,11 @@ import logging
 import re
 import smtplib
 import uuid
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib import admin as django_admin
 from django.contrib.auth import REDIRECT_FIELD_NAME, get_user, get_user_model
 from django.contrib.auth.hashers import make_password
@@ -1465,6 +1467,93 @@ class TestUsersAdmin(
             reverse(f"admin:{self.app_label}_user_change", args=[admin.pk])
         )
         self.assertEqual(response.status_code, 302)
+
+    @skipUnless("reversion" in settings.INSTALLED_APPS, "requires django-reversion")
+    def test_revision_views_superuser_only(self):
+        import reversion
+        from reversion.models import Version
+
+        org1 = self._create_org(name="org1")
+        org2 = self._create_org(name="org2")
+        administrator = self._create_administrator([org1])
+        user = self._create_user(username="org2-user", email="org2-user@test.com")
+        self._create_org_user(user=user, organization=org2)
+        with reversion.create_revision():
+            user.first_name = "historical"
+            user.save()
+        with reversion.create_revision():
+            administrator.is_superuser = True
+            administrator.save()
+        User.objects.filter(pk=administrator.pk).update(is_superuser=False)
+        User.objects.filter(pk=user.pk).update(first_name="current")
+        user_version = Version.objects.get_for_object(user).first()
+        administrator_version = Version.objects.get_for_object(administrator).first()
+        self.client.force_login(administrator)
+
+        with self.subTest("Restore user of another organization"):
+            response = self.client.post(
+                reverse(
+                    f"admin:{self.app_label}_user_revision",
+                    args=(user.pk, user_version.pk),
+                )
+            )
+            self.assertEqual(response.status_code, 403)
+            user.refresh_from_db()
+            self.assertEqual(user.first_name, "current")
+
+        with self.subTest("Restore own superuser flag"):
+            response = self.client.post(
+                reverse(
+                    f"admin:{self.app_label}_user_revision",
+                    args=(administrator.pk, administrator_version.pk),
+                )
+            )
+            self.assertEqual(response.status_code, 403)
+            administrator.refresh_from_db()
+            self.assertFalse(administrator.is_superuser)
+
+        with self.subTest("Restore through another model's revision URL"):
+            for version in [user_version, administrator_version]:
+                response = self.client.post(
+                    reverse(
+                        f"admin:{self.app_label}_group_revision",
+                        args=(version.object_id, version.pk),
+                    )
+                )
+                self.assertEqual(response.status_code, 403)
+            user.refresh_from_db()
+            self.assertEqual(user.first_name, "current")
+            administrator.refresh_from_db()
+            self.assertFalse(administrator.is_superuser)
+
+        with self.subTest("Recover deleted user"):
+            User.objects.filter(pk=user.pk).delete()
+            response = self.client.post(
+                reverse(f"admin:{self.app_label}_user_recover", args=(user_version.pk,))
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertFalse(User.objects.filter(pk=user.pk).exists())
+
+        with self.subTest("Recover list"):
+            response = self.client.get(
+                reverse(f"admin:{self.app_label}_user_recoverlist")
+            )
+            self.assertEqual(response.status_code, 403)
+
+        with self.subTest("Superuser can access revision views"):
+            self.client.force_login(self._get_admin())
+            for url in [
+                reverse(
+                    f"admin:{self.app_label}_user_revision",
+                    args=(administrator.pk, administrator_version.pk),
+                ),
+                reverse(
+                    f"admin:{self.app_label}_user_recover", args=(user_version.pk,)
+                ),
+                reverse(f"admin:{self.app_label}_user_recoverlist"),
+            ]:
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200, url)
 
     def test_user_add_user(self):
         admin = self._create_administrator()
