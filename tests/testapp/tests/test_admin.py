@@ -55,9 +55,9 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
             reverse("admin:testapp_tag_recover", args=(version.pk,)),
             reverse("admin:testapp_tag_recoverlist"),
         ]:
-            with self.subTest(url):
-                response = self.client.post(url)
-                self.assertEqual(response.status_code, 403)
+            for method in ("get", "post"):
+                response = getattr(self.client, method)(url)
+                self.assertEqual(response.status_code, 403, f"{method} {url}")
         administrator.refresh_from_db()
         self.assertFalse(administrator.is_superuser)
 
