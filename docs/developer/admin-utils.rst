@@ -38,6 +38,9 @@ This class has two important attributes:
     objects. Organization managers cannot use these views, even for
     objects of the organizations they manage.
 
+    ``MultitenantAdminMixin`` must come before ``VersionAdmin`` in the
+    class bases, otherwise the restriction is bypassed.
+
 ``MultitenantOrgFilter``
 ------------------------
 
@@ -70,7 +73,7 @@ This filter is similar to ``MultitenantOrgFilter`` but displays only
 objects related to organizations the current user can manage. Use this for
 creating filters for related multitenant models.
 
-Consider the following example from `IpAddressAdmin in openwisp-ipam
+Consider the following example, based on `IpAddressAdmin in openwisp-ipam
 <https://github.com/openwisp/openwisp-ipam/blob/956d9d25fc1ac339cb148ec7faf80046cc14be37/openwisp_ipam/admin.py#L216-L227>`_.
 ``IpAddressAdmin`` allows filtering ``IpAddress`` objects by ``Subnet``
 belonging to organizations managed by the user.
@@ -92,8 +95,8 @@ belonging to organizations managed by the user.
 
     @admin.register(IpAddress)
     class IpAddressAdmin(
-        VersionAdmin,
         MultitenantAdminMixin,
+        VersionAdmin,
         TimeReadonlyAdminMixin,
         ModelAdmin,
     ):
