@@ -36,7 +36,11 @@ from swapper import load_model
 from openwisp_utils.admin import CopyableFieldsAdmin
 
 from . import settings as app_settings
-from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
+from .multitenancy import (
+    MultitenantAdminMixin,
+    MultitenantOrgFilter,
+    get_assignable_groups,
+)
 from .utils import BaseAdmin, user_not_allowed_to_change_owner
 
 Group = load_model("openwisp_users", "Group")
@@ -151,6 +155,21 @@ class UserFormMixin(forms.ModelForm):
             raise ValidationError(
                 {"groups": _("A staff user must belong to a group, please select one.")}
             )
+        current_user = getattr(self, "current_user", None)
+        if current_user and not current_user.is_superuser and groups:
+            allowed_pks = set(
+                get_assignable_groups(current_user).values_list("pk", flat=True)
+            )
+            for group in groups:
+                if group.pk not in allowed_pks:
+                    raise ValidationError(
+                        {
+                            "groups": _(
+                                "You do not have permission to assign the group '%s'."
+                            )
+                            % group.name
+                        }
+                    )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -204,6 +223,17 @@ class UserChangeForm(UserFormMixin, BaseUserChangeForm):
 
 class UserAdmin(MultitenantAdminMixin, BaseUserAdmin, BaseAdmin):
     add_form = UserCreationForm
+
+    def get_form(self, request, obj=None, **kwargs):
+        Form = super().get_form(request, obj, **kwargs)
+        Form.current_user = request.user
+        return Form
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "groups" and not request.user.is_superuser:
+            kwargs["queryset"] = get_assignable_groups(request.user)
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
     form = UserChangeForm
     ordering = ["-date_joined"]
     readonly_fields = ["last_login", "date_joined", "password_updated"]
@@ -609,7 +639,17 @@ UserAdmin.search_fields += ("phone_number",)
 UserAdmin.list_filter = (OrganizationUserFilter,) + UserAdmin.list_filter
 
 
+GroupScope = load_model("openwisp_users", "GroupScope")
+
+
+class GroupScopeInline(admin.StackedInline):
+    model = GroupScope
+    can_delete = False
+    filter_horizontal = ("organizations",)
+
+
 class GroupAdmin(BaseGroupAdmin, BaseAdmin):
+    inlines = [GroupScopeInline]
     if "reversion" in settings.INSTALLED_APPS:
         # Correctly register the proxy model
         def reversion_register(self, model, **kwargs):

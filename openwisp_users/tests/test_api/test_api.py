@@ -216,7 +216,7 @@ class TestUsersApi(
 
     def test_get_group_list_api(self):
         path = reverse("users:group_list")
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(6):
             r = self.client.get(path)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["count"], 2)
@@ -227,11 +227,15 @@ class TestUsersApi(
         r = self.client.post(path, data, content_type="application/json")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.data.pop("id"), 3)
+        self.assertEqual(
+            r.data.pop("scope"),
+            {"assignable_to": "everyone", "organizations": []},
+        )
         self.assertEqual(r.data, data)
 
     def test_get_group_detail_api(self):
         path = reverse("users:group_detail", args="1")
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             r = self.client.get(path)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["id"], 1)

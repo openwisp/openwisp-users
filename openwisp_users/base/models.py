@@ -17,6 +17,7 @@ from django.utils.timezone import localdate, timedelta
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
 from rest_framework.authtoken.models import Token
+import swapper
 from swapper import load_model
 
 from openwisp_utils.admin_theme.email import send_email
@@ -458,6 +459,57 @@ class BaseGroup(object):
         proxy = True
         verbose_name = _("group")
         verbose_name_plural = _("groups")
+
+
+class BaseGroupScope(models.Model):
+    """
+    Defines to whom a group can be assigned:
+    - globally to everyone
+    - only to superusers
+    - only to specified organizations
+    """
+
+    ASSIGNABLE_TO_CHOICES = (
+        ("everyone", _("Globally to everyone")),
+        ("superusers", _("Only to superusers")),
+        ("organizations", _("Only to specified organizations")),
+    )
+
+    group = models.OneToOneField(
+        swapper.get_model_name("openwisp_users", "Group"),
+        on_delete=models.CASCADE,
+        related_name="scope",
+        verbose_name=_("group"),
+    )
+    assignable_to = models.CharField(
+        _("assignable to"),
+        max_length=16,
+        choices=ASSIGNABLE_TO_CHOICES,
+        default="everyone",
+        help_text=_(
+            "Defines who can assign this group to users: "
+            "globally to everyone, only to superusers, "
+            "or only to specified organizations."
+        ),
+    )
+    organizations = models.ManyToManyField(
+        swapper.get_model_name("openwisp_users", "Organization"),
+        blank=True,
+        related_name="assignable_groups",
+        verbose_name=_("organizations"),
+        help_text=_(
+            "Organizations whose managers can assign this group "
+            "(only applies when set to 'Only to specified organizations')."
+        ),
+    )
+
+    class Meta:
+        abstract = True
+        verbose_name = _("group scope")
+        verbose_name_plural = _("group scopes")
+
+    def __str__(self):
+        return f"{self.group.name} scope ({self.assignable_to})"
 
 
 class BaseOrganization(models.Model):

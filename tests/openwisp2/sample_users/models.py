@@ -11,6 +11,7 @@ from organizations.abstract import (
 from openwisp_users.base.models import (
     AbstractUser,
     BaseGroup,
+    BaseGroupScope,
     BaseOrganization,
     BaseOrganizationOwner,
     BaseOrganizationUser,
@@ -64,6 +65,10 @@ class OrganizationInvitation(AbstractOrganizationInvitation):
 
 
 class Group(DetailsModel, BaseGroup, AbstractGroup):
+    pass
+
+
+class GroupScope(DetailsModel, BaseGroupScope):
     pass
 
 

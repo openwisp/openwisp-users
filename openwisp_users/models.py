@@ -10,6 +10,7 @@ from organizations.abstract import (
 from .base.models import (
     AbstractUser,
     BaseGroup,
+    BaseGroupScope,
     BaseOrganization,
     BaseOrganizationOwner,
     BaseOrganizationUser,
@@ -49,6 +50,11 @@ class OrganizationInvitation(AbstractOrganizationInvitation):
 class Group(BaseGroup, AbstractGroup):
     class Meta(BaseGroup.Meta):
         swapper.swappable_setting("openwisp_users", "Group")
+
+
+class GroupScope(BaseGroupScope):
+    class Meta(BaseGroupScope.Meta):
+        swapper.swappable_setting("openwisp_users", "GroupScope")
 
 
 from .base.models import ApiKey  # noqa

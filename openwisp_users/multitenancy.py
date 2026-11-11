@@ -159,3 +159,28 @@ class MultitenantRelatedOrgFilter(MultitenantOrgFilter):
     """
 
     org_lookup = "organization__in"
+
+
+def get_assignable_groups(user):
+    """
+    Returns queryset of groups that `user` is permitted to assign.
+    - Superusers can assign any group.
+    - Non-superusers can only assign groups with assignable_to='everyone'
+      (or groups without a scope defined for backward compatibility),
+      or groups with assignable_to='organizations' that belong to an
+      organization managed by `user`.
+    - Groups with assignable_to='superusers' are excluded for non-superusers.
+    """
+    Group = load_model("openwisp_users", "Group")
+    if user.is_superuser:
+        return Group.objects.all()
+
+    orgs_managed = getattr(user, "organizations_managed", [])
+    return Group.objects.filter(
+        Q(scope__isnull=True)
+        | Q(scope__assignable_to="everyone")
+        | (
+            Q(scope__assignable_to="organizations")
+            & Q(scope__organizations__in=orgs_managed)
+        )
+    ).distinct()

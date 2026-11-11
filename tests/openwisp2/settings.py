@@ -218,6 +218,7 @@ if SAMPLE_APP:
     EXTENDED_APPS = ["openwisp_users"]
     AUTH_USER_MODEL = "sample_users.User"
     OPENWISP_USERS_GROUP_MODEL = "sample_users.Group"
+    OPENWISP_USERS_GROUPSCOPE_MODEL = "sample_users.GroupScope"
     OPENWISP_USERS_ORGANIZATION_MODEL = "sample_users.Organization"
     OPENWISP_USERS_ORGANIZATIONUSER_MODEL = "sample_users.OrganizationUser"
     OPENWISP_USERS_ORGANIZATIONOWNER_MODEL = "sample_users.OrganizationOwner"

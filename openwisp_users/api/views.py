@@ -192,17 +192,29 @@ class UserDetailView(BaseUserView, RetrieveUpdateDestroyAPIView):
 
 
 class GroupListCreateView(ProtectedAPIMixin, ListCreateAPIView):
-    queryset = Group.objects.prefetch_related(
-        "permissions", "permissions__content_type"
-    ).order_by("name")
+    queryset = (
+        Group.objects.select_related("scope")
+        .prefetch_related(
+            "permissions",
+            "permissions__content_type",
+            "scope__organizations",
+        )
+        .order_by("name")
+    )
     serializer_class = GroupSerializer
     pagination_class = OpenWispPagination
 
 
 class GroupDetailView(ProtectedAPIMixin, RetrieveUpdateDestroyAPIView):
-    queryset = Group.objects.prefetch_related(
-        "permissions", "permissions__content_type"
-    ).order_by("name")
+    queryset = (
+        Group.objects.select_related("scope")
+        .prefetch_related(
+            "permissions",
+            "permissions__content_type",
+            "scope__organizations",
+        )
+        .order_by("name")
+    )
     serializer_class = GroupSerializer
 
 

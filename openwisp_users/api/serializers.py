@@ -1,3 +1,4 @@
+from ..multitenancy import get_assignable_groups
 import logging
 from copy import deepcopy
 
@@ -26,6 +27,7 @@ from openwisp_utils.api.serializers import ValidatedModelSerializer
 from .. import settings as app_settings
 
 Group = load_model("openwisp_users", "Group")
+GroupScope = load_model("openwisp_users", "GroupScope")
 Organization = load_model("openwisp_users", "Organization")
 User = get_user_model()
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
@@ -158,16 +160,23 @@ class MyPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
         return int(value.partition(":")[0])
 
 
+class GroupScopeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GroupScope
+        fields = ("assignable_to", "organizations")
+
+
 class GroupSerializer(serializers.ModelSerializer):
     permissions = MyPrimaryKeyRelatedField(
         many=True,
         queryset=Permission.objects.select_related("content_type"),
         required=False,
     )
+    scope = GroupScopeSerializer(required=False)
 
     class Meta:
         model = Group
-        fields = ("id", "name", "permissions")
+        fields = ("id", "name", "permissions", "scope")
 
     def create(self, validated_data):
         permissions = validated_data.pop("permissions")
@@ -175,15 +184,38 @@ class GroupSerializer(serializers.ModelSerializer):
         instance.full_clean()
         instance.save()
         instance.permissions.add(*permissions)
+        scope_data = validated_data.pop("scope", None)
+        if scope_data:
+            orgs = scope_data.pop("organizations", [])
+            scope, _ = GroupScope.objects.get_or_create(
+                group=instance, defaults=scope_data
+            )
+            for attr, val in scope_data.items():
+                setattr(scope, attr, val)
+            scope.save()
+            if orgs:
+                scope.organizations.set(orgs)
+        else:
+            GroupScope.objects.get_or_create(group=instance)
         return instance
 
     def update(self, instance, validated_data):
+        scope_data = validated_data.pop("scope", None)
         if "permissions" in validated_data:
             permissions = validated_data.pop("permissions")
             instance.permissions.clear()
             instance.permissions.add(*permissions)
         instance.full_clean()
-        return super().update(instance, validated_data)
+        instance = super().update(instance, validated_data)
+        if scope_data is not None:
+            orgs = scope_data.pop("organizations", None)
+            scope, _ = GroupScope.objects.get_or_create(group=instance)
+            for attr, val in scope_data.items():
+                setattr(scope, attr, val)
+            scope.save()
+            if orgs is not None:
+                scope.organizations.set(orgs)
+        return instance
 
 
 class OrgUserCustomPrimarykeyRelatedField(serializers.PrimaryKeyRelatedField):
@@ -288,6 +320,21 @@ class SuperUserListSerializer(BaseSuperUserSerializer):
             password_validation.validate_password(data["password"], user=User(**values))
         except DjangoValidationError as error:
             raise serializers.ValidationError({"password": error.messages})
+        request = self.context.get("request")
+        if request and not request.user.is_superuser and "groups" in data:
+            allowed_pks = set(
+                get_assignable_groups(request.user).values_list("pk", flat=True)
+            )
+            for group in data["groups"]:
+                if group.pk not in allowed_pks:
+                    raise serializers.ValidationError(
+                        {
+                            "groups": _(
+                                "You do not have permission to assign the group '%s'."
+                            )
+                            % group.name
+                        }
+                    )
         return data
 
     def create(self, validated_data):
@@ -365,6 +412,25 @@ class SuperUserDetailSerializer(BaseSuperUserSerializer):
             "last_login": {"read_only": True},
             "date_joined": {"read_only": True},
         }
+
+    def validate(self, data):
+        data = super().validate(data)
+        request = self.context.get("request")
+        if request and not request.user.is_superuser and "groups" in data:
+            allowed_pks = set(
+                get_assignable_groups(request.user).values_list("pk", flat=True)
+            )
+            for group in data["groups"]:
+                if group.pk not in allowed_pks:
+                    raise serializers.ValidationError(
+                        {
+                            "groups": _(
+                                "You do not have permission to assign the group '%s'."
+                            )
+                            % group.name
+                        }
+                    )
+        return data
 
     def update(self, instance, validated_data):
         org_user_data = dict()
