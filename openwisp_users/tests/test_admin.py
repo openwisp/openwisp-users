@@ -2423,6 +2423,104 @@ class TestUsersAdmin(
             self.assertEqual(r.status_code, 200)
             self.assertContains(r, '-DELETE">Delete')
 
+    def test_owner_membership_change_permissions(self):
+        org1 = self._create_org(name="owned", slug="owned")
+        org2 = self._create_org(name="other", slug="other")
+        org1_owner = self._create_administrator([org1])
+        org_admin = self._create_administrator(
+            [org1, org2],
+            username="org_admin",
+            email="org_admin@example.com",
+        )
+        manager_replacement = self._create_user(
+            username="manager_replacement", email="manager_replacement@example.com"
+        )
+        self._create_org_user(user=manager_replacement, organization=org2)
+        owner_replacement = self._create_user(
+            username="owner_replacement", email="owner_replacement@example.com"
+        )
+        self._create_org_user(user=owner_replacement, organization=org1)
+        superuser_replacement = self._create_user(
+            username="superuser_replacement", email="superuser_replacement@example.com"
+        )
+        membership = OrganizationUser.objects.get(user=org1_owner, organization=org1)
+        owner_record = OrganizationOwner.objects.get(organization_user=membership)
+        url = reverse(
+            f"admin:{self.app_label}_organizationuser_change", args=[membership.pk]
+        )
+
+        def assert_owner_membership_unchanged():
+            membership.refresh_from_db()
+            self.assertEqual(membership.user, org1_owner)
+            self.assertEqual(membership.organization, org1)
+            self.assertEqual(membership.is_admin, True)
+            owner_record.refresh_from_db()
+            self.assertEqual(owner_record.organization, org1)
+            self.assertEqual(owner_record.organization_user_id, membership.pk)
+
+        self.client.force_login(org_admin)
+
+        with self.subTest("Org admin can view but not edit the owner membership"):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotContains(response, 'name="_save"')
+            self.assertNotContains(response, 'name="user"')
+            self.assertNotContains(response, 'name="organization"')
+
+        with self.subTest("Org admin cannot replace the owner"):
+            response = self.client.post(
+                url, {"user": manager_replacement.pk, "organization": org1.pk}
+            )
+            self.assertEqual(response.status_code, 403)
+            assert_owner_membership_unchanged()
+
+        with self.subTest("Org admin cannot move the owner membership"):
+            response = self.client.post(
+                url, {"user": org1_owner.pk, "organization": org2.pk}
+            )
+            self.assertEqual(response.status_code, 403)
+            assert_owner_membership_unchanged()
+
+        with self.subTest("Org admin can still edit an ordinary membership"):
+            ordinary_user = self._create_user(
+                username="ordinary_user", email="ordinary_user@example.com"
+            )
+            org_user = self._create_org_user(user=ordinary_user, organization=org1)
+            ordinary_url = reverse(
+                f"admin:{self.app_label}_organizationuser_change",
+                args=[org_user.pk],
+            )
+            response = self.client.post(
+                ordinary_url,
+                {"user": ordinary_user.pk, "organization": org2.pk},
+            )
+            self.assertEqual(response.status_code, 302)
+            org_user.refresh_from_db()
+            self.assertEqual(org_user.organization, org2)
+
+        with self.subTest("Owner cannot change their membership directly"):
+            self.client.force_login(org1_owner)
+            response = self.client.post(
+                url, {"user": owner_replacement.pk, "organization": org1.pk}
+            )
+            self.assertEqual(response.status_code, 403)
+            assert_owner_membership_unchanged()
+
+        self.client.force_login(self._get_admin())
+        with self.subTest("Superuser can transfer ownership within the organization"):
+            response = self.client.post(
+                url,
+                {
+                    "user": superuser_replacement.pk,
+                    "organization": org1.pk,
+                    "is_admin": "on",
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            membership.refresh_from_db()
+            self.assertEqual(membership.user, superuser_replacement)
+            self.assertEqual(membership.organization, org1)
+
     def test_delete_org_user(self):
         self.client.force_login(self._get_admin())
         user1 = self._create_user(username="user1", email="user1@email.com")
