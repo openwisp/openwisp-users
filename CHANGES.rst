@@ -1,6 +1,70 @@
 Changelog
 =========
 
+Version 1.3.3 [2026-11-13]
+--------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Prevented unauthorized changes to owner memberships
+
+  Prevent non-superusers from editing owner memberships in
+  OrganizationUserAdmin.
+
+  Superusers can still update owner memberships, and administrators can
+  still edit other memberships.
+
+  **Security Advisory**: `GHSA-7h4r-39v5-q7cq
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-7h4r-39v5-q7cq>`_.
+
+- Enforced password validators in user password API
+
+  Apply configured password validators when creating users and changing
+  their passwords through the API.
+
+  **Security Advisory**: `GHSA-qx7x-g6rx-5g3g
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-qx7x-g6rx-5g3g>`_.
+
+- Aligned organization owner permissions across admin and API
+
+  Use consistent organization owner permission checks for account,
+  password, and email management in the admin and REST API.
+
+  Include owners of inactive organizations in ownership checks. Existing
+  access for superusers and owners managing their own accounts remains
+  unchanged.
+
+  **Security Advisory**: `GHSA-97jh-j6hw-4389
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-97jh-j6hw-4389>`_.
+
+- Prevented stale memberships after organization status changes
+
+  Clear cached memberships after the organization status change commits,
+  preventing stale memberships from being cached during the transaction.
+
+  **Security Advisory**: `GHSA-x794-gqv9-rffh
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-x794-gqv9-rffh>`_.
+
+- Prevented unauthorized changes to organization memberships
+
+  When adding or editing an organization membership in
+  OrganizationUserAdmin, organization admins can only select users who
+  already belong to an organization they manage and cannot select
+  superusers.
+
+  **Security Advisory**: `GHSA-p9mp-fxhh-hmfw
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-p9mp-fxhh-hmfw>`_.
+
+- Improved permission checks for bulk user actions
+
+  Organization administrators can only activate or deactivate users they
+  have permission to edit. If the selection includes a user they cannot
+  edit, the action is stopped and a message is displayed.
+
+  **Security advisory**: `GHSA-q66j-wp8j-5hf5
+  <https://github.com/openwisp/openwisp-users/security/advisories/GHSA-q66j-wp8j-5hf5>`_.
+
 Version 1.3.2 [2026-10-23]
 --------------------------
 
