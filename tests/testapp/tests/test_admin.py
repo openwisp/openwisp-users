@@ -1,8 +1,11 @@
 import os
 
+import reversion
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+from reversion.models import Version
 from swapper import load_model
 
 from openwisp_users.tests.utils import TestOrganizationMixin
@@ -35,6 +38,47 @@ class TestUsersAdmin(TestOrganizationMixin, TestCase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "<h1>Revert test_group_v1</h1>")
+        version = Version.objects.get_for_object(test_group).first()
+        Group.objects.filter(pk=test_group.pk).update(name="test_group_v2")
+        r = self.client.post(
+            reverse(
+                f"admin:{self.app_label}_group_revision",
+                args=(test_group.id, version.pk),
+            ),
+            {"name": "test_group_v1"},
+        )
+        self.assertEqual(r.status_code, 302)
+        test_group.refresh_from_db()
+        self.assertEqual(test_group.name, "test_group_v1")
+        test_group.delete()
+        r = self.client.post(
+            reverse(f"admin:{self.app_label}_group_recover", args=(version.pk,)),
+            {"name": "test_group_v1"},
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(Group.objects.filter(name="test_group_v1").exists())
+
+    def test_version_admin_revision_views_superuser_only(self):
+        administrator = self._create_administrator([self._create_org()])
+        administrator.user_permissions.add(
+            *Permission.objects.filter(codename__endswith="_tag")
+        )
+        with reversion.create_revision():
+            administrator.is_superuser = True
+            administrator.save()
+        User.objects.filter(pk=administrator.pk).update(is_superuser=False)
+        version = Version.objects.get_for_object(administrator).first()
+        self.client.force_login(administrator)
+        for url in [
+            reverse("admin:testapp_tag_revision", args=(version.object_id, version.pk)),
+            reverse("admin:testapp_tag_recover", args=(version.pk,)),
+            reverse("admin:testapp_tag_recoverlist"),
+        ]:
+            for method in ("get", "post"):
+                response = getattr(self.client, method)(url)
+                self.assertEqual(response.status_code, 403, f"{method} {url}")
+        administrator.refresh_from_db()
+        self.assertFalse(administrator.is_superuser)
 
     def test_accounts_login(self):
         r = self.client.get(reverse("account_login"), follow=True)
