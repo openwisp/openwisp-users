@@ -126,7 +126,7 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: read
-    uses: openwisp/openwisp-actions/.github/workflows/reusable-bot-changelog.yml@5072c81386b436b073b67bc7918cec647f9e3414 # 0.1.0
+    uses: openwisp/openwisp-actions/.github/workflows/reusable-bot-changelog.yml@181637bcf201c137cf836f841e1ddf85df44f277 # post-0.1.1
     with:
       pr_number: ${{ needs.fetch-metadata.outputs.pr_number }}
     secrets:
