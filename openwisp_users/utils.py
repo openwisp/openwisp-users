@@ -2,6 +2,7 @@ import random
 from time import sleep
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 
 if "reversion" in settings.INSTALLED_APPS:  # pragma: no cover
     from reversion.admin import VersionAdmin as BaseModelAdmin
@@ -9,7 +10,24 @@ else:
     from django.contrib.admin import ModelAdmin as BaseModelAdmin
 
 
-class BaseAdmin(BaseModelAdmin):
+class SuperuserRevisionMixin:
+    def recoverlist_view(self, request, extra_context=None):
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        return super().recoverlist_view(request, extra_context)
+
+    def recover_view(self, request, version_id, extra_context=None):
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        return super().recover_view(request, version_id, extra_context)
+
+    def revision_view(self, request, object_id, version_id, extra_context=None):
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        return super().revision_view(request, object_id, version_id, extra_context)
+
+
+class BaseAdmin(SuperuserRevisionMixin, BaseModelAdmin):
     history_latest_first = True
 
 
