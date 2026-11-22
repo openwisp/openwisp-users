@@ -46,6 +46,16 @@ def get_api_urls(api_views=None):
             get_view("email_update"),
             name="email_update",
         ),
+        path(
+            "users/user/<uuid:pk>/organization-membership/",
+            get_view("organization_membership_list"),
+            name="organization_membership_list",
+        ),
+        path(
+            "users/user/<uuid:pk>/organization-membership/<uuid:org_id>/",
+            get_view("organization_membership_detail"),
+            name="organization_membership_detail",
+        ),
         path("users/group/", get_view("group_list"), name="group_list"),
         path("users/group/<int:pk>/", get_view("group_detail"), name="group_detail"),
     ]
