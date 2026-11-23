@@ -11,7 +11,7 @@ permissions:
 jobs:
   version-branch:
     if: github.repository == 'openwisp/openwisp-users'
-    uses: openwisp/openwisp-actions/.github/workflows/reusable-version-branch.yml@5072c81386b436b073b67bc7918cec647f9e3414 # 0.1.0
+    uses: openwisp/openwisp-actions/.github/workflows/reusable-version-branch.yml@d6cc603701fe96a84115b060d34e8844a969cc41 # 0.3.0
     with:
       module_name: openwisp_users
       client_id: ${{ vars.OPENWISP_BOT_CLIENT_ID }}

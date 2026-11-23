@@ -5,7 +5,7 @@ from allauth.account.models import EmailAddress, get_emailconfirmation_model
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models.signals import post_save
 from django.templatetags.l10n import localize
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -237,6 +237,61 @@ class TestUsers(TestOrganizationMixin, TestCase):
         org_user.save()
         self.assertEqual(user1.is_member(org), False)
         self.assertEqual(user2.is_member(org), True)
+
+    def test_invalidate_cache_org_status_changed(self):
+        org = self._create_org(name="testorg1")
+        user1 = self._create_user(username="testuser1", email="user1@test.com")
+        self._create_org_user(user=user1, organization=org)
+        self.assertEqual(user1.is_member(org), True)
+        org.is_active = False
+        org.full_clean()
+        with self.captureOnCommitCallbacks(execute=True):
+            org.save()
+        self.assertEqual(user1.is_member(org), False)
+        org.is_active = True
+        with self.captureOnCommitCallbacks(execute=True):
+            org.save()
+        self.assertEqual(user1.is_member(org), True)
+
+    @patch("openwisp_users.tasks.invalidate_org_membership_cache.delay")
+    def test_org_status_change_invalidates_cache_after_commit(self, mocked_delay):
+        org = self._create_org(name="testorg1")
+
+        with self.subTest("Cache is invalidated only after commit"):
+            with self.captureOnCommitCallbacks(execute=True):
+                org.is_active = False
+                org.save()
+                mocked_delay.assert_not_called()
+            mocked_delay.assert_called_once_with(org.pk)
+
+        with self.subTest("Cache is not invalidated when status is unchanged"):
+            mocked_delay.reset_mock()
+            with self.captureOnCommitCallbacks(execute=True):
+                org.name = "renamed"
+                org.save()
+            mocked_delay.assert_not_called()
+
+        with self.subTest("Cache is not invalidated when change is rolled back"):
+            mocked_delay.reset_mock()
+            with self.captureOnCommitCallbacks(execute=True):
+                try:
+                    with transaction.atomic():
+                        org.is_active = True
+                        org.save()
+                        raise IntegrityError
+                except IntegrityError:
+                    pass
+            mocked_delay.assert_not_called()
+
+        with self.subTest("Cache is invalidated only when status is saved"):
+            mocked_delay.reset_mock()
+            org.name = "renamed again"
+            with self.captureOnCommitCallbacks(execute=True):
+                org.save(update_fields={"name"})
+            mocked_delay.assert_not_called()
+            with self.captureOnCommitCallbacks(execute=True):
+                org.save(update_fields={"is_active"})
+            mocked_delay.assert_called_once_with(org.pk)
 
     def test_organizations_managed(self):
         user = self._create_user(username="organizations_pk")

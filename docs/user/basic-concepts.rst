@@ -95,6 +95,19 @@ configuration over time.
 
 OpenWISP provides a few permission groups which are explained below.
 
+.. warning::
+
+    Permission groups are global to the OpenWISP instance. In the default
+    configuration, organization managers with the Administrator group can
+    assign existing groups to users in their managed organizations. Direct
+    user permissions and permission-group management are reserved for
+    superusers.
+
+    Keep this delegation model in mind when creating custom groups. For
+    example, if a group grants more privileges than Administrator,
+    organization managers can assign it to themselves or users in their
+    managed organizations, escalating their permissions.
+
 Administrator
 ~~~~~~~~~~~~~
 

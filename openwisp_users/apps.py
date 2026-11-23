@@ -182,6 +182,7 @@ class OpenwispUsersConfig(AppConfig):
     def handle_org_is_active_change(cls, instance, **kwargs):
         from .tasks import invalidate_org_membership_cache
 
+        # Status signals run after commit, preventing stale cache repopulation.
         invalidate_org_membership_cache.delay(instance.pk)
 
     @classmethod

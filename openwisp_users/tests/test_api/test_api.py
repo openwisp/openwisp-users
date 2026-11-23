@@ -4,9 +4,10 @@ import django
 from allauth.account.models import EmailAddress
 from django.contrib import auth
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Permission
 from django.core import mail
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import localdate, timedelta
 from swapper import load_model
@@ -415,16 +416,40 @@ class TestUsersApi(
     # Test Change Password endpoints
     def test_with_wrong_password(self):
         user1 = self._create_user(is_staff=True)
+        user1.password = make_password("tester", hasher="pbkdf2_sha1")
+        user1.save(update_fields=["password"])
         self.client.force_login(user1)
         path = reverse("users:change_password", args=(user1.pk,))
-        data = {"current_password": "wrong", "new_password": "super1234"}
-        with self.assertNumQueries(5):
+        password_hash = user1.password
+
+        with self.subTest("Wrong current password is rejected"):
+            data = {"current_password": "wrong", "new_password": "super1234"}
+            with self.assertNumQueries(5):
+                r = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(r.status_code, 400)
+            self.assertEqual(
+                r.data["current_password"][0][:],
+                "Your old password was entered incorrectly. Please enter it again.",
+            )
+            user1.refresh_from_db()
+            self.assertEqual(user1.password, password_hash)
+            self.assertEqual(auth.get_user(self.client).is_authenticated, True)
+
+        with self.subTest("Rejected change keeps the password hash and session"):
+            data = {
+                "current_password": "tester",
+                "new_password": "change123",
+                "confirm_password": "change321",
+            }
             r = self.client.put(path, data, content_type="application/json")
-        self.assertEqual(r.status_code, 400)
-        self.assertEqual(
-            r.data["current_password"][0][:],
-            "Your old password was entered incorrectly. Please enter it again.",
-        )
+            self.assertEqual(r.status_code, 400)
+            user1.refresh_from_db()
+            self.assertEqual(
+                user1.password,
+                password_hash,
+                "Rejected change must not rewrite the hash",
+            )
+            self.assertEqual(auth.get_user(self.client).is_authenticated, True)
 
     def test_old_password_with_empty_new_password(self):
         user = self._get_user()
@@ -555,7 +580,7 @@ class TestUsersApi(
                 "new_password": "test1234",
                 "confirm_password": "test1234",
             }
-            with self.assertNumQueries(8):
+            with self.assertNumQueries(9):
                 r = self.client.put(path, data, content_type="application/json")
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
@@ -575,6 +600,144 @@ class TestUsersApi(
             self.assertEqual(r.status_code, 200)
             self.assertEqual(r.data["status"], "Success")
             self.assertEqual(r.data["message"], "Password updated successfully")
+
+    def test_org_manager_cannot_change_owner_of_another_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(
+            username="owner", email="owner@test.com", password="tester123"
+        )
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self._create_org_user(organization=org1, user=org2_owner)
+        self.assertEqual(org2.owner.organization_user.user_id, org2_owner.pk)
+        self.client.force_login(org1_admin)
+        path = reverse("users:user_detail", args=(org2_owner.pk,))
+        error = (
+            "You do not have permission to edit or delete this user "
+            "because they are owner of an organization."
+        )
+
+        with self.subTest("Org1 admin can retrieve the org2 owner shared with org1"):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest("Org1 admin cannot update the org2 owner"):
+            response = self.client.patch(
+                path, {"first_name": "changed"}, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Org1 admin cannot change the org2 owner's password"):
+            response = self.client.put(
+                reverse("users:change_password", args=(org2_owner.pk,)),
+                {
+                    "current_password": None,
+                    "new_password": "changed123",
+                    "confirm_password": "changed123",
+                },
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Browsable API renders the org2 owner's password page"):
+            response = self.client.get(
+                reverse("users:change_password", args=(org2_owner.pk,)),
+                HTTP_ACCEPT="text/html",
+            )
+            self.assertEqual(response.status_code, 405)
+
+        with self.subTest("Org1 admin cannot delete the org2 owner"):
+            response = self.client.delete(path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        org2_owner.refresh_from_db()
+        self.assertEqual(org2_owner.first_name, "Tester")
+        self.assertTrue(org2_owner.check_password("tester123"))
+
+    def test_org_manager_cannot_change_owner_of_inactive_org(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self.assertEqual(org2.owner.organization_user.user_id, org2_owner.pk)
+        self._create_org_user(organization=org1, user=org2_owner)
+        org2.is_active = False
+        org2.save()
+        self.client.force_login(org1_admin)
+        response = self.client.patch(
+            reverse("users:user_detail", args=(org2_owner.pk,)),
+            {"first_name": "changed"},
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        org2_owner.refresh_from_db()
+        self.assertEqual(org2_owner.first_name, "Tester")
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "openwisp_users.password_validation.PasswordReuseValidator"},
+            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+        ]
+    )
+    def test_change_password_enforces_password_validators(self):
+        user = self._create_user(
+            username="user1", password="tester123", email="user1@test.com"
+        )
+        password_updated = localdate() - timedelta(days=30)
+        User.objects.filter(pk=user.pk).update(password_updated=password_updated)
+        user.refresh_from_db()
+        password_hash = user.password
+        path = reverse("users:change_password", args=(user.pk,))
+
+        with self.subTest("Reused password is rejected"):
+            data = {
+                "current_password": None,
+                "new_password": "tester123",
+                "confirm_password": "tester123",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "You cannot re-use your current password. Enter a new password.",
+                response.data["new_password"],
+            )
+
+        with self.subTest("Distinct short password is rejected"):
+            data = {
+                "current_password": None,
+                "new_password": "short1",
+                "confirm_password": "short1",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["new_password"][0])
+            )
+
+        user.refresh_from_db()
+        self.assertEqual(user.password, password_hash)
+        self.assertEqual(user.password_updated, password_updated)
+
+        with self.subTest("Compliant password is accepted"):
+            data = {
+                "current_password": None,
+                "new_password": "accepted123",
+                "confirm_password": "accepted123",
+            }
+            response = self.client.put(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 200)
+            user.refresh_from_db()
+            self.assertNotEqual(user.password, password_hash)
+            self.assertEqual(user.check_password("accepted123"), True)
 
     def _login_expired_admin(self):
         admin = self._create_admin(password_updated=localdate() - timedelta(days=180))
@@ -600,6 +763,103 @@ class TestUsersApi(
         self.assertEqual(other_user.check_password("tester"), True)
 
     # Tests for users email update endpoints
+    def test_org_manager_cannot_change_owner_email(self):
+        org1 = self._create_org(name="org1", slug="org1")
+        org2 = self._create_org(name="org2", slug="org2")
+        org1_admin = self._create_administrator(
+            organizations=[org1], username="manager", email="manager@test.com"
+        )
+        org2_owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=org2, user=org2_owner, is_admin=True)
+        self._create_org_user(organization=org1, user=org2_owner)
+        org1_admin.user_permissions.add(
+            *Permission.objects.filter(codename__endswith="emailaddress")
+        )
+        self.client.force_login(org1_admin)
+        email = EmailAddress.objects.get(user=org2_owner)
+        email_path = reverse("users:email_update", args=(org2_owner.pk, email.pk))
+        error = (
+            "You do not have permission to edit or delete this user "
+            "because they are owner of an organization."
+        )
+
+        with self.subTest("Add an email to the owner"):
+            response = self.client.post(
+                reverse("users:email_list", args=(org2_owner.pk,)),
+                {"email": "added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+            self.assertEqual(EmailAddress.objects.filter(user=org2_owner).count(), 1)
+
+        with self.subTest("Update the owner's email"):
+            response = self.client.patch(
+                email_path,
+                {"email": "changed@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        with self.subTest("Delete the owner's email"):
+            response = self.client.delete(email_path)
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.data["detail"], error)
+
+        email.refresh_from_db()
+        self.assertEqual(email.email, "owner@test.com")
+
+    def test_manager_and_owner_can_change_allowed_emails(self):
+        org = self._create_org(name="org1", slug="org1")
+        owner_org = self._create_org(name="org2", slug="org2")
+        manager = self._create_administrator(
+            organizations=[org], username="manager", email="manager@test.com"
+        )
+        member = self._create_user(username="member", email="member@test.com")
+        self._create_org_user(organization=org, user=member)
+        owner = self._create_user(username="owner", email="owner@test.com")
+        self._create_org_user(organization=owner_org, user=owner, is_admin=True)
+        email_permissions = Permission.objects.filter(codename__endswith="emailaddress")
+        manager.user_permissions.add(*email_permissions)
+        owner.user_permissions.add(*email_permissions)
+
+        with self.subTest("Manager creates and updates a member's email"):
+            self.client.force_login(manager)
+            response = self.client.post(
+                reverse("users:email_list", args=(member.pk,)),
+                {"email": "member-added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 201)
+            email = EmailAddress.objects.get(user=member, email="member-added@test.com")
+            response = self.client.patch(
+                reverse("users:email_update", args=(member.pk, email.pk)),
+                {"email": "member-updated@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            email.refresh_from_db()
+            self.assertEqual(email.email, "member-updated@test.com")
+
+        with self.subTest("Owner creates and updates their own email"):
+            self.client.force_login(owner)
+            response = self.client.post(
+                reverse("users:email_list", args=(owner.pk,)),
+                {"email": "owner-added@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 201)
+            email = EmailAddress.objects.get(user=owner, email="owner-added@test.com")
+            response = self.client.patch(
+                reverse("users:email_update", args=(owner.pk, email.pk)),
+                {"email": "owner-updated@test.com"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 200)
+            email.refresh_from_db()
+            self.assertEqual(email.email, "owner-updated@test.com")
+
     def test_get_email_list_api(self):
         user1 = self._create_user(username="user1", email="user1@email.com")
         path = reverse("users:email_list", args=(user1.pk,))
@@ -717,6 +977,82 @@ class TestUsersApi(
             self.assertTrue(email.primary)
             # ensure the email verification link is not sent
             self.assertEqual(len(mail.outbox), mail_sent)
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"}
+        ]
+    )
+    def test_create_user_enforces_password_validators(self):
+        path = reverse("users:user_list")
+        superuser = self._get_admin()
+        org = self._create_org(name="org1")
+        manager = self._create_administrator(
+            organizations=[org], username="manager", email="manager@test.com"
+        )
+        data = {
+            "username": "tester",
+            "email": "tester@test.com",
+            "password": "short",
+            "organization_users": {"is_admin": False, "organization": org.pk},
+        }
+
+        with self.subTest("Superuser"):
+            response = self.client.post(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["password"][0])
+            )
+            self.assertFalse(User.objects.filter(username="tester").exists())
+
+        with self.subTest("Superuser can create user with compliant password"):
+            self.client.force_login(superuser)
+            valid_data = {
+                "username": "superuser-created",
+                "email": "superuser-created@test.com",
+                "password": "accepted123",
+                "organization_users": {
+                    "is_admin": False,
+                    "organization": org.pk,
+                },
+            }
+            response = self.client.post(
+                path, valid_data, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(
+                User.objects.filter(username="superuser-created").exists(), True
+            )
+
+        with self.subTest(
+            "Organization manager can create user with compliant password"
+        ):
+            self.client.force_login(manager)
+            valid_data = {
+                "username": "manager-created",
+                "email": "manager-created@test.com",
+                "password": "accepted123",
+                "organization_users": {
+                    "is_admin": False,
+                    "organization": org.pk,
+                },
+            }
+            response = self.client.post(
+                path, valid_data, content_type="application/json"
+            )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(
+                User.objects.filter(username="manager-created").exists(), True
+            )
+
+        with self.subTest("Organization manager"):
+            self.client.force_login(manager)
+            response = self.client.post(path, data, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+            self.assertIn(
+                "This password is too short", str(response.data["password"][0])
+            )
+            self.assertFalse(User.objects.filter(username="tester").exists())
 
     def test_post_with_empty_form_api_400(self):
         path = reverse("users:user_list")

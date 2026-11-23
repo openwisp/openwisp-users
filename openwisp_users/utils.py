@@ -13,6 +13,15 @@ class BaseAdmin(BaseModelAdmin):
     history_latest_first = True
 
 
+def user_not_allowed_to_change_owner(user, obj):
+    return (
+        obj
+        and not user.is_superuser
+        and user.pk != obj.pk
+        and obj.is_owner_of_any_organization
+    )
+
+
 def usermodel_add_form(model, additional_fields):
     """
     Read:

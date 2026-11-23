@@ -38,7 +38,7 @@ from openwisp_utils.admin import CopyableFieldsAdmin
 
 from . import settings as app_settings
 from .multitenancy import MultitenantAdminMixin, MultitenantOrgFilter
-from .utils import BaseAdmin
+from .utils import BaseAdmin, user_not_allowed_to_change_owner
 from .widgets import OrganizationAutocompleteSelect
 
 Group = load_model("openwisp_users", "Group")
@@ -47,15 +47,6 @@ OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 User = get_user_model()
 logger = logging.getLogger(__name__)
-
-
-def user_not_allowed_to_change_owner(user, obj):
-    return (
-        obj
-        and not user.is_superuser
-        and user.pk != obj.pk
-        and obj.is_owner_of_any_organization
-    )
 
 
 class EmailAddressInline(admin.StackedInline):
@@ -828,6 +819,11 @@ class OrganizationUserAdmin(
             raise PermissionDenied(
                 f"Rejected unavailable membership user: actor={request.user.pk}"
             )
+
+    def has_change_permission(self, request, obj=None):
+        if obj and not request.user.is_superuser and hasattr(obj, "organizationowner"):
+            return False
+        return super().has_change_permission(request, obj)
 
     def get_readonly_fields(self, request, obj=None):
         # retrieve readonly fields

@@ -174,6 +174,10 @@ Change User Password
 Allows an authorized user to change another user's password. The ``id``
 identifies the user whose password is changed.
 
+The new password must satisfy the configured `AUTH_PASSWORD_VALIDATORS
+<https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators>`_
+setting, otherwise a ``400`` response is returned.
+
 List Groups
 ~~~~~~~~~~~
 
@@ -327,6 +331,10 @@ Create User
 .. code-block:: text
 
     POST /api/v1/users/user/
+
+The password must satisfy the configured `AUTH_PASSWORD_VALIDATORS
+<https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators>`_
+setting, otherwise a ``400`` response is returned.
 
 .. note::
 
