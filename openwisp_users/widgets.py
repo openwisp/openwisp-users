@@ -10,7 +10,9 @@ class OrganizationAutocompleteSelect(BaseAutocompleteSelect):
         js = ["admin/js/jquery.init.js", "openwisp-users/js/org-autocomplete.js"]
 
     def get_url(self):
-        return reverse("admin:ow-auto-filter")
+        # Forms exclude disabled organizations, while list filters use the
+        # same endpoint to show them for auditing.
+        return reverse("admin:ow-auto-filter") + "?exclude_disabled=true"
 
     def optgroups(self, name, value, attrs=None):
         groups = super().optgroups(name, value, attrs)

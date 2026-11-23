@@ -38,3 +38,11 @@ class CreateMixin(object):
         tag.full_clean()
         tag.save()
         return tag
+
+    def _create_config(self, **kwargs):
+        options = dict(name="test-config")
+        options.update(kwargs)
+        config = self.config_model(**options)
+        config.full_clean()
+        config.save()
+        return config

@@ -16,6 +16,7 @@ from openwisp_utils.admin_theme.menu import register_menu_group
 
 from . import settings as app_settings
 from .auth import SESAME_BACKEND, record_password_based_login
+from .signals import organization_disabled, organization_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -108,16 +109,15 @@ class OpenwispUsersConfig(AppConfig):
             (post_delete, "post_delete"),
         ]
 
-        pre_save.connect(
-            self.handle_org_is_active_change,
-            sender=Organization,
-            dispatch_uid="handle_org_is_active_change",
-        )
-        post_save.connect(
-            self.invalidate_org_membership_cache,
-            sender=Organization,
-            dispatch_uid="invalidate_org_membership_cache",
-        )
+        for signal, name in (
+            (organization_disabled, "organization_disabled"),
+            (organization_enabled, "organization_enabled"),
+        ):
+            signal.connect(
+                self.handle_org_is_active_change,
+                sender=Organization,
+                dispatch_uid=f"handle_org_is_active_change_{name}",
+            )
 
         for model in [OrganizationUser, OrganizationOwner]:
             for signal, name in signal_tuples:
@@ -179,30 +179,11 @@ class OpenwispUsersConfig(AppConfig):
             record_password_based_login(request, False)
 
     @classmethod
-    def handle_org_is_active_change(cls, instance, using, **kwargs):
-        if instance._state.adding:
-            # If it's a new organization, we don't need to update any cache
-            return
-        Organization = instance._meta.model
-        try:
-            old_instance = (
-                Organization.objects.using(using).only("is_active").get(pk=instance.pk)
-            )
-        except Organization.DoesNotExist:
-            return
-        instance._is_active_changed = instance.is_active != old_instance.is_active
-
-    @classmethod
-    def invalidate_org_membership_cache(cls, instance, using, **kwargs):
-        if not getattr(instance, "_is_active_changed", False):
-            return
-        instance._is_active_changed = False
+    def handle_org_is_active_change(cls, instance, **kwargs):
         from .tasks import invalidate_org_membership_cache
 
-        pk = instance.pk
-        transaction.on_commit(
-            lambda: invalidate_org_membership_cache.delay(pk), using=using
-        )
+        # Status signals run after commit, preventing stale cache repopulation.
+        invalidate_org_membership_cache.delay(instance.pk)
 
     @classmethod
     def pre_save_update_organizations_dict(cls, instance, **kwargs):
@@ -248,7 +229,7 @@ class OpenwispUsersConfig(AppConfig):
 
     @classmethod
     def create_organization_owner(cls, instance, created, **kwargs):
-        if not created or not instance.is_admin:
+        if not created or not instance.is_admin or not instance.organization.is_active:
             return
         OrganizationOwner = load_model("openwisp_users", "OrganizationOwner")
         org_owner_exist = OrganizationOwner.objects.filter(

@@ -31,6 +31,98 @@ This class has two important attributes:
   <https://github.com/openwisp/openwisp-firmware-upgrader/search?q=multitenant_parent>`_
   for a real-world example.
 
+Disabled Organization Write Protection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``MultitenantAdminMixin`` protects objects belonging to a :ref:`disabled
+organization <users_disabled_organization>`, including objects linked
+through ``multitenant_parent``:
+
+- Superusers can view and delete the objects, but cannot change them.
+  Non-superusers cannot access objects in disabled organizations through
+  this mixin, even if they have the model's view or delete permission.
+- Organization and related-object choices exclude disabled organizations.
+- The organization admin allows superusers to re-enable the organization.
+
+Inlines
++++++++
+
+When the parent belongs to a disabled organization, the mixin prevents
+adding or editing its inline rows, even if the inline does not use the
+mixin. Deleting an inline row through the form requires permission to
+change the parent.
+
+An editable parent, such as a user, can also have individual inline rows
+belonging to disabled organizations. Use
+``MultitenantReadOnlyInlineFormSet`` to make those rows read-only while
+still allowing deletion.
+
+For an inline linked through another object, set the field on the inline
+model and the path from that field to the organization. For example, a
+bookmark linked to a book can use:
+
+.. code-block:: python
+
+    class BookmarkInlineFormSet(MultitenantReadOnlyInlineFormSet):
+        organization_fk_field = "book"
+        organization_lookup = "book__organization"
+
+
+    class BookmarkInline(MultitenantAdminMixin, admin.StackedInline):
+        model = Bookmark
+        formset = BookmarkInlineFormSet
+        fields = ("book",)
+        multitenant_shared_relations = ["book"]
+
+The formset protects existing rows. The inline mixin also filters book
+choices for new and editable rows, excluding disabled organizations.
+
+Admin Actions
++++++++++++++
+
+Actions are blocked if any selected object belongs to a disabled
+organization. The built-in ``delete_selected`` and
+``delete_selected_overridden`` actions are excluded by default. To allow
+another cleanup action, list its name in
+``disabled_organization_action_exclusions``:
+
+.. code-block:: python
+
+    class DeviceAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+        disabled_organization_action_exclusions = ("deactivate_device",)
+
+Customization
++++++++++++++
+
+For a cleanup operation that needs to bypass write protection, set
+``disabled_organization_write_protection = False`` on its ``ModelAdmin``
+or inline. The default is ``True``. The opt-out permits all writes, so the
+integration must separately block unrelated form, inline, and action
+writes:
+
+.. code-block:: python
+
+    from django.contrib import admin
+    from openwisp_users.multitenancy import MultitenantAdminMixin
+
+
+    class BookAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+        disabled_organization_write_protection = False
+        # other attributes
+
+An opted-out admin keeps the object's current disabled organization
+selectable so it can be saved. The opt-out does not disable field
+protection provided by ``MultitenantReadOnlyInlineFormSet``. An inline
+opt-out also does not grant permission to change the parent, which must
+allow the form submission separately.
+
+Use ``multitenant_parent`` when the organization is reached through a
+parent object. For other relationships, override
+``get_object_organization()`` to return the organization. This override
+only controls write protection: also restrict the admin queryset and form
+choices to the requester's organizations and exclude disabled
+organizations from write choices.
+
 ``MultitenantOrgFilter``
 ------------------------
 

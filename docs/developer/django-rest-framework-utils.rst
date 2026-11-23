@@ -131,6 +131,67 @@ organization managers or owners to view shared objects in read-only mode.
 
 Standard users will not be able to view or list shared objects.
 
+``DisabledOrgReadOnly``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+**Full python path**:
+``openwisp_users.api.permissions.DisabledOrgReadOnly``.
+
+This object-level permission class blocks updates to objects belonging to
+a :ref:`disabled organization <users_disabled_organization>`. ``GET``,
+``HEAD``, ``OPTIONS`` and ``DELETE`` remain allowed.
+
+The object's organization is resolved through the view's
+``organization_field`` attribute, which defaults to ``"organization"``. An
+invalid relation path denies the write instead of failing open. Views that
+are not organization-scoped must opt out explicitly.
+
+.. important::
+
+    ``DisabledOrgReadOnly`` guards **updates only**. It implements
+    ``has_object_permission``, which DRF does not call on ``POST``, so it
+    does **not** block creation for a disabled organization. The
+    serializer must exclude disabled organizations from its
+    ``organization`` field, for example by using
+    ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
+    or ``FilterSerializerByOrgOwned`` mixin, or ``Organization.active``. A
+    plain ``ModelSerializer`` can still create an object for a disabled
+    organization.
+
+    Some endpoints create an object under a parent identified in the URL,
+    such as a book under a shelf. If the new object gets its organization
+    from that parent, the request may not include an ``organization``
+    field for the serializer to check. The view must check that the parent
+    belongs to an active organization before saving the new object.
+
+A view can opt out of this guard by setting
+``allow_disabled_organization_writes = True``. An opted-out view must
+separately block unrelated writes and allow only cleanup operations for
+disabled organizations:
+
+.. code-block:: python
+
+    from openwisp_users.api.permissions import DisabledOrgReadOnly
+    from rest_framework.generics import RetrieveUpdateDestroyAPIView
+
+
+    class SubnetView(RetrieveUpdateDestroyAPIView):
+        permission_classes = (DisabledOrgReadOnly,)
+        allow_disabled_organization_writes = True
+
+``DisabledOrgReadOnly`` is already included in ``ProtectedAPIMixin``'s
+default ``permission_classes`` (see below), so views that use
+``ProtectedAPIMixin`` get this guard automatically without any extra
+configuration.
+
+.. note::
+
+    ``Organization.active`` (django-organizations' ``ActiveOrgManager``)
+    is the canonical queryset for active organizations: use
+    ``Organization.active.all()`` when writing custom code that needs to
+    select from or filter active organizations, instead of filtering
+    ``Organization.objects`` manually.
+
 ``ProtectedAPIMixin``
 ---------------------
 
@@ -254,6 +315,16 @@ The ``FilterSerializerByOrgMembership``, ``FilterSerializerByOrgManaged``
 and ``FilterSerializerByOrgOwned`` can be used to solve this issue.
 
 These serializers do not allow non-superusers to create shared objects.
+
+.. _multi_tenant_serializers_disabled_org:
+
+These serializers also exclude :ref:`disabled organizations
+<users_disabled_organization>` from the ``organization`` field for all
+users, including superusers. Submitting a disabled organization's primary
+key returns a validation error, except when updating an existing object
+through a view with ``allow_disabled_organization_writes = True``. Such an
+update may retain the object's current disabled organization. Creation in
+or reassignment to another disabled organization remains invalid.
 
 Usage example:
 
