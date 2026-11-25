@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
@@ -8,6 +9,11 @@ from openwisp_users.multitenancy import (
 )
 
 from .models import Book, Library, Shelf, Tag, Template
+
+if "reversion" in settings.INSTALLED_APPS:
+    from reversion.admin import VersionAdmin
+else:
+    VersionAdmin = admin.ModelAdmin
 
 
 class BaseAdmin(MultitenantAdminMixin, admin.ModelAdmin):
@@ -64,7 +70,7 @@ class TemplateAdmin(BaseAdmin):
     pass
 
 
-class TagAdmin(BaseAdmin):
+class TagAdmin(MultitenantAdminMixin, VersionAdmin):
     pass
 
 

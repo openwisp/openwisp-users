@@ -5,13 +5,14 @@ from swapper import load_model
 
 from openwisp_utils.admin_theme.filters import AutocompleteFilter
 
+from .utils import SuperuserRevisionMixin
 from .widgets import SHARED_SYSTEMWIDE_LABEL, OrganizationAutocompleteSelect
 
 User = get_user_model()
 OrganizationUser = load_model("openwisp_users", "OrganizationUser")
 
 
-class MultitenantAdminMixin(object):
+class MultitenantAdminMixin(SuperuserRevisionMixin):
     """
     Mixin that makes a ModelAdmin class multitenant:
     users will see only the objects related to the organizations
