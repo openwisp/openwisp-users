@@ -86,15 +86,9 @@ From the repository root, run the full test suite with:
 
     ./runtests
 
-To run a single test module, pass its dotted Python path. You can also
-pass a test class or method, and add ``--failfast`` or ``--noinput``:
-
-.. code-block:: shell
-
-    ./runtests openwisp_users.tests.test_models
-
-Run tests under ``openwisp2.sample_users.tests`` separately because they
-use the sample user model.
+For focused tests, pass a dotted path, for example ``./runtests
+openwisp_users.tests.test_models``. Run sample user tests separately
+because they use different models.
 
 Alternative Sources
 -------------------

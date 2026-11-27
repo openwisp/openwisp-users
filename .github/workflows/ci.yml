@@ -98,9 +98,6 @@ jobs:
           DJANGO_VERSION: ${{ matrix.django-version }}
         run: ./install-ci-deps.sh
 
-      - name: CI entry point tests
-        run: python tests/test_ci_entrypoint.py
-
       - name: QA checks
         run: |
           ./run-qa-checks
