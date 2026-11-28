@@ -5,7 +5,9 @@ set -e
 if [ "${CI_SYSTEM_DEPS_READY:-0}" != 1 ]; then
     sudo apt update -qq
     sudo apt-get -qq -y install gettext
-    sudo npm install -g prettier
+    if [ "${CI_SYSTEM_DEPS_ONLY:-0}" != 1 ]; then
+        sudo npm install -g prettier
+    fi
 fi
 if [ "${CI_SYSTEM_DEPS_ONLY:-0}" = 1 ]; then
     exit 0
