@@ -80,11 +80,15 @@ Launch development server:
 
 You can access the admin interface at ``http://127.0.0.1:8000/admin/``.
 
-Run tests with:
+From the repository root, run the full test suite with:
 
 .. code-block:: shell
 
     ./runtests
+
+For focused tests, pass a dotted path, for example ``./runtests
+openwisp_users.tests.test_models``. Run sample user tests separately
+because they use different models.
 
 Alternative Sources
 -------------------
