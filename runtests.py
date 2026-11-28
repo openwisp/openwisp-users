@@ -22,7 +22,11 @@ def run_focused_tests(arguments):
 
     sample_module = "openwisp2.sample_users.tests"
     pattern = compile_test_label_pattern(
-        module_roots=("openwisp_users.tests", "testapp.tests"),
+        module_roots=(
+            "openwisp_users.tests",
+            "testapp.tests",
+            "openwisp_users.tests.test_api",
+        ),
         exact_modules=(sample_module, "testapp.tests.tests"),
         allow_subpackages=True,
     )
